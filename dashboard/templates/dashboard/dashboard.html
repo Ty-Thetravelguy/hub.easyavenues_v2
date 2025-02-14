@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'dashboard/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <div class="row pt-3">
+        <div class="col-4">
+            <h3 class="text-center display-6 work-sans">Your Favorite Websites</h3>
+
+            <!-- Add button -->
+            <div class="text-end mb-3">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBookmarkModal"
+                    aria-label="Add new page">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Add Page
+                </button>
+            </div>
+
+            <!-- Bookmark Grid -->
+            <div class="{% if bookmarks %}bookmark-grid{% else %}min-vh-50{% endif %}">
+                {% if bookmarks %}
+                {% for bookmark in bookmarks %}
+                <div class="bookmark-item" data-id="{{ bookmark.id }}" data-url="{{ bookmark.url }}">
+                    <div class="bookmark-icon">
+                        {% if bookmark.favicon_url %}
+                        <img src="{{ bookmark.favicon_url }}" alt="{{ bookmark.title }}">
+                        {% else %}
+                        <div class="default-icon">
+                            <i class="fas fa-globe" aria-hidden="true"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="bookmark-title work-sans">{{ bookmark.title }}</div>
+                    <div class="bookmark-actions">
+                        <button class="btn btn-sm btn-edit" data-id="{{ bookmark.id }}"
+                            aria-label="Edit {{ bookmark.title }}">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn btn-sm btn-delete" data-id="{{ bookmark.id }}"
+                            aria-label="Delete {{ bookmark.title }}">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="bookmark-empty-state">
+                    <div class="text-center">
+                        <div class="bookmark-empty-icon">
+                            <i class="fas fa-bookmark fa-3x color-purple"></i>
+                        </div>
+                        <h4 class="work-sans color-blue mb-2">No Pages Added Yet</h4>
+                        <p class="text-muted small">
+                            Click the Add Page button above to start building your collection
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-4">
+            <h3 class="text-center display-6 work-sans">Company Pages</h3>
+            <div class="row g-3">
+                <div class="col-6">
+                    <a href="{% url 'agent_support' %}" class="text-decoration-none">
+                        <div class="dashboard-card">
+                            <img src="{% static 'images/travel-flight.jpg' %}" alt="Agent Support">
+                            <p>Agent Support</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="{% url 'crm' %}" class="text-decoration-none">
+                        <div class="dashboard-card">
+                            <img src="{% static 'images/client.jpg' %}" alt="Client/Supplier CRM">
+                            <p>Client/Supplier CRM</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="row g-3 mt-3">
+                <div class="col-6">
+                    <a href="{% url 'finance' %}" class="text-decoration-none">
+                        <div class="dashboard-card">
+                            <img src="{% static 'images/finance.jpg' %}" alt="Finance">
+                            <p>Finance</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="{% url 'office' %}" class="text-decoration-none">
+                        <div class="dashboard-card">
+                            <img src="{% static 'images/personal.jpg' %}" alt="Office">
+                            <p>Office</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="row g-3 mt-3">
+                <div class="col-6">
+                    <a href="{% url 'external_links' %}" class="text-decoration-none">
+                        <div class="dashboard-card">
+                            <img src="{% static 'images/ext.jpg' %}" alt="External Links">
+                            <p>External Links</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="{% url 'query_log' %}" class="text-decoration-none">
+                        <div class="dashboard-card">
+                            <img src="{% static 'images/query-log.jpg' %}" alt="Query Log">
+                            <div class="overlay"></div>
+                            <p>Query Log</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- In your updates section -->
+        <div class="col-4">
+            <h3 class="text-center display-6 work-sans">Latest Updates</h3>
+            <div class="updates-container">
+                {% if updates %}
+                {% for update in updates %}
+                <div class="update-card {% if update.update_type == 'COMPANY' %}company-update{% else %}supplier-update{% endif %}"
+                    data-id="{{ update.id }}">
+                    <div class="update-header">
+                        <i class="fas fa-info-circle"></i>
+                        <span>{{ update.title }}</span>
+                        {% if update.attachments.exists %}
+                        <i class="fas fa-paperclip ms-2"></i>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-center">No updates available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Bookmark Modal -->
+<div class="modal fade" id="addBookmarkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-blue-purple text-white">
+                <h5 class="modal-title">Add New Page</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bookmarkForm">
+                    <!-- Make sure this hidden input exists -->
+                    <input type="hidden" id="bookmarkId" name="id" value="">
+
+                    <div class="mb-3">
+                        <label for="bookmarkUrl" class="form-label">URL</label>
+                        <input type="url" class="form-control" id="bookmarkUrl" name="url" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bookmarkTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="bookmarkTitle" name="title" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveBookmark">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for displaying full update -->
+<!-- Add this after your main content -->
+<div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="update-content"></div>
+                <div class="update-attachments mt-3"></div>
+                <div class="update-metadata mt-3">
+                    <small class="text-muted">
+                        Created: <span class="created-at"></span><br>
+                        Last modified: <span class="modified-at"></span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="{% static 'dashboard/js/dashboard.js' %}"></script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-blue-purple text-white py-3">
+                    <h2 class="text-center mb-0">{% trans "Verify Your Email" %}</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center">
+                        <div class="mb-4">
+                            <i class="fas fa-envelope fa-3x color-purple mb-3"></i>
+                        </div>
+
+                        <p class="mb-4">
+                            {% blocktrans %}
+                            We have sent an email to you for verification. Follow the link provided to finalize the
+                            signup process.
+                            {% endblocktrans %}
+                        </p>
+
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {% blocktrans %}
+                            If you do not see the verification email in your main inbox, check your spam folder.
+                            {% endblocktrans %}
+                        </div>
+
+                        <p class="text-muted mt-3">
+                            {% blocktrans %}
+                            Please contact us if you do not receive the verification email within a few minutes.
+                            {% endblocktrans %}
+                        </p>
+
+                        <div class="mt-4">
+                            <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+                                {% trans "Return to Login" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

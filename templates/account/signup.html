@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load account socialaccount %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-blue-purple text-white py-3">
+                    <h2 class="text-center mb-0">Create Account</h2>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Microsoft Signup Button -->
+                    <div class="d-grid mb-4">
+                        <a href="{% provider_login_url 'microsoft' %}" class="btn btn-outline-dark btn-lg">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/20px-Microsoft_logo.svg.png"
+                                alt="Microsoft" class="me-2" style="height: 20px;">
+                            Sign up with Microsoft
+                        </a>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="position-relative my-4">
+                        <hr>
+                        <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted">
+                            or sign up with email
+                        </span>
+                    </div>
+
+                    <!-- Signup Form -->
+                    <form method="POST" action="{% url 'account_signup' %}">
+                        {% csrf_token %}
+
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <small>Please correct the errors below.</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- First Name Field -->
+                        <div class="form-floating mb-3">
+                            <input type="text" name="first_name"
+                                class="form-control {% if form.first_name.errors %}is-invalid{% endif %}"
+                                id="id_first_name" placeholder="First Name" required>
+                            <label for="id_first_name">First Name</label>
+                            {% if form.first_name.errors %}
+                            <div class="invalid-feedback">{{ form.first_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Last Name Field -->
+                        <div class="form-floating mb-3">
+                            <input type="text" name="last_name"
+                                class="form-control {% if form.last_name.errors %}is-invalid{% endif %}"
+                                id="id_last_name" placeholder="Last Name" required>
+                            <label for="id_last_name">Last Name</label>
+                            {% if form.last_name.errors %}
+                            <div class="invalid-feedback">{{ form.last_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email Field -->
+                        <div class="form-floating mb-3">
+                            <input type="email" name="email"
+                                class="form-control {% if form.email.errors %}is-invalid{% endif %}" id="id_email"
+                                placeholder="name@example.com" required>
+                            <label for="id_email">Email address</label>
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback">{{ form.email.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="form-floating mb-3">
+                            <input type="password" name="password1"
+                                class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                                id="id_password1" placeholder="Password" required>
+                            <label for="id_password1">Password</label>
+                            {% if form.password1.errors %}
+                            <div class="invalid-feedback">{{ form.password1.errors|join:", " }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    Your password must be at least 8 characters long and contain both letters and
+                                    numbers.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Password Field -->
+                        <div class="form-floating mb-4">
+                            <input type="password" name="password2"
+                                class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                                id="id_password2" placeholder="Confirm Password" required>
+                            <label for="id_password2">Confirm Password</label>
+                            {% if form.password2.errors %}
+                            <div class="invalid-feedback">{{ form.password2.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        {% if redirect_field_value %}
+                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                        {% endif %}
+
+                        <!-- Terms and Conditions -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label text-muted" for="terms">
+                                I agree to the <a href="#" class="text-primary">Terms of Service</a> and <a href="#"
+                                    class="text-primary">Privacy Policy</a>
+                            </label>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
+                        </div>
+                    </form>
+
+                    <!-- Login Link -->
+                    <div class="text-center mt-4">
+                        <p class="mb-0">
+                            Already have an account?
+                            <a href="{% url 'account_login' %}" class="text-primary">Sign in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load account socialaccount %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-blue-purple text-white py-3">
+                    <h2 class="text-center mb-0">Welcome Back</h2>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Microsoft Login Button -->
+                    <div class="d-grid mb-4">
+                        <a href="{% provider_login_url 'microsoft' %}" class="btn btn-outline-dark btn-lg">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/20px-Microsoft_logo.svg.png"
+                                alt="Microsoft" class="me-2" style="height: 20px;">
+                            Sign in with Microsoft
+                        </a>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="position-relative my-4">
+                        <hr>
+                        <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted">
+                            or sign in with email
+                        </span>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form method="POST" action="{% url 'account_login' %}">
+                        {% csrf_token %}
+
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <small>Please correct the errors below.</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Email Field -->
+                        <div class="form-floating mb-3">
+                            <input type="email" name="login"
+                                class="form-control {% if form.login.errors %}is-invalid{% endif %}" id="id_login"
+                                placeholder="name@example.com" required>
+                            <label for="id_login">Email address</label>
+                            {% if form.login.errors %}
+                            <div class="invalid-feedback">{{ form.login.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="form-floating mb-3">
+                            <input type="password" name="password"
+                                class="form-control {% if form.password.errors %}is-invalid{% endif %}" id="id_password"
+                                placeholder="Password" required>
+                            <label for="id_password">Password</label>
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback">{{ form.password.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Remember Me -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="remember" id="id_remember">
+                            <label class="form-check-label text-muted" for="id_remember">
+                                Remember me
+                            </label>
+                        </div>
+
+                        {% if redirect_field_value %}
+                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                        {% endif %}
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+                        </div>
+                    </form>
+
+                    <!-- Links -->
+                    <div class="text-center mt-4">
+                        <p class="mb-2">
+                            <a href="{% url 'account_reset_password' %}" class="text-muted">Forgot password?</a>
+                        </p>
+                        <p class="mb-0">
+                            Don't have an account?
+                            <a href="{% url 'account_signup' %}" class="text-primary">Create account</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

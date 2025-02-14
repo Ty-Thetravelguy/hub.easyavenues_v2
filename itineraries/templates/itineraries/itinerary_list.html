@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="display-6 work-sans">Your Itineraries</h2>
+        </div>
+        <div class="col text-end">
+            <form method="POST" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create New Itinerary
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if trips %}
+    <div class="row g-4">
+        {% for trip in trips %}
+        <div class="col-md-4">
+            <div class="card h-100 itinerary-card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ trip.name }}</h5>
+                    <p class="card-text text-muted">Created: {{ trip.created_at|date:"d M Y" }}</p>
+                    {% if trip.pnrs.exists %}
+                    <div class="segments-preview">
+                        {% for pnr in trip.pnrs.all %}
+                        {% for segment in pnr.segments.all|slice:":2" %}
+                        <div class="segment-item">
+                            <i class="fas fa-plane"></i>
+                            {{ segment.departure_airport }} → {{ segment.arrival_airport }}
+                        </div>
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'itineraries:detail' trip.id %}" class="btn btn-outline-primary btn-sm">View
+                        Details</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <div class="empty-state-icon mb-4">
+            <i class="fas fa-plane fa-3x"></i>
+        </div>
+        <h3>No Itineraries Yet</h3>
+        <p class="text-muted">Create your first itinerary to get started!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="display-6 work-sans">{{ trip.name }}</h2>
+        </div>
+        <div class="col text-end">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importPNRModal">
+                <i class="fas fa-plus"></i> Import PNR
+            </button>
+        </div>
+    </div>
+
+    {% if trip.pnrs.exists %}
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="timeline">
+                    {% for pnr in trip.pnrs.all %}
+                    {% for segment in pnr.segments.all %}
+
+                    <div class="timeline-item">
+
+                        <div class="timeline-content">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="timeline-marker">
+                                            <i class="fas fa-plane"></i>
+                                        </div>
+                                        <h5 class="card-title mb-0">{{ segment.carrier }}{{ segment.flight_number }}
+                                        </h5>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Departure:</strong><br>
+                                                {{ segment.departure_airport }}<br>
+                                                {{ segment.departure_date|date:"D, d M Y" }}<br>
+                                                {{ segment.departure_date|time:"H:i" }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Arrival:</strong><br>
+                                                {{ segment.arrival_airport }}<br>
+                                                {{ segment.arrival_date|date:"D, d M Y" }}<br>
+                                                {{ segment.arrival_date|time:"H:i" }}</p>
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-success">{{ segment.booking_status }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+
+    <div class="text-center py-5">
+        <div class="empty-state-icon mb-4">
+            <i class="fas fa-ticket-alt fa-3x"></i>
+        </div>
+        <h3>Start Building Your Itinerary</h3>
+        <p class="text-muted">Import a PNR to add your travel segments</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Import PNR Modal -->
+<div class="modal fade" id="importPNRModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import PNR</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="pnrForm">
+                    <div class="mb-3">
+                        <label for="pnrLocator" class="form-label">Enter your PNR Locator</label>
+                        <input type="text" class="form-control" id="pnrLocator" required>
+                        <div class="form-text">This is your 6-character booking reference</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="importPNRButton">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+{% endblock %}
