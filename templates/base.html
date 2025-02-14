@@ -79,9 +79,10 @@
                                                 <div class="recently-viewed mt-3">
                                                     <div class="list-group">
                                                         {% for page in user.recently_viewed.all|slice:":10" %}
-                                                        <a href="{{ page.url }}"
-                                                            class="list-group-item list-group-item-action bg-gradient-blue-purple text-white border-0 mb-2">
-                                                            {{ page.title }}
+                                                        <a href="{{ page.url }}" 
+                                                           class="list-group-item list-group-item-action bg-gradient-blue-purple text-white border-0 mb-2">
+                                                            {# Change this line - use the built-in Django template filters #}
+                                                            {{ page.title|title }}
                                                             <small class="d-block text-light">
                                                                 {{ page.viewed_at|timesince }} ago
                                                             </small>
