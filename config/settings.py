@@ -7,10 +7,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv()
 
-# Add these debug prints
-print("Environment variables:", os.environ)
-print("Secret key:", os.getenv('SECRET_KEY'))
-
 # Then use environment variables like:
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG') == 'True'
@@ -22,9 +18,12 @@ AMADEUS_OFFICE_ID = os.getenv("AMADEUS_OFFICE_ID")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS")
+# Update this line
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
-ALLOWED_DOMAINS = os.getenv("ALLOWED_DOMAINS")
+# Or for extra safety, add list comprehension to remove any empty strings:
+ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host.strip()]
+ALLOWED_DOMAINS = os.getenv("ALLOWED_DOMAINS", "").split(",")
 
 # Application definition
 
@@ -180,7 +179,7 @@ LOGOUT_URL = '/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
-ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Use 'username_email' if you also want username support
+ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
