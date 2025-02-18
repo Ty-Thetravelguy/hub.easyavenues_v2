@@ -1,6 +1,8 @@
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
-def agent_support(request):
-    return render(request, 'agent_support/agent_support.html')
+@login_required
+def agent_support_view(request):
+    return render(request, 'agent_support/agent_support_view.html')
 
