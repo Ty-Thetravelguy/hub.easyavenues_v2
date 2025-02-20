@@ -3,9 +3,11 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="container">
-        <div class="row justify-content-center mt-5 mb-5">
-            <div class="col-md-9">
+    
+        <div class="row mt-5 mb-5">
+            <!-- Center column with form -->
+            <div class="col-md-2"></div>
+            <div class="col-md-8 mx-auto">  <!-- Added mx-auto here -->
                 <div class="card shadow">
                     <div class="card-header text-center bg-gradient-blue-purple">
                         <h3 class="text-color-white">Add New Supplier</h3>
@@ -34,7 +36,17 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Back button in fixed position -->
+
+            <div class="col-md-2">
+                <div class="sticky-top pt-3 text-center"> <!-- Add specific top position -->
+                    <a href="{% url 'agent_support:agent_support_view' %}" class="btn btn-special btn-md">
+                        <i class="fas fa-arrow-left me-1"></i>Go Back
+                    </a>
+                </div>
+            </div>
         </div>
-    </div>
+    
 </div>
 {% endblock %}
