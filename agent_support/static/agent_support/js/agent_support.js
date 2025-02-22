@@ -1,167 +1,80 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Websites handling
-
-    const websitesContainer = document.getElementById('websites-container');
-
-    const addWebsiteButton = websitesContainer.querySelector('.add-website');
-
-
-    addWebsiteButton.addEventListener('click', function() {
-         const newEntry = document.createElement('div');
-        newEntry.className = 'website-entry mb-2';
-        newEntry.innerHTML = `
-            <div class="row">
-                <div class="col-md-5">
-                    <input type="url" class="form-control website-url" 
-                           placeholder="Enter website URL">
-                    <div class="form-text">Enter the website URL (e.g., https://example.com)</div>
-                </div>
-                <div class="col-md-5">
-                    <input type="text" class="form-control website-description" 
-                           placeholder="Enter description">
-                    <div class="form-text">Enter a description for this website</div>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-danger remove-website">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-        websitesContainer.appendChild(newEntry);
+    // Add new entry
+    document.querySelectorAll('.add-phone, .add-email, .add-website').forEach(button => {
+        button.addEventListener('click', function() {
+            const container = this.closest('div');
+            const type = this.classList.contains('add-phone') ? 'phone' : 
+                        this.classList.contains('add-email') ? 'email' : 'website';
+            
+            const newEntry = document.createElement('div');
+            newEntry.className = `${type}-entry mb-2`;
+            newEntry.innerHTML = getEntryHTML(type);
+            
+            container.insertBefore(newEntry, this);
+        });
     });
 
-    // Phone numbers handling
-    const phonesContainer = document.getElementById('phones-container');
-    const addPhoneButton = phonesContainer.querySelector('.add-phone');
+    // Remove entry
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-entry')) {
+            e.target.closest('.phone-entry, .email-entry, .website-entry').remove();
+        }
+    });
+});
 
-    addPhoneButton.addEventListener('click', function() {
-        const newEntry = document.createElement('div');
-        newEntry.className = 'phone-entry mb-2';
-        newEntry.innerHTML = `
+function getEntryHTML(type) {
+    const templates = {
+        phone: `
             <div class="row">
                 <div class="col-md-5">
-                    <input type="tel" class="form-control phone-number" 
-                           placeholder="Enter phone number">
+                    <input type="tel" name="phone_number[]" class="form-control" placeholder="Enter phone number">
                     <div class="form-text">Enter the phone number (e.g., +44 123 456 7890)</div>
                 </div>
                 <div class="col-md-5">
-                    <input type="text" class="form-control phone-description" 
-                           placeholder="Enter description">
+                    <input type="text" name="phone_description[]" class="form-control" placeholder="Enter description">
                     <div class="form-text">Enter a description for this number</div>
                 </div>
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-danger remove-phone">
+                    <button type="button" class="btn btn-danger remove-entry">
                         <i class="fas fa-minus"></i>
                     </button>
                 </div>
             </div>
-        `;
-        phonesContainer.appendChild(newEntry);
-    });
-
-    // Email addresses handling
-    const emailsContainer = document.getElementById('emails-container');
-    const addEmailButton = emailsContainer.querySelector('.add-email');
-
-    addEmailButton.addEventListener('click', function() {
-        const newEntry = document.createElement('div');
-        newEntry.className = 'email-entry mb-2';
-        newEntry.innerHTML = `
+        `,
+        email: `
             <div class="row">
                 <div class="col-md-5">
-                    <input type="email" class="form-control email-address" 
-                           placeholder="Enter email address">
+                    <input type="email" name="email_address[]" class="form-control" placeholder="Enter email address">
                     <div class="form-text">Enter the email address</div>
                 </div>
                 <div class="col-md-5">
-                    <input type="text" class="form-control email-description" 
-                           placeholder="Enter description">
+                    <input type="text" name="email_description[]" class="form-control" placeholder="Enter description">
                     <div class="form-text">Enter a description for this email</div>
                 </div>
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-danger remove-email">
+                    <button type="button" class="btn btn-danger remove-entry">
                         <i class="fas fa-minus"></i>
                     </button>
                 </div>
             </div>
-        `;
-        emailsContainer.appendChild(newEntry);
-    });
-
-    // Remove handlers
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.remove-website')) {
-            e.target.closest('.website-entry').remove();
-        }
-        if (e.target.closest('.remove-phone')) {
-            e.target.closest('.phone-entry').remove();
-        }
-        if (e.target.closest('.remove-email')) {
-            e.target.closest('.email-entry').remove();
-        }
-    });
-
-    // Form submission
-
-    document.querySelector('form').addEventListener('submit', function(e) {
-        e.preventDefault();
-    
-        // Collect websites
-        const websites = [];
-        document.querySelectorAll('.website-entry').forEach(entry => {
-            const url = entry.querySelector('.website-url').value;
-            const description = entry.querySelector('.website-description').value;
-            if (url && description) {
-                websites.push({ url, description });
-            }
-        });
-    
-        // Collect phone numbers
-        const phones = [];
-        document.querySelectorAll('.phone-entry').forEach(entry => {
-            const number = entry.querySelector('.phone-number').value;
-            const description = entry.querySelector('.phone-description').value;
-            if (number && description) {
-                phones.push({ number, description });
-            }
-        });
-    
-        // Collect email addresses
-        const emails = [];
-        document.querySelectorAll('.email-entry').forEach(entry => {
-            const email = entry.querySelector('.email-address').value;
-            const description = entry.querySelector('.email-description').value;
-            if (email && description) {
-                emails.push({ email, description });
-            }
-        });
-    
-        // Only add hidden fields if there's data
-        if (websites.length > 0) {
-            const websitesInput = document.createElement('input');
-            websitesInput.type = 'hidden';
-            websitesInput.name = 'agent_websites';
-            websitesInput.value = JSON.stringify(websites);
-            this.appendChild(websitesInput);
-        }
-    
-        if (phones.length > 0) {
-            const phonesInput = document.createElement('input');
-            phonesInput.type = 'hidden';
-            phonesInput.name = 'contact_phone';
-            phonesInput.value = JSON.stringify(phones);
-            this.appendChild(phonesInput);
-        }
-    
-        if (emails.length > 0) {
-            const emailsInput = document.createElement('input');
-            emailsInput.type = 'hidden';
-            emailsInput.name = 'general_email';
-            emailsInput.value = JSON.stringify(emails);
-            this.appendChild(emailsInput);
-        }
-    
-        this.submit();
-    });
-});
+        `,
+        website: `
+            <div class="row">
+                <div class="col-md-5">
+                    <input type="url" name="website_url[]" class="form-control" placeholder="Enter website URL">
+                    <div class="form-text">Enter the website URL (e.g., https://example.com)</div>
+                </div>
+                <div class="col-md-5">
+                    <input type="text" name="website_description[]" class="form-control" placeholder="Enter description">
+                    <div class="form-text">Enter a description for this website</div>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger remove-entry">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
+        `
+    };
+    return templates[type];
+}

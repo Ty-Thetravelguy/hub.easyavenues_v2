@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mt-5 mb-5">
+        <div class="col-md-2"></div>
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header text-center bg-gradient-blue-purple">
+                    <h3 class="text-color-white">Edit Supplier: {{ supplier.supplier_name }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <!-- Supplier Type -->
+                        <div class="mb-3">
+                            <label for="{{ form.supplier_type.id_for_label }}" class="form-label">
+                                {{ form.supplier_type.label }}
+                            </label>
+                            {{ form.supplier_type }}
+                            {% if form.supplier_type.help_text %}
+                            <div class="form-text">{{ form.supplier_type.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Supplier Name -->
+                        <div class="mb-3">
+                            <label for="{{ form.supplier_name.id_for_label }}" class="form-label">
+                                {{ form.supplier_name.label }}
+                            </label>
+                            {{ form.supplier_name }}
+                            {% if form.supplier_name.help_text %}
+                            <div class="form-text">{{ form.supplier_name.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+
+                        <!-- Agent Websites -->
+                        <div class="mb-3">
+                            <label class="form-label">Agent Websites</label>
+                            <div id="websites-container">
+                                {% if supplier.agent_websites %}
+                                {% for website in supplier.agent_websites %}
+                                <div class="website-entry mb-2">
+                                    <div class="row">
+                                        <div class="col-md-5">
+                                            <input type="url" name="website_url[]" class="form-control"
+                                                value="{{ website.url }}" placeholder="Enter website URL">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="text" name="website_description[]" class="form-control"
+                                                value="{{ website.description }}" placeholder="Enter description">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger remove-entry">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% endif %}
+                                <button type="button" class="btn btn-primary btn-md add-website">
+                                    <i class="fas fa-plus me-1"></i>Add Website
+                                </button>
+                            </div>
+                        </div>
+
+
+                        <!-- Contact Phone -->
+                        <div class="mb-3">
+                            <label class="form-label">Contact Phone Numbers</label>
+                            <div id="phones-container">
+                                {% if supplier.contact_phone %}
+                                {% for phone in supplier.contact_phone %}
+                                <div class="phone-entry mb-2">
+                                    <div class="row">
+                                        <div class="col-md-5">
+                                            <input type="tel" name="phone_number[]" class="form-control"
+                                                value="{{ phone.number }}" placeholder="Enter phone number">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="text" name="phone_description[]" class="form-control"
+                                                value="{{ phone.description }}" placeholder="Enter description">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger remove-entry">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% endif %}
+                                <button type="button" class="btn btn-primary add-phone">
+                                    <i class="fas fa-plus me-1"></i>Add Phone
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- General Email -->
+                        <div class="mb-3">
+                            <label class="form-label">General Email Addresses</label>
+                            <div id="emails-container">
+                                {% if supplier.general_email %}
+                                {% for email in supplier.general_email %}
+                                <div class="email-entry mb-2">
+                                    <div class="row">
+                                        <div class="col-md-5">
+                                            <input type="email" name="email_address[]" class="form-control"
+                                                value="{{ email.email }}" placeholder="Enter email address">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="text" name="email_description[]" class="form-control"
+                                                value="{{ email.description }}" placeholder="Enter description">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-danger remove-entry">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% endif %}
+                                <button type="button" class="btn btn-primary add-email">
+                                    <i class="fas fa-plus me-1"></i>Add Email
+                                </button>
+                            </div>
+                        </div>
+
+
+
+                        <!-- Group Phone -->
+                        <div class="mb-3">
+                            <label for="{{ form.group_phone.id_for_label }}" class="form-label">
+                                {{ form.group_phone.label }}
+                            </label>
+                            {{ form.group_phone }}
+                            {% if form.group_phone.help_text %}
+                            <div class="form-text">{{ form.group_phone.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Group Email -->
+                        <div class="mb-3">
+                            <label for="{{ form.group_email.id_for_label }}" class="form-label">
+                                {{ form.group_email.label }}
+                            </label>
+                            {{ form.group_email }}
+                            {% if form.group_email.help_text %}
+                            <div class="form-text">{{ form.group_email.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Account Manager Name -->
+                        <div class="mb-3">
+                            <label for="{{ form.account_manager_name.id_for_label }}" class="form-label">
+                                {{ form.account_manager_name.label }}
+                            </label>
+                            {{ form.account_manager_name }}
+                            {% if form.account_manager_name.help_text %}
+                            <div class="form-text">{{ form.account_manager_name.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Account Manager Email -->
+                        <div class="mb-3">
+                            <label for="{{ form.account_manager_email.id_for_label }}" class="form-label">
+                                {{ form.account_manager_email.label }}
+                            </label>
+                            {{ form.account_manager_email }}
+                            {% if form.account_manager_email.help_text %}
+                            <div class="form-text">{{ form.account_manager_email.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Account Manager Phone -->
+                        <div class="mb-3">
+                            <label for="{{ form.account_manager_phone.id_for_label }}" class="form-label">
+                                {{ form.account_manager_phone.label }}
+                            </label>
+                            {{ form.account_manager_phone }}
+                            {% if form.account_manager_phone.help_text %}
+                            <div class="form-text">{{ form.account_manager_phone.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-md">
+                                <i class="fas fa-save me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="sticky-top" style="top: 20px;">
+                <a href="{% url 'agent_support:agent_support_view' %}" class="btn btn-special btn-md">
+                    <i class="fas fa-arrow-left me-1"></i>Go Back
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block postload_js %}
+<script src="{% static 'agent_support/js/agent_support.js' %}"></script>
+{% endblock %}
