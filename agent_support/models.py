@@ -22,6 +22,12 @@ class AgentSupportSupplier(models.Model):
     account_manager_name = models.TextField(blank=True, null=True)
     account_manager_email = models.EmailField(blank=True, null=True)
     account_manager_phone = models.TextField(blank=True, null=True)
+    other_notes = models.JSONField(
+        default=list,
+        blank=True, 
+        null=True,
+        help_text="Additional notes about the supplier"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

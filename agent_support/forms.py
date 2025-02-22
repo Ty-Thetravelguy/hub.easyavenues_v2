@@ -21,7 +21,8 @@ class AgentSupportSupplierForm(forms.ModelForm):
             'group_email',
             'account_manager_name',
             'account_manager_email',
-            'account_manager_phone'
+            'account_manager_phone',
+            'other_notes'
         ]
         widgets = {
             'supplier_type': forms.Select(attrs={
@@ -50,6 +51,10 @@ class AgentSupportSupplierForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'e.g., +44 123 456 7890'
             }),
+            'other_notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter any additional notes about the supplier'
+            }),
         }
         help_texts = {
             'supplier_type': 'Select the type of supplier from the dropdown',
@@ -58,5 +63,6 @@ class AgentSupportSupplierForm(forms.ModelForm):
             'group_email': 'Email address for group booking enquiries',
             'account_manager_name': 'Your dedicated account manager\'s name',
             'account_manager_email': 'Direct email for your account manager',
-            'account_manager_phone': 'Direct phone number for your account manager'
+            'account_manager_phone': 'Direct phone number for your account manager',
+            'other_notes': 'Additional notes about the supplier'
         }
