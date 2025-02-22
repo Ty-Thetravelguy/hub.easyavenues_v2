@@ -1,10 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Websites handling
+
     const websitesContainer = document.getElementById('websites-container');
+
     const addWebsiteButton = websitesContainer.querySelector('.add-website');
 
+
     addWebsiteButton.addEventListener('click', function() {
-        const newEntry = document.createElement('div');
+         const newEntry = document.createElement('div');
         newEntry.className = 'website-entry mb-2';
         newEntry.innerHTML = `
             <div class="row">
@@ -100,9 +103,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Form submission
+
     document.querySelector('form').addEventListener('submit', function(e) {
         e.preventDefault();
-
+    
         // Collect websites
         const websites = [];
         document.querySelectorAll('.website-entry').forEach(entry => {
@@ -112,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 websites.push({ url, description });
             }
         });
-
+    
         // Collect phone numbers
         const phones = [];
         document.querySelectorAll('.phone-entry').forEach(entry => {
@@ -122,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 phones.push({ number, description });
             }
         });
-
+    
         // Collect email addresses
         const emails = [];
         document.querySelectorAll('.email-entry').forEach(entry => {
@@ -132,26 +136,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 emails.push({ email, description });
             }
         });
-
-        // Add to hidden fields
-        const websitesInput = document.createElement('input');
-        websitesInput.type = 'hidden';
-        websitesInput.name = 'agent_websites';
-        websitesInput.value = JSON.stringify(websites);
-        this.appendChild(websitesInput);
-
-        const phonesInput = document.createElement('input');
-        phonesInput.type = 'hidden';
-        phonesInput.name = 'contact_phone';
-        phonesInput.value = JSON.stringify(phones);
-        this.appendChild(phonesInput);
-
-        const emailsInput = document.createElement('input');
-        emailsInput.type = 'hidden';
-        emailsInput.name = 'general_email';
-        emailsInput.value = JSON.stringify(emails);
-        this.appendChild(emailsInput);
-
+    
+        // Only add hidden fields if there's data
+        if (websites.length > 0) {
+            const websitesInput = document.createElement('input');
+            websitesInput.type = 'hidden';
+            websitesInput.name = 'agent_websites';
+            websitesInput.value = JSON.stringify(websites);
+            this.appendChild(websitesInput);
+        }
+    
+        if (phones.length > 0) {
+            const phonesInput = document.createElement('input');
+            phonesInput.type = 'hidden';
+            phonesInput.name = 'contact_phone';
+            phonesInput.value = JSON.stringify(phones);
+            this.appendChild(phonesInput);
+        }
+    
+        if (emails.length > 0) {
+            const emailsInput = document.createElement('input');
+            emailsInput.type = 'hidden';
+            emailsInput.name = 'general_email';
+            emailsInput.value = JSON.stringify(emails);
+            this.appendChild(emailsInput);
+        }
+    
         this.submit();
     });
 });
