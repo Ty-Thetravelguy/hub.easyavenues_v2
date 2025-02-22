@@ -82,9 +82,9 @@
               {% for phone in supplier.contact_phone %} 
               {% if phone.number and phone.description %}
               <div>
-                <strong>{{ phone.description }}:</strong>
+                <i class="fas fa-phone ms-1 pe-2"></i>{{ phone.description }}:
                 <a href="tel:{{ phone.number }}" class="text-decoration-none">
-                  {{ phone.number }} <i class="fas fa-phone ms-1"></i>
+                   {{ phone.number }} 
                 </a>
               </div>
               {% endif %}
@@ -92,9 +92,9 @@
               {% for email in supplier.general_email %}
               {% if email.email and email.description %}
               <div>
-                <strong>{{ email.description }}:</strong>
+                <i class="fas fa-envelope ms-1 pe-2"></i>{{ email.description }}:
                 <a href="mailto:{{ email.email }}" class="text-decoration-none">
-                  {{ email.email }} <i class="fas fa-envelope ms-1"></i>
+                   {{ email.email }} 
                 </a>
               </div>
               {% endif %} 
