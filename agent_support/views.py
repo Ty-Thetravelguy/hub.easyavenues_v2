@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from .forms import AgentSupportSupplierForm
@@ -12,7 +13,10 @@ def add_agent_supplier(request):
     if request.method == 'POST':
         form = AgentSupportSupplierForm(request.POST)
         if form.is_valid():
-            form.save()
+            supplier = form.save(commit=False)
+            websites = json.loads(request.POST.get('agent_websites', '[]'))
+            supplier.agent_websites = websites
+            supplier.save()
             return redirect('agent_support:agent_support_view')
     else:
         form = AgentSupportSupplierForm()

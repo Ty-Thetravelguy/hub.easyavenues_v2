@@ -1,0 +1,242 @@
+/************************* BOOKMARKS **************************/
+.bookmark-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 3rem 0;
+}
+
+.bookmark-empty-icon {
+    background-color: var(--bs-light);
+    border-radius: 50%;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
+}
+
+.bookmark-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    min-height: 175px;
+    /* Ensures empty state has room */
+}
+
+.bookmark-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sortable-chosen {
+    cursor: move !important;
+    background-color: rgba(156, 133, 219, 0.1);
+}
+
+.bookmark-item:hover {
+    background-color: rgba(156, 133, 219, 0.1);
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+
+.bookmark-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #9c85db;
+    /* Match your primary button color */
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bookmark-icon img {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    background-color: white;
+    border-radius: 6px;
+    object-fit: contain;
+}
+
+.default-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 6px;
+    color: #6c757d;
+}
+
+.bookmark-title {
+    font-size: 1rem;
+    text-align: center;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.bookmark-actions {
+    display: none;
+    margin-top: 0.5rem;
+    gap: 0.5rem;
+    cursor: default;
+}
+
+.bookmark-item:hover .bookmark-actions {
+    display: flex;
+}
+
+.btn-edit,
+.btn-delete {
+    padding: 0.25rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+    background: none;
+    border: none;
+}
+
+.btn-edit:hover {
+    color: #444a9f;
+}
+
+.btn-delete:hover {
+    color: #dc3545;
+}
+
+/* Drag and drop styles */
+.sortable-ghost {
+    opacity: 0.5;
+}
+
+.sortable-chosen {
+    background-color: rgba(156, 133, 219, 0.1);
+}
+
+/************************* COMPANY PAGES **************************/
+
+.dashboard-card {
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    position: relative;
+    border-radius: 0.25rem;
+    transition: transform 0.3s ease;
+}
+
+a:hover .dashboard-card {
+    transform: translateY(-5px);
+}
+
+.dashboard-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.dashboard-card .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.dashboard-card p {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    width: 100%;
+    padding: 0 10px;
+    color: white;
+    font-size: 2rem;
+    /* font-weight: bold; */
+    text-align: center;
+    z-index: 2;
+    font-family: 'Playfair Display', serif;
+    /* If you're using Playfair font */
+}
+
+/************************* UPDATES **************************/
+
+.updates-container {
+    max-height: 600px;
+    max-width: 70%;
+    /* New: limits the width */
+    margin: 0 auto;
+    /* New: centers the container */
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.update-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    border-left: 4px solid #9c85db;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    width: 100%;
+    /* New: ensures card takes full width of container */
+}
+
+.update-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.update-header {
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: white;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.update-header i {
+    color: #9c85db;
+}
+
+.update-header span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Specific update types */
+.update-card.company-update {
+    border-left-color: #9c85db;
+}
+
+.update-card.supplier-update {
+    border-left-color: #85dbc5;
+}
+
+.update-card.company-update .update-header i {
+    color: #9c85db;
+}
+
+.update-card.supplier-update .update-header i {
+    color: #85dbc5;
+}

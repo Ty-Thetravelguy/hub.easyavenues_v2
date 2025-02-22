@@ -1,0 +1,126 @@
+/************************* GENERAL **************************/
+
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+
+
+/************************** FONTS **************************/
+
+.playfair {
+    font-family: 'Playfair', serif;
+}
+
+.work-sans {
+    font-family: 'Work Sans', sans-serif;
+}
+
+.roboto {
+    font-family: 'Roboto', sans-serif;
+}
+
+.text-color-white {
+    color: #fff;
+}
+
+.bg-color-white {
+    background-color: #fff;
+}
+
+.form-text {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/************************* COLORS **************************/
+
+.color-blue {
+    color: #444a9f;
+}
+
+.color-purple {
+    color: #9c85db;
+}
+
+.bg-gradient-blue-purple {
+    background: linear-gradient(to right, #483f92, #a78bc3);
+}
+
+/* .bg-gradient-more-blue {
+    background: linear-gradient(to right, #444a9f 70%, #9c85db);
+} */
+
+/************************* HEADER **************************/
+
+.header-height {
+    height: 20vh;
+}
+
+.header-h1-styling {
+    font-size: 4rem;
+}
+
+.header-p-styling {
+    font-size: 2.3rem;
+}
+
+.header-date-styling {
+    font-size: 1.5rem;
+}
+
+.message-container-styling {
+    margin-top: 12rem;
+}
+
+.message-container .alert {
+    min-width: 250px;
+}
+
+/************************* LOGIN **************************/
+
+.card {
+    border: none;
+    border-radius: 1rem !important;
+    overflow: hidden;
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-top-left-radius: 1rem !important;
+    border-top-right-radius: 1rem !important;
+}
+
+.btn-primary {
+    background: linear-gradient(to right, #4e54c8, #9c85db);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(to right, #3f44a0, #9c85db);
+}
+
+/************************* NAVBAR **************************/
+
+.navbar-toggler .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.navbar-toggler {
+    border-color: white !important;
+}
+
+/* Handle focus and active states */
+.navbar-toggler:focus,
+.navbar-toggler:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: white !important;
+}
+
+.logo-styling {
+    height: 150px;
+    margin-left: -4rem;
+}
