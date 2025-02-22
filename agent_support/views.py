@@ -7,8 +7,8 @@ from django.contrib import messages
 
 @login_required
 def agent_support_view(request):
-    suppliers = AgentSupportSupplier.objects.all().order_by('supplier_type')
-    
+    suppliers = AgentSupportSupplier.objects.all().order_by('supplier_type', 'supplier_name')
+        
     for supplier in suppliers:
         # Ensure contact_phone is a list
         if supplier.contact_phone is None or supplier.contact_phone == '[]':

@@ -124,3 +124,14 @@ body {
     height: 150px;
     margin-left: -4rem;
 }
+
+
+/************************* AGENT SUPPORT **************************/
+
+.accordion-button {
+    background-color: #f8f9fa !important; /* Light gray - change this to any color you want */
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #9c85db !important;
+}
