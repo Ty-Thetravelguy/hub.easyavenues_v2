@@ -18,6 +18,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Remove entry (updated to include notes)
     document.addEventListener('click', function(e) {
         if (e.target.closest('.remove-entry')) {
+            const entry = e.target.closest('.note-entry');
+            if (entry) {
+                const textarea = entry.querySelector('.tinymce-editor');
+                if (textarea) {
+                    const editor = tinymce.get(textarea.id);
+                    if (editor) {
+                        editor.remove();
+                    }
+                }
+            }
             e.target.closest('.phone-entry, .email-entry, .website-entry, .note-entry').remove();
         }
     });
@@ -79,7 +89,7 @@ function getEntryHTML(type) {
         note: `
             <div class="row">
                 <div class="col-md-11">
-                    <textarea name="note_text[]" class="form-control" 
+                    <textarea name="note_text[]" class="tinymce-editor" 
                         placeholder="Enter additional note about the supplier"
                         rows="3"></textarea>
                     <div class="form-text">Add any relevant information about this supplier</div>
@@ -94,3 +104,36 @@ function getEntryHTML(type) {
     };
     return templates[type];
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize TinyMCE for existing textareas
+    tinymce.init({
+        selector: '.tinymce-editor',
+        height: 200,
+        menubar: false,
+        plugins: 'lists link autolink',
+        toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
+        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
+    });
+
+    // Initialize TinyMCE for dynamically added textareas
+    document.querySelectorAll('.add-note').forEach(button => {
+        button.addEventListener('click', function() {
+            setTimeout(() => {
+                tinymce.init({
+                    selector: '.tinymce-editor:not(.tinymce-active)',
+                    height: 200,
+                    menubar: false,
+                    plugins: 'lists link autolink',
+                    toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
+                    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
+                    setup: function(editor) {
+                        editor.on('init', function() {
+                            editor.getElement().classList.add('tinymce-active');
+                        });
+                    }
+                });
+            }, 0);
+        });
+    });
+});

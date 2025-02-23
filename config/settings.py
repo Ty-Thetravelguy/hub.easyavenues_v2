@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
 
+    # Editor
+    'tinymce',
+
     # local apps
     'dashboard',
     'users.apps.UsersConfig', 
@@ -85,6 +88,14 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
         }
     }
+}
+
+TINYMCE_DEFAULT_CONFIG = {
+    'height': 200,
+    'menubar': False,
+    'plugins': 'lists link autolink',
+    'toolbar': 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
+    'content_style': 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
 }
 
 ROOT_URLCONF = 'config.urls'

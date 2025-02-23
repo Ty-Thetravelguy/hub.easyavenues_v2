@@ -99,6 +99,21 @@
                                 {% else %}
                                 <p class="text-muted">No contact information available</p>
                                 {% endif %}
+                            
+                                <h5>Group Contact</h5>
+                                {% if supplier.group_phone %}
+                                <p>{{ supplier.group_phone }}</p>
+                                {% else %}
+                                <p class="text-muted">No group contact available</p>
+                                {% endif %}
+
+                                <h5>Group Email</h5>
+                                {% if supplier.group_email %}
+                                <p>{{ supplier.group_email }}</p>
+                                {% else %}
+                                <p class="text-muted">No group email available</p>
+                                {% endif %}
+
                             </div>
 
                             <!-- Account Manager Details -->
@@ -137,7 +152,7 @@
                                 {% for note in supplier.other_notes %}
                                 <div class="card mb-2">
                                     <div class="card-body">
-                                        <p class="mb-1">{{ note.note }}</p>
+                                        <div class="mb-1">{{ note.note|safe }}</div>
                                         <small class="text-muted">
                                             Added by {{ note.created_by }} on {{ note.created_at }}
                                         </small>

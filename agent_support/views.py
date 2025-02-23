@@ -49,10 +49,46 @@ def add_agent_supplier(request):
         form = AgentSupportSupplierForm(request.POST)
         if form.is_valid():
             supplier = form.save(commit=False)
-            websites = json.loads(request.POST.get('agent_websites', '[]'))
-            notes = json.loads(request.POST.get('other_notes', '[]')) 
+            
+            # Process websites
+            website_urls = request.POST.getlist('website_url[]')
+            website_descriptions = request.POST.getlist('website_description[]')
+            websites = []
+            for url, description in zip(website_urls, website_descriptions):
+                if url and description:
+                    websites.append({'url': url, 'description': description})
             supplier.agent_websites = websites
-            supplier.other_notes = notes  
+            
+            # Process phone numbers
+            phone_numbers = request.POST.getlist('phone_number[]')
+            phone_descriptions = request.POST.getlist('phone_description[]')
+            phones = []
+            for number, description in zip(phone_numbers, phone_descriptions):
+                if number and description:
+                    phones.append({'number': number, 'description': description})
+            supplier.contact_phone = phones
+            
+            # Process email addresses
+            email_addresses = request.POST.getlist('email_address[]')
+            email_descriptions = request.POST.getlist('email_description[]')
+            emails = []
+            for email, description in zip(email_addresses, email_descriptions):
+                if email and description:
+                    emails.append({'email': email, 'description': description})
+            supplier.general_email = emails
+            
+            # Process notes
+            notes = []
+            for note in request.POST.getlist('note_text[]'):
+                if note:
+                    notes.append({
+                        'note': note,
+                        'created_by': request.user.username,
+                        'created_at': datetime.now().isoformat()
+                    })
+            if notes:
+                supplier.other_notes = notes
+            
             supplier.save()
             messages.success(request, f'Supplier "{supplier.supplier_name}" was added successfully!')
             return redirect('agent_support:agent_support_view')
@@ -72,55 +108,44 @@ def edit_agent_supplier(request, supplier_id):
         if form.is_valid():
             supplier = form.save(commit=False)
             
-            print("Notes from form:", request.POST.getlist('note_text[]'))
-
-            # Initialize empty lists (not None)
-            supplier.contact_phone = []
-            supplier.general_email = []
-            supplier.agent_websites = []
-            supplier.other_notes = []  # Add this line
+            # Process websites
+            website_urls = request.POST.getlist('website_url[]')
+            website_descriptions = request.POST.getlist('website_description[]')
+            websites = []
+            for url, description in zip(website_urls, website_descriptions):
+                if url and description:  # Only add if both fields are filled
+                    websites.append({'url': url, 'description': description})
+            supplier.agent_websites = websites
             
-            # Get the raw form data
-            raw_phones = [p for p in request.POST.getlist('phone_number[]') if p.strip()]
-            raw_phone_desc = [d for d in request.POST.getlist('phone_description[]') if d.strip()]
-            raw_emails = [e for e in request.POST.getlist('email_address[]') if e.strip()]
-            raw_email_desc = [d for d in request.POST.getlist('email_description[]') if d.strip()]
-            raw_urls = [u for u in request.POST.getlist('website_url[]') if u.strip()]
-            raw_url_desc = [d for d in request.POST.getlist('website_description[]') if d.strip()]
-            raw_notes = [n for n in request.POST.getlist('note_text[]') if n.strip()]  # Add this line
+            # Process phone numbers
+            phone_numbers = request.POST.getlist('phone_number[]')
+            phone_descriptions = request.POST.getlist('phone_description[]')
+            phones = []
+            for number, description in zip(phone_numbers, phone_descriptions):
+                if number and description:  # Only add if both fields are filled
+                    phones.append({'number': number, 'description': description})
+            supplier.contact_phone = phones
             
-            # Process phone numbers (only if both number and description exist)
-            for number, desc in zip(raw_phones, raw_phone_desc):
-                if number.strip() and desc.strip():
-                    supplier.contact_phone.append({
-                        'number': number.strip(),
-                        'description': desc.strip()
-                    })
+            # Process email addresses
+            email_addresses = request.POST.getlist('email_address[]')
+            email_descriptions = request.POST.getlist('email_description[]')
+            emails = []
+            for email, description in zip(email_addresses, email_descriptions):
+                if email and description:  # Only add if both fields are filled
+                    emails.append({'email': email, 'description': description})
+            supplier.general_email = emails
             
-            # Process emails (only if both email and description exist)
-            for email, desc in zip(raw_emails, raw_email_desc):
-                if email.strip() and desc.strip():
-                    supplier.general_email.append({
-                        'email': email.strip(),
-                        'description': desc.strip()
-                    })
-            
-            # Process websites (only if both url and description exist)
-            for url, desc in zip(raw_urls, raw_url_desc):
-                if url.strip() and desc.strip():
-                    supplier.agent_websites.append({
-                        'url': url.strip(),
-                        'description': desc.strip()
-                    })
-
             # Process notes
-            for note in raw_notes:
-                if note.strip():
-                    supplier.other_notes.append({
-                        'note': note.strip(),
-                        'created_at': datetime.now().isoformat(),
-                        'created_by': request.user.get_full_name() or request.user.username
+            notes = []
+            for note in request.POST.getlist('note_text[]'):
+                if note:  # Only add if note is not empty
+                    notes.append({
+                        'note': note,
+                        'created_by': request.user.username,
+                        'created_at': datetime.now().isoformat()
                     })
+            if notes:
+                supplier.other_notes = notes
             
             supplier.save()
             messages.success(request, f'Successfully updated {supplier.supplier_name}')
@@ -132,7 +157,6 @@ def edit_agent_supplier(request, supplier_id):
         'form': form,
         'supplier': supplier
     })
-
 @login_required
 def delete_agent_supplier(request, supplier_id):
     supplier = get_object_or_404(AgentSupportSupplier, id=supplier_id)
@@ -142,3 +166,8 @@ def delete_agent_supplier(request, supplier_id):
         messages.success(request, f'Supplier "{supplier_name}" was successfully deleted.')
         return redirect('agent_support:agent_support_view')
     return redirect('agent_support:agent_support_view')
+
+
+
+
+

@@ -197,8 +197,8 @@
                                 <div class="note-entry mb-2">
                                     <div class="row">
                                         <div class="col-md-11">
-                                            <textarea name="note_text[]" class="form-control note-text"
-                                                rows="3">{{ note.note }}</textarea>
+                                            <textarea name="note_text[]" class="tinymce-editor"
+                                                rows="3">{{ note.note|safe }}</textarea>
                                             <div class="form-text">Added by {{ note.created_by }} on
                                                 {{ note.created_at }}</div>
                                         </div>
@@ -214,7 +214,7 @@
                                 <div class="note-entry mb-2">
                                     <div class="row">
                                         <div class="col-md-11">
-                                            <textarea name="note_text[]" class="form-control note-text"
+                                            <textarea name="note_text[]" class="tinymce-editor"
                                                 placeholder="Enter additional note about the supplier"
                                                 rows="3"></textarea>
                                             <div class="form-text">Add any relevant information about this supplier
