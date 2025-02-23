@@ -1,262 +1,264 @@
-{# formatter-indent: 8 #}
-
 {% extends "base.html" %}
 {% load static %}
 
 {% block content %}
 <div class="container-fluid">
-  <div class="row justify-content-end pt-3">
-    <div class="col-4 text-center">
-      <h1 class="display-6 work-sans">Agent Support</h1>
-    </div>
-    <div class="col-4 text-end pe-5 pt-1">
-      <a href="{% url 'agent_support:add_agent_supplier' %}" class="btn btn-special btn-md me-2" title="Add Supplier">
-        <i class="fas fa-plus me-1"></i> Add Supplier
-      </a>
-    </div>
-  </div>
-
-  <!-- Filters -->
-  <div class="row mt-3">
-    <div class="col-md-6">
-      <input type="text" id="supplierNameFilter" class="form-control"
-        placeholder="Type to search suppliers by name..." />
-    </div>
-    <div class="col-md-6">
-      <select id="supplierTypeFilter" class="form-select">
-        <option value="">All Supplier Types</option>
-        {% for type, type_display in supplier_types %}
-        <option value="{{ type|lower }}">{{ type_display }}</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
-
-  <!-- Accordion containing supplier information -->
-  <div class="accordion mt-3" id="supplierAccordion">
-    {% for supplier in suppliers %}
-    <div class="accordion-item">
-      <h2 class="accordion-header">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-          data-bs-target="#collapse{{ supplier.id }}" aria-expanded="false" aria-controls="collapse{{ supplier.id }}">
-          <div class="row w-100">
-            <div class="col-md-4">
-              Supplier Name: {{ supplier.supplier_name }}
-            </div>
-            <div class="col-md-4">
-              Supplier Type: {{ supplier.get_supplier_type_display }}
-            </div>
-            <div class="col-md-4 text-end">
-              <small class="text-muted">Last updated: {{ supplier.updated_at|date:"d/m/Y" }}</small>
-            </div>
-          </div>
-        </button>
-      </h2>
-      <div id="collapse{{ supplier.id }}" class="accordion-collapse collapse" data-bs-parent="#supplierAccordion">
-        <div class="accordion-body">
-          <div class="row">
-            <!-- Websites Section -->
-            <div class="col-md-4">
-              <h5>Websites</h5>
-              {% if supplier.agent_websites %}
-              {% for website in supplier.agent_websites %}
-              <div class="mb-2">
-                <a href="{{ website.url }}" target="_blank" class="text-decoration-none">
-                  {{ website.description }}
-                  <i class="fas fa-external-link-alt ms-1"></i>
-                </a>
-              </div>
-              {% endfor %}
-              {% else %}
-              <p class="text-muted">No websites listed</p>
-              {% endif %}
-            </div>
-
-            <!-- Contact Information -->
-            <div class="col-md-4">
-              <h5>Contact Information</h5>
-              {% if supplier.contact_phone or supplier.general_email %}
-              {% for phone in supplier.contact_phone %}
-              {% if phone.number and phone.description %}
-              <div>
-                <i class="fas fa-phone ms-1 pe-2"></i>{{ phone.description }}:
-                <a href="tel:{{ phone.number }}" class="text-decoration-none">
-                  {{ phone.number }}
-                </a>
-              </div>
-              {% endif %}
-              {% endfor %}
-              {% for email in supplier.general_email %}
-              {% if email.email and email.description %}
-              <div>
-                <i class="fas fa-envelope ms-1 pe-2"></i>{{ email.description }}:
-                <a href="mailto:{{ email.email }}" class="text-decoration-none">
-                  {{ email.email }}
-                </a>
-              </div>
-              {% endif %}
-              {% endfor %}
-              {% else %}
-              <p class="text-muted">No contact information available</p>
-              {% endif %}
-            </div>
-
-            <!-- Account Manager Details -->
-            <div class="col-md-4">
-              <h5>Account Manager</h5>
-              {% if supplier.account_manager_name %}
-              <p><strong>Name:</strong> {{ supplier.account_manager_name }}</p>
-              {% if supplier.account_manager_email %}
-              <p>
-                <strong>Email:</strong>
-                <a href="mailto:{{ supplier.account_manager_email }}" class="text-decoration-none">
-                  {{ supplier.account_manager_email }}
-                  <i class="fas fa-envelope ms-1"></i>
-                </a>
-              </p>
-              {% endif %}
-              {% if supplier.account_manager_phone %}
-              <p>
-                <strong>Phone:</strong>
-                <a href="tel:{{ supplier.account_manager_phone }}" class="text-decoration-none">
-                  {{ supplier.account_manager_phone }}
-                  <i class="fas fa-phone ms-1"></i>
-                </a>
-              </p>
-              {% endif %}
-              {% else %}
-              <p class="text-muted">No account manager details</p>
-              {% endif %}
-            </div>
-          </div>
-          <!-- Additional Notes Section - Full Width -->
-          <div class="row mt-4">
-            <div class="col-12">
-              <h5>Additional Notes</h5>
-              {% if supplier.other_notes %}
-              {% for note in supplier.other_notes %}
-              <div class="card mb-2">
-                <div class="card-body">
-                  <p class="mb-1">{{ note.note }}</p>
-                  <small class="text-muted">
-                    Added by {{ note.created_by }} on {{ note.created_at }}
-                  </small>
-                </div>
-              </div>
-              {% endfor %}
-              {% else %}
-              <p class="text-muted">No additional notes</p>
-              {% endif %}
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-md-12 text-end">
-              <a href="{% url 'agent_support:edit_agent_supplier' supplier.id %}" class="btn btn-primary btn-sm"
-                title="Edit Supplier">
-                <i class="fas fa-edit"></i> Edit
-              </a>
-              <button type="button" class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal"
-                data-bs-target="#deleteModal{{ supplier.id }}">
-                <i class="fas fa-trash"></i> Delete
-              </button>
-            </div>
-          </div>
-
-          <!-- Delete Modal for each supplier -->
-          <div class="modal fade" id="deleteModal{{ supplier.id }}" tabindex="-1"
-            aria-labelledby="deleteModalLabel{{ supplier.id }}" aria-hidden="true">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="deleteModalLabel{{ supplier.id }}">
-                    Confirm Delete
-                  </h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  Are you sure you want to delete supplier "{{supplier.supplier_name }}"? This action cannot be undone.
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    Cancel
-                  </button>
-                  <form action="{% url 'agent_support:delete_agent_supplier' supplier.id %}" method="POST"
-                    class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="row justify-content-end pt-3">
+        <div class="col-4 text-center">
+            <h1 class="display-6 work-sans">Agent Support</h1>
         </div>
-      </div>
+        <div class="col-4 text-end pe-5 pt-1">
+            <a href="{% url 'agent_support:add_agent_supplier' %}" class="btn btn-special btn-md me-2"
+                title="Add Supplier">
+                <i class="fas fa-plus me-1"></i> Add Supplier
+            </a>
+        </div>
     </div>
-    {% empty %}
-    <div class="alert alert-info mt-3">
-      No suppliers found. Click "Add Supplier" to add one.
+
+    <!-- Filters -->
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <input type="text" id="supplierNameFilter" class="form-control"
+                placeholder="Type to search suppliers by name..." />
+        </div>
+        <div class="col-md-6">
+            <select id="supplierTypeFilter" class="form-select">
+                <option value="">All Supplier Types</option>
+                {% for type, type_display in supplier_types %}
+                <option value="{{ type|lower }}">{{ type_display }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Accordion containing supplier information -->
+        <div class="accordion mt-3" id="supplierAccordion">
+            {% for supplier in suppliers %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapse{{ supplier.id }}" aria-expanded="false"
+                        aria-controls="collapse{{ supplier.id }}">
+                        <div class="row w-100">
+                            <div class="col-md-4">
+                                Supplier Name: {{ supplier.supplier_name }}
+                            </div>
+                            <div class="col-md-4">
+                                Supplier Type: {{ supplier.get_supplier_type_display }}
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <small class="text-muted">Last updated: {{ supplier.updated_at|date:"d/m/Y" }}</small>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse{{ supplier.id }}" class="accordion-collapse collapse"
+                    data-bs-parent="#supplierAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <!-- Websites Section -->
+                            <div class="col-md-4">
+                                <h5>Websites</h5>
+                                {% if supplier.agent_websites %}
+                                {% for website in supplier.agent_websites %}
+                                <div class="mb-2">
+                                    <a href="{{ website.url }}" target="_blank" class="text-decoration-none">
+                                        {{ website.description }}
+                                        <i class="fas fa-external-link-alt ms-1"></i>
+                                    </a>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted">No websites listed</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Contact Information -->
+                            <div class="col-md-4">
+                                <h5>Contact Information</h5>
+                                {% if supplier.contact_phone or supplier.general_email %}
+                                {% for phone in supplier.contact_phone %}
+                                {% if phone.number and phone.description %}
+                                <div>
+                                    <i class="fas fa-phone ms-1 pe-2"></i>{{ phone.description }}:
+                                    <a href="tel:{{ phone.number }}" class="text-decoration-none">
+                                        {{ phone.number }}
+                                    </a>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                                {% for email in supplier.general_email %}
+                                {% if email.email and email.description %}
+                                <div>
+                                    <i class="fas fa-envelope ms-1 pe-2"></i>{{ email.description }}:
+                                    <a href="mailto:{{ email.email }}" class="text-decoration-none">
+                                        {{ email.email }}
+                                    </a>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted">No contact information available</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Account Manager Details -->
+                            <div class="col-md-4">
+                                <h5>Account Manager</h5>
+                                {% if supplier.account_manager_name %}
+                                <p><strong>Name:</strong> {{ supplier.account_manager_name }}</p>
+                                {% if supplier.account_manager_email %}
+                                <p>
+                                    <strong>Email:</strong>
+                                    <a href="mailto:{{ supplier.account_manager_email }}" class="text-decoration-none">
+                                        {{ supplier.account_manager_email }}
+                                        <i class="fas fa-envelope ms-1"></i>
+                                    </a>
+                                </p>
+                                {% endif %}
+                                {% if supplier.account_manager_phone %}
+                                <p>
+                                    <strong>Phone:</strong>
+                                    <a href="tel:{{ supplier.account_manager_phone }}" class="text-decoration-none">
+                                        {{ supplier.account_manager_phone }}
+                                        <i class="fas fa-phone ms-1"></i>
+                                    </a>
+                                </p>
+                                {% endif %}
+                                {% else %}
+                                <p class="text-muted">No account manager details</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <!-- Additional Notes Section - Full Width -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5>Additional Notes</h5>
+                                {% if supplier.other_notes %}
+                                {% for note in supplier.other_notes %}
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <p class="mb-1">{{ note.note }}</p>
+                                        <small class="text-muted">
+                                            Added by {{ note.created_by }} on {{ note.created_at }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted">No additional notes</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 text-end">
+                                <a href="{% url 'agent_support:edit_agent_supplier' supplier.id %}"
+                                    class="btn btn-primary btn-sm" title="Edit Supplier">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <button type="button" class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal"
+                                    data-bs-target="#deleteModal{{ supplier.id }}">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Delete Modal for each supplier -->
+                        <div class="modal fade" id="deleteModal{{ supplier.id }}" tabindex="-1"
+                            aria-labelledby="deleteModalLabel{{ supplier.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteModalLabel{{ supplier.id }}">
+                                            Confirm Delete
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Are you sure you want to delete supplier "{{supplier.supplier_name }}"? This
+                                        action cannot be undone.
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            Cancel
+                                        </button>
+                                        <form action="{% url 'agent_support:delete_agent_supplier' supplier.id %}"
+                                            method="POST" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-info mt-3">
+                No suppliers found. Click "Add Supplier" to add one.
+            </div>
+            {% endfor %}
+        </div>
     </div>
-    {% endfor %}
-  </div>
-</div>
-{% endblock %}
-{% block postload_js %}
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const nameFilter = document.getElementById("supplierNameFilter");
-    const typeFilter = document.getElementById("supplierTypeFilter");
-    const accordionItems = document.querySelectorAll(".accordion-item");
+    {% endblock %}
+    {% block postload_js %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const nameFilter = document.getElementById("supplierNameFilter");
+            const typeFilter = document.getElementById("supplierTypeFilter");
+            const accordionItems = document.querySelectorAll(".accordion-item");
 
-    function filterSuppliers() {
-      const searchTerm = nameFilter.value.toLowerCase();
-      const selectedType = typeFilter.value.toLowerCase();
+            function filterSuppliers() {
+                const searchTerm = nameFilter.value.toLowerCase();
+                const selectedType = typeFilter.value.toLowerCase();
 
-      accordionItems.forEach((item) => {
-        const supplierName = item
-          .querySelector(".col-md-4")
-          .textContent.toLowerCase();
-        const supplierType = item
-          .querySelector(".col-md-4:nth-child(2)")
-          .textContent.toLowerCase();
+                accordionItems.forEach((item) => {
+                    const supplierName = item
+                        .querySelector(".col-md-4")
+                        .textContent.toLowerCase();
+                    const supplierType = item
+                        .querySelector(".col-md-4:nth-child(2)")
+                        .textContent.toLowerCase();
 
-        const nameMatch = supplierName.includes(searchTerm);
-        const typeMatch =
-          selectedType === "" || supplierType.includes(selectedType);
+                    const nameMatch = supplierName.includes(searchTerm);
+                    const typeMatch =
+                        selectedType === "" || supplierType.includes(selectedType);
 
-        // Show/hide based on both filters
-        if (nameMatch && typeMatch) {
-          item.style.display = "";
-        } else {
-          item.style.display = "none";
-        }
-      });
+                    // Show/hide based on both filters
+                    if (nameMatch && typeMatch) {
+                        item.style.display = "";
+                    } else {
+                        item.style.display = "none";
+                    }
+                });
 
-      // Show "no results" message if all items are hidden
-      const allHidden = Array.from(accordionItems).every(
-        (item) => item.style.display === "none"
-      );
-      let noResultsMsg = document.getElementById("noResultsMessage");
+                // Show "no results" message if all items are hidden
+                const allHidden = Array.from(accordionItems).every(
+                    (item) => item.style.display === "none"
+                );
+                let noResultsMsg = document.getElementById("noResultsMessage");
 
-      if (allHidden) {
-        if (!noResultsMsg) {
-          noResultsMsg = document.createElement("div");
-          noResultsMsg.id = "noResultsMessage";
-          noResultsMsg.className = "alert alert-info mt-3";
-          noResultsMsg.textContent =
-            "No suppliers found matching your filters.";
-          document
-            .getElementById("supplierAccordion")
-            .appendChild(noResultsMsg);
-        }
-        noResultsMsg.style.display = "";
-      } else if (noResultsMsg) {
-        noResultsMsg.style.display = "none";
-      }
-    }
+                if (allHidden) {
+                    if (!noResultsMsg) {
+                        noResultsMsg = document.createElement("div");
+                        noResultsMsg.id = "noResultsMessage";
+                        noResultsMsg.className = "alert alert-info mt-3";
+                        noResultsMsg.textContent =
+                            "No suppliers found matching your filters.";
+                        document
+                            .getElementById("supplierAccordion")
+                            .appendChild(noResultsMsg);
+                    }
+                    noResultsMsg.style.display = "";
+                } else if (noResultsMsg) {
+                    noResultsMsg.style.display = "none";
+                }
+            }
 
-    // Add event listeners for both filters
-    nameFilter.addEventListener("input", filterSuppliers);
-    typeFilter.addEventListener("change", filterSuppliers);
-  });
-</script>
-{% endblock %}
+            // Add event listeners for both filters
+            nameFilter.addEventListener("input", filterSuppliers);
+            typeFilter.addEventListener("change", filterSuppliers);
+        });
+    </script>
+    {% endblock %}

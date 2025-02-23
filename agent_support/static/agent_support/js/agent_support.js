@@ -78,13 +78,13 @@ function getEntryHTML(type) {
         `,
         note: `
             <div class="row">
-                <div class="col-md-10">
+                <div class="col-md-11">
                     <textarea name="note_text[]" class="form-control" 
                         placeholder="Enter additional note about the supplier"
                         rows="3"></textarea>
                     <div class="form-text">Add any relevant information about this supplier</div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <button type="button" class="btn btn-danger remove-entry">
                         <i class="fas fa-minus"></i>
                     </button>

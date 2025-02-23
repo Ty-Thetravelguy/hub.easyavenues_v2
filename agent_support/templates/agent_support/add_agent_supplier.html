@@ -54,10 +54,17 @@
                                             <div class="form-text">Enter a description for this website</div>
                                         </div>
                                         <div class="col-md-2">
-                                            <button type="button" class="btn btn-primary add-website">
-                                                <i class="fas fa-plus"></i>
+                                            <button type="button" class="btn btn-danger remove-entry">
+                                                <i class="fas fa-minus"></i>
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <button type="button" class="btn btn-primary add-website">
+                                            <i class="fas fa-plus me-1"></i>Add Website
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -80,10 +87,17 @@
                                             <div class="form-text">Enter a description for this number</div>
                                         </div>
                                         <div class="col-md-2">
-                                            <button type="button" class="btn btn-primary add-phone">
-                                                <i class="fas fa-plus"></i>
+                                            <button type="button" class="btn btn-danger remove-entry">
+                                                <i class="fas fa-minus"></i>
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <button type="button" class="btn btn-primary add-phone">
+                                            <i class="fas fa-plus"></i>Add Phone Number
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -106,10 +120,17 @@
                                             <div class="form-text">Enter a description for this email</div>
                                         </div>
                                         <div class="col-md-2">
-                                            <button type="button" class="btn btn-primary add-email">
-                                                <i class="fas fa-plus"></i>
+                                            <button type="button" class="btn btn-danger remove-entry">
+                                                <i class="fas fa-minus"></i>
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <button type="button" class="btn btn-primary add-email">
+                                            <i class="fas fa-plus"></i>Add Email
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -176,24 +197,36 @@
                             <div id="notes-container">
                                 <div class="note-entry mb-2">
                                     <div class="row">
-                                        <div class="col-md-10">
-                                            <textarea class="form-control note-text"
+                                        <div class="col-md-11">
+                                            <textarea name="note_text[]" class="form-control note-text"
                                                 placeholder="Enter additional note about the supplier"
                                                 rows="3"></textarea>
                                             <div class="form-text">Add any relevant information about this supplier
                                             </div>
                                         </div>
-                                        <div class="col-md-2">
-                                            <button type="button" class="btn btn-primary add-note">
-                                                <i class="fas fa-plus"></i>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-danger remove-entry">
+                                                <i class="fas fa-minus"></i>
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <button type="button" class="btn btn-primary add-note">
+                                            <i class="fas fa-plus me-1"></i>Add Note
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Add Supplier</button>
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-md">
+                                <i class="fas fa-save me-1"></i> Add Supplier
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
