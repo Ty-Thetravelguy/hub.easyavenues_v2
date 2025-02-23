@@ -64,10 +64,25 @@
                                         <li class="nav-item">
                                             <a class="nav-link text-white" href="#" data-bs-toggle="collapse"
                                                 data-bs-target="#bookmarkersContent">
-                                                Bookmarkers
+                                                Bookmarks
                                             </a>
                                             <div class="collapse" id="bookmarkersContent">
-                                                <!-- Bookmarkers content here -->
+                                                {% if user.is_authenticated and user.page_bookmarks.exists %}
+                                                <div class="bookmarks mt-3">
+                                                    <div class="list-group" id="bookmark-list">
+                                                        {% for bookmark in user.page_bookmarks.all %}
+                                                        <a href="{{ bookmark.url }}" 
+                                                           class="list-group-item list-group-item-action bg-gradient-blue-purple text-white border-0 mb-2">
+                                                            {{ bookmark.title }}
+                                                            <button class="btn btn-sm btn-link text-white float-end remove-bookmark" 
+                                                                    data-url="{{ bookmark.url }}">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </a>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         </li>
                                         <li class="nav-item">
@@ -82,7 +97,6 @@
                                                         {% for page in user.recently_viewed.all|slice:":10" %}
                                                         <a href="{{ page.url }}" 
                                                            class="list-group-item list-group-item-action bg-gradient-blue-purple text-white border-0 mb-2">
-                                                            {# Change this line - use the built-in Django template filters #}
                                                             {{ page.title|title }}
                                                             <small class="d-block text-light">
                                                                 {{ page.viewed_at|timesince }} ago

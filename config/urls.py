@@ -12,6 +12,7 @@ urlpatterns = [
     path('', include('allauth.urls')),  
     path('signup/', signup, name='signup'), 
     path('dashboard/', include('dashboard.urls')),
+    path('users/', include('users.urls', namespace='users')), 
     path('agent-support/', include('agent_support.urls')),
     path('crm/', include('crm.urls')),
     path('finance/', include('finance.urls')),

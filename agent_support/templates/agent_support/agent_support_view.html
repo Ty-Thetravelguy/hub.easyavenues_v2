@@ -1,9 +1,18 @@
 {% extends "base.html" %}
 {% load static %}
+{% load user_tags %}
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row justify-content-end pt-3">
+    <div class="row pt-3">
+        <div class="col-4">
+            {% if user.is_authenticated %}
+            <button class="btn btn-link bookmark-btn" data-url="{{ request.path }}">
+                <i class="{% if user|has_bookmark:request.path %}fas{% else %}far{% endif %} fa-bookmark"></i>
+            </button>
+            {% endif %}
+        </div>
+
         <div class="col-4 text-center">
             <h1 class="display-6 work-sans">Agent Support</h1>
         </div>
@@ -99,7 +108,7 @@
                                 {% else %}
                                 <p class="text-muted">No contact information available</p>
                                 {% endif %}
-                            
+
                                 <h5>Group Contact</h5>
                                 {% if supplier.group_phone %}
                                 <p>{{ supplier.group_phone }}</p>

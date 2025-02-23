@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'users.apps.UsersConfig',
 
     # Allauth
     "allauth",
@@ -46,7 +47,6 @@ INSTALLED_APPS = [
 
     # local apps
     'dashboard',
-    'users.apps.UsersConfig', 
     'agent_support',
     'crm',
     'finance',
@@ -54,7 +54,6 @@ INSTALLED_APPS = [
     'external_links',
     'query_log',
     'itineraries',
-
 
     # Social providers (Ensure 'microsoft' is listed if you are using it)
     "allauth.socialaccount.providers.microsoft",
@@ -71,6 +70,9 @@ MIDDLEWARE = [
 
     # Add this for Allauth
     "allauth.account.middleware.AccountMiddleware",
+
+    # Recently Viewed
+    'users.middleware.RecentlyViewedMiddleware',
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -111,6 +113,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'users.context_processors.recently_viewed',
             ],
         },
     },
@@ -212,7 +215,7 @@ ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {  # Add this section
+    'formatters': {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
@@ -220,7 +223,7 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'  # Add this line
+            'formatter': 'simple'
         },
     },
     'loggers': {
@@ -233,5 +236,10 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'users': {  # Add this section for the users app
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        }
     },
 }
