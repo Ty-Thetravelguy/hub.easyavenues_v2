@@ -81,6 +81,15 @@
                                 </button>
                             </li>
                             {% endfor %}
+                            {% if supplier.scribe_html %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="scribe-tab{{ supplier.id }}" data-bs-toggle="tab"
+                                    data-bs-target="#scribe{{ supplier.id }}" type="button" role="tab"
+                                    aria-selected="false">
+                                    How to Guide
+                                </button>
+                            </li>
+                            {% endif %}
                         </ul>
 
                         <!-- Tab Content -->
@@ -246,6 +255,19 @@
                                 </div>
                             </div>
                             {% endfor %}
+                            {% if supplier.scribe_html %}
+                            <div class="tab-pane fade" id="scribe{{ supplier.id }}" role="tabpanel">
+                                <div class="container-fluid">
+                                    <div class="row">
+                                        <div class="col-lg-8 col-md-10 mx-auto">
+                                            <div class="scribe-content">
+                                                {{ supplier.get_safe_scribe_html }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
 
                         <!-- Action Buttons -->

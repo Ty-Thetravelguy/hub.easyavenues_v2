@@ -6,6 +6,7 @@ from django.core.validators import FileExtensionValidator
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 import os
+from django.utils.safestring import mark_safe
 
 class AgentSupportSupplier(models.Model):
     
@@ -38,6 +39,19 @@ class AgentSupportSupplier(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+    
+    scribe_html = models.TextField(
+        blank=True, 
+        null=True,
+        verbose_name="Scribe HTML Content",
+        help_text="Paste the Scribe HTML content here"
+    )
+
+    def get_safe_scribe_html(self):
+        """Returns the Scribe HTML content marked as safe for rendering"""
+        if self.scribe_html:
+            return mark_safe(self.scribe_html)
+        return ""
 
 class SupplierAttachment(models.Model):
     supplier = models.ForeignKey('AgentSupportSupplier', on_delete=models.CASCADE, related_name='attachments')
