@@ -1,38 +1,9 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Add new entry (updated to include notes)
-    document.querySelectorAll('.add-phone, .add-email, .add-website, .add-note').forEach(button => {
-        button.addEventListener('click', function() {
-            const container = this.closest('div');
-            const type = this.classList.contains('add-phone') ? 'phone' : 
-                        this.classList.contains('add-email') ? 'email' : 
-                        this.classList.contains('add-website') ? 'website' : 'note';
-            
-            const newEntry = document.createElement('div');
-            newEntry.className = `${type}-entry mb-2`;
-            newEntry.innerHTML = getEntryHTML(type);
-            
-            container.insertBefore(newEntry, this);
-        });
-    });
+// Initialize PDF.js worker
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+}
 
-    // Remove entry (updated to include notes)
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.remove-entry')) {
-            const entry = e.target.closest('.note-entry');
-            if (entry) {
-                const textarea = entry.querySelector('.tinymce-editor');
-                if (textarea) {
-                    const editor = tinymce.get(textarea.id);
-                    if (editor) {
-                        editor.remove();
-                    }
-                }
-            }
-            e.target.closest('.phone-entry, .email-entry, .website-entry, .note-entry').remove();
-        }
-    });
-});
-
+// Helper function to return the entry HTML templates
 function getEntryHTML(type) {
     const templates = {
         phone: `
@@ -106,34 +77,220 @@ function getEntryHTML(type) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize TinyMCE for existing textareas
-    tinymce.init({
-        selector: '.tinymce-editor',
-        height: 200,
-        menubar: false,
-        plugins: 'lists link autolink',
-        toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
-        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
-    });
-
-    // Initialize TinyMCE for dynamically added textareas
-    document.querySelectorAll('.add-note').forEach(button => {
+    /* --- Add New Entry Functionality --- */
+    document.querySelectorAll('.add-phone, .add-email, .add-website, .add-note').forEach(button => {
         button.addEventListener('click', function() {
-            setTimeout(() => {
-                tinymce.init({
-                    selector: '.tinymce-editor:not(.tinymce-active)',
-                    height: 200,
-                    menubar: false,
-                    plugins: 'lists link autolink',
-                    toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
-                    content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
-                    setup: function(editor) {
-                        editor.on('init', function() {
-                            editor.getElement().classList.add('tinymce-active');
-                        });
-                    }
-                });
-            }, 0);
+            const container = this.closest('div');
+            const type = this.classList.contains('add-phone') ? 'phone' : 
+                        this.classList.contains('add-email') ? 'email' : 
+                        this.classList.contains('add-website') ? 'website' : 'note';
+            
+            const newEntry = document.createElement('div');
+            newEntry.className = `${type}-entry mb-2`;
+            newEntry.innerHTML = getEntryHTML(type);
+            
+            container.insertBefore(newEntry, this);
+
+            // Initialize TinyMCE for new note entries
+            if (type === 'note') {
+                const textarea = newEntry.querySelector('.tinymce-editor');
+                if (textarea) {
+                    tinymce.init({
+                        target: textarea,
+                        height: 200,
+                        menubar: false,
+                        plugins: 'lists link autolink',
+                        toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
+                        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }'
+                    });
+                }
+            }
         });
     });
+
+    /* --- Remove Entry Functionality --- */
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-entry')) {
+            const entry = e.target.closest('.note-entry');
+            if (entry) {
+                const textarea = entry.querySelector('.tinymce-editor');
+                if (textarea) {
+                    const editor = tinymce.get(textarea.id);
+                    if (editor) {
+                        editor.remove();
+                    }
+                }
+            }
+            e.target.closest('.phone-entry, .email-entry, .website-entry, .note-entry').remove();
+        }
+    });
+
+    /* --- TinyMCE Initialization for Existing Textareas --- */
+    if (typeof tinymce !== 'undefined') {
+        tinymce.init({
+            selector: '.tinymce-editor',
+            height: 200,
+            menubar: false,
+            plugins: 'lists link autolink',
+            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }'
+        });
+    }
+
+    /* --- Supplier Filtering Functionality --- */
+    const nameFilter = document.getElementById("supplierNameFilter");
+    const typeFilter = document.getElementById("supplierTypeFilter");
+
+    if (nameFilter && typeFilter) {
+        const accordionItems = document.querySelectorAll(".accordion-item");
+
+        function filterSuppliers() {
+            const searchTerm = nameFilter.value.toLowerCase();
+            const selectedType = typeFilter.value.toLowerCase();
+
+            accordionItems.forEach((item) => {
+                const supplierName = item.querySelector(".col-md-4").textContent.toLowerCase();
+                const supplierType = item.querySelector(".col-md-4:nth-child(2)").textContent.toLowerCase();
+
+                const nameMatch = supplierName.includes(searchTerm);
+                const typeMatch = selectedType === "" || supplierType.includes(selectedType);
+
+                item.style.display = (nameMatch && typeMatch) ? "" : "none";
+            });
+
+            // Show/hide "no results" message
+            const allHidden = Array.from(accordionItems).every(item => item.style.display === "none");
+            let noResultsMsg = document.getElementById("noResultsMessage");
+
+            if (allHidden) {
+                if (!noResultsMsg) {
+                    noResultsMsg = document.createElement("div");
+                    noResultsMsg.id = "noResultsMessage";
+                    noResultsMsg.className = "alert alert-info mt-3";
+                    noResultsMsg.textContent = "No suppliers found matching your filters.";
+                    document.getElementById("supplierAccordion").appendChild(noResultsMsg);
+                }
+                noResultsMsg.style.display = "";
+            } else if (noResultsMsg) {
+                noResultsMsg.style.display = "none";
+            }
+        }
+
+        nameFilter.addEventListener("input", filterSuppliers);
+        typeFilter.addEventListener("change", filterSuppliers);
+    }
+
+
+    /* --- PDF Rendering Functionality --- */
+    if (typeof pdfjsLib !== 'undefined') {
+        const pdfInstances = {};
+
+        function renderPage(pdfDoc, pageNum, canvas, scale = 1.5) {
+            if (!pdfDoc || !canvas) return;
+
+            pdfDoc.getPage(pageNum).then(function(page) {
+                const viewport = page.getViewport({ scale: scale });
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                page.render(renderContext);
+            }).catch(function(error) {
+                console.error('Error rendering PDF page:', error);
+            });
+        }
+
+        // Initialize PDF viewers
+        document.querySelectorAll('.pdf-container').forEach(function(container) {
+            if (!container) return;
+
+            const attachmentId = container.id.split('-').pop();
+            const canvas = document.getElementById(`pdf-canvas-${attachmentId}`);
+            const url = canvas.closest('.tab-pane').querySelector('a[href$=".pdf"]').href;
+
+            pdfjsLib.getDocument(url).promise.then(function(pdf) {
+                pdfInstances[attachmentId] = {
+                    doc: pdf,
+                    currentPage: 1,
+                    scale: 1.5
+                };
+                
+                const pageCount = container.closest('.tab-pane').querySelector('.page-count');
+                if (pageCount) pageCount.textContent = pdf.numPages;
+                
+                renderPage(pdf, 1, canvas, 1.5);
+            }).catch(function(error) {
+                console.error('Error loading PDF:', error);
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        Error loading PDF. Please try downloading it instead.
+                    </div>
+                `;
+            });
+        });
+
+        // Handle page navigation
+        document.querySelectorAll('.prev-page, .next-page').forEach(button => {
+            if (!button) return;
+
+            button.addEventListener('click', function() {
+                const attachmentId = this.dataset.pdfId;
+                const instance = pdfInstances[attachmentId];
+                if (!instance) return;
+
+                const isNext = this.classList.contains('next-page');
+                
+                if (isNext && instance.currentPage < instance.doc.numPages) {
+                    instance.currentPage++;
+                } else if (!isNext && instance.currentPage > 1) {
+                    instance.currentPage--;
+                }
+
+                const canvas = document.getElementById(`pdf-canvas-${attachmentId}`);
+                if (canvas) {
+                    renderPage(instance.doc, instance.currentPage, canvas, instance.scale);
+                    const pageNum = this.closest('.tab-pane').querySelector('.page-num');
+                    if (pageNum) pageNum.textContent = instance.currentPage;
+                }
+            });
+        });
+
+        // Handle zoom
+        document.querySelectorAll('.zoom-in, .zoom-out').forEach(button => {
+            if (!button) return;
+
+            button.addEventListener('click', function() {
+                const attachmentId = this.dataset.pdfId;
+                const instance = pdfInstances[attachmentId];
+                if (!instance) return;
+
+                const isZoomIn = this.classList.contains('zoom-in');
+                instance.scale = isZoomIn ? instance.scale * 1.2 : instance.scale / 1.2;
+
+                const canvas = document.getElementById(`pdf-canvas-${attachmentId}`);
+                if (canvas) {
+                    renderPage(instance.doc, instance.currentPage, canvas, instance.scale);
+                }
+            });
+        });
+    }
+
+    // Error handling for PDF loading
+    window.addEventListener('error', function(e) {
+        if (e.target.tagName === 'CANVAS') {
+            console.error('Error loading PDF:', e);
+            const container = e.target.closest('.pdf-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        Error loading PDF. Please try downloading it instead.
+                    </div>
+                `;
+            }
+        }
+    }, true);
 });

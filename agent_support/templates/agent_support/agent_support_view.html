@@ -3,7 +3,7 @@
 {% load user_tags %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid mb-5">
     <div class="row pt-3">
         <div class="col-4">
             {% if user.is_authenticated %}
@@ -63,118 +63,200 @@
                 <div id="collapse{{ supplier.id }}" class="accordion-collapse collapse"
                     data-bs-parent="#supplierAccordion">
                     <div class="accordion-body">
-                        <div class="row">
-                            <!-- Websites Section -->
-                            <div class="col-md-4">
-                                <h5>Websites</h5>
-                                {% if supplier.agent_websites %}
-                                {% for website in supplier.agent_websites %}
-                                <div class="mb-2">
-                                    <a href="{{ website.url }}" target="_blank" class="text-decoration-none">
-                                        {{ website.description }}
-                                        <i class="fas fa-external-link-alt ms-1"></i>
-                                    </a>
-                                </div>
-                                {% endfor %}
-                                {% else %}
-                                <p class="text-muted">No websites listed</p>
-                                {% endif %}
-                            </div>
+                        <!-- Tabs Navigation -->
+                        <ul class="nav nav-tabs mb-3" id="supplierTabs{{ supplier.id }}" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="details-tab{{ supplier.id }}" data-bs-toggle="tab"
+                                    data-bs-target="#details{{ supplier.id }}" type="button" role="tab"
+                                    aria-selected="true">
+                                    Supplier Details
+                                </button>
+                            </li>
+                            {% for attachment in supplier.attachments.all %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="attachment-tab{{ attachment.id }}" data-bs-toggle="tab"
+                                    data-bs-target="#attachment{{ attachment.id }}" type="button" role="tab"
+                                    aria-selected="false">
+                                    {{ attachment.heading }}
+                                </button>
+                            </li>
+                            {% endfor %}
+                        </ul>
 
-                            <!-- Contact Information -->
-                            <div class="col-md-4">
-                                <h5>Contact Information</h5>
-                                {% if supplier.contact_phone or supplier.general_email %}
-                                {% for phone in supplier.contact_phone %}
-                                {% if phone.number and phone.description %}
-                                <div>
-                                    <i class="fas fa-phone ms-1 pe-2"></i>{{ phone.description }}:
-                                    <a href="tel:{{ phone.number }}" class="text-decoration-none">
-                                        {{ phone.number }}
-                                    </a>
-                                </div>
-                                {% endif %}
-                                {% endfor %}
-                                {% for email in supplier.general_email %}
-                                {% if email.email and email.description %}
-                                <div>
-                                    <i class="fas fa-envelope ms-1 pe-2"></i>{{ email.description }}:
-                                    <a href="mailto:{{ email.email }}" class="text-decoration-none">
-                                        {{ email.email }}
-                                    </a>
-                                </div>
-                                {% endif %}
-                                {% endfor %}
-                                {% else %}
-                                <p class="text-muted">No contact information available</p>
-                                {% endif %}
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="supplierTabsContent{{ supplier.id }}">
+                            <!-- Details Tab -->
+                            <div class="tab-pane fade show active" id="details{{ supplier.id }}" role="tabpanel">
+                                <div class="row">
+                                    <!-- Websites Section -->
+                                    <div class="col-md-4">
+                                        <h5>Websites</h5>
+                                        {% if supplier.agent_websites %}
+                                        {% for website in supplier.agent_websites %}
+                                        <div class="mb-2">
+                                            <a href="{{ website.url }}" target="_blank" class="text-decoration-none">
+                                                {{ website.description }}
+                                                <i class="fas fa-external-link-alt ms-1"></i>
+                                            </a>
+                                        </div>
+                                        {% endfor %}
+                                        {% else %}
+                                        <p class="text-muted">No websites listed</p>
+                                        {% endif %}
+                                    </div>
 
-                                <h5>Group Contact</h5>
-                                {% if supplier.group_phone %}
-                                <p>{{ supplier.group_phone }}</p>
-                                {% else %}
-                                <p class="text-muted">No group contact available</p>
-                                {% endif %}
+                                    <!-- Contact Information -->
+                                    <div class="col-md-4">
+                                        <h5>Contact Information</h5>
+                                        {% if supplier.contact_phone or supplier.general_email %}
+                                        {% for phone in supplier.contact_phone %}
+                                        {% if phone.number and phone.description %}
+                                        <div>
+                                            <i class="fas fa-phone ms-1 pe-2"></i>{{ phone.description }}:
+                                            <a href="tel:{{ phone.number }}" class="text-decoration-none">
+                                                {{ phone.number }}
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                        {% for email in supplier.general_email %}
+                                        {% if email.email and email.description %}
+                                        <div>
+                                            <i class="fas fa-envelope ms-1 pe-2"></i>{{ email.description }}:
+                                            <a href="mailto:{{ email.email }}" class="text-decoration-none">
+                                                {{ email.email }}
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                        {% else %}
+                                        <p class="text-muted">No contact information available</p>
+                                        {% endif %}
 
-                                <h5>Group Email</h5>
-                                {% if supplier.group_email %}
-                                <p>{{ supplier.group_email }}</p>
-                                {% else %}
-                                <p class="text-muted">No group email available</p>
-                                {% endif %}
+                                        <h5>Group Contact</h5>
+                                        {% if supplier.group_phone %}
+                                        <p>{{ supplier.group_phone }}</p>
+                                        {% else %}
+                                        <p class="text-muted">No group contact available</p>
+                                        {% endif %}
 
-                            </div>
+                                        <h5>Group Email</h5>
+                                        {% if supplier.group_email %}
+                                        <p>{{ supplier.group_email }}</p>
+                                        {% else %}
+                                        <p class="text-muted">No group email available</p>
+                                        {% endif %}
+                                    </div>
 
-                            <!-- Account Manager Details -->
-                            <div class="col-md-4">
-                                <h5>Account Manager</h5>
-                                {% if supplier.account_manager_name %}
-                                <p><strong>Name:</strong> {{ supplier.account_manager_name }}</p>
-                                {% if supplier.account_manager_email %}
-                                <p>
-                                    <strong>Email:</strong>
-                                    <a href="mailto:{{ supplier.account_manager_email }}" class="text-decoration-none">
-                                        {{ supplier.account_manager_email }}
-                                        <i class="fas fa-envelope ms-1"></i>
-                                    </a>
-                                </p>
-                                {% endif %}
-                                {% if supplier.account_manager_phone %}
-                                <p>
-                                    <strong>Phone:</strong>
-                                    <a href="tel:{{ supplier.account_manager_phone }}" class="text-decoration-none">
-                                        {{ supplier.account_manager_phone }}
-                                        <i class="fas fa-phone ms-1"></i>
-                                    </a>
-                                </p>
-                                {% endif %}
-                                {% else %}
-                                <p class="text-muted">No account manager details</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <!-- Additional Notes Section - Full Width -->
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <h5>Additional Notes</h5>
-                                {% if supplier.other_notes %}
-                                {% for note in supplier.other_notes %}
-                                <div class="card mb-2">
-                                    <div class="card-body">
-                                        <div class="mb-1">{{ note.note|safe }}</div>
-                                        <small class="text-muted">
-                                            Added by {{ note.created_by }} on {{ note.created_at }}
-                                        </small>
+                                    <!-- Account Manager Details -->
+                                    <div class="col-md-4">
+                                        <h5>Account Manager</h5>
+                                        {% if supplier.account_manager_name %}
+                                        <p><strong>Name:</strong> {{ supplier.account_manager_name }}</p>
+                                        {% if supplier.account_manager_email %}
+                                        <p>
+                                            <strong>Email:</strong>
+                                            <a href="mailto:{{ supplier.account_manager_email }}"
+                                                class="text-decoration-none">
+                                                {{ supplier.account_manager_email }}
+                                                <i class="fas fa-envelope ms-1"></i>
+                                            </a>
+                                        </p>
+                                        {% endif %}
+                                        {% if supplier.account_manager_phone %}
+                                        <p>
+                                            <strong>Phone:</strong>
+                                            <a href="tel:{{ supplier.account_manager_phone }}"
+                                                class="text-decoration-none">
+                                                {{ supplier.account_manager_phone }}
+                                                <i class="fas fa-phone ms-1"></i>
+                                            </a>
+                                        </p>
+                                        {% endif %}
+                                        {% else %}
+                                        <p class="text-muted">No account manager details</p>
+                                        {% endif %}
                                     </div>
                                 </div>
-                                {% endfor %}
-                                {% else %}
-                                <p class="text-muted">No additional notes</p>
-                                {% endif %}
+
+                                <!-- Additional Notes Section -->
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <h5>Additional Notes</h5>
+                                        {% if supplier.other_notes %}
+                                        {% for note in supplier.other_notes %}
+                                        <div class="card mb-2">
+                                            <div class="card-body">
+                                                <div class="mb-1">{{ note.note|safe }}</div>
+                                                <small class="text-muted">
+                                                    Added by {{ note.created_by }} on {{ note.created_at }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                        {% else %}
+                                        <p class="text-muted">No additional notes</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
+
+                            <!-- Attachment Tabs -->
+                            {% for attachment in supplier.attachments.all %}
+                            <div class="tab-pane fade" id="attachment{{ attachment.id }}" role="tabpanel">
+                                <div class="mt-3">
+                                    {% if attachment.description %}
+                                    <p class="mb-3">{{ attachment.description }}</p>
+                                    {% endif %}
+                                    <div class="pdf-controls d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <button class="btn btn-sm btn-primary prev-page" data-pdf-id="{{ attachment.id }}">
+                                                <i class="fas fa-chevron-left"></i> Previous
+                                            </button>
+                                            <span class="mx-2">Page: <span class="page-num">1</span> / <span class="page-count">-</span></span>
+                                            <button class="btn btn-sm btn-primary next-page" data-pdf-id="{{ attachment.id }}">
+                                                Next <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary zoom-in" data-pdf-id="{{ attachment.id }}">
+                                                <i class="fas fa-search-plus"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary zoom-out" data-pdf-id="{{ attachment.id }}">
+                                                <i class="fas fa-search-minus"></i>
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <a href="{{ attachment.pdf_file.url }}" class="btn btn-primary btn-sm me-2" target="_blank">
+                                                <i class="fas fa-download"></i> Download PDF
+                                            </a>
+                                            <form action="{% url 'agent_support:delete_attachment' supplier.id attachment.id %}" 
+                                                  method="POST" 
+                                                  class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-sm delete-attachment"
+                                                    data-attachment-id="{{ attachment.id }}"
+                                                    data-supplier-id="{{ supplier.id }}">
+                                                    <i class="fas fa-trash"></i> Delete PDF
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div class="pdf-container" id="pdf-container-{{ attachment.id }}">
+                                        <canvas id="pdf-canvas-{{ attachment.id }}" class="pdf-canvas"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
-                        <div class="row">
-                            <div class="col-md-12 text-end">
+
+                        <!-- Action Buttons -->
+                        <div class="row mt-3">
+                            <div class="col-md-6 text-start">
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#addAttachmentModal{{ supplier.id }}" title="Add Attachment">
+                                    <i class="fas fa-plus me-1"></i> Add Attachment
+                                </button>
+                            </div>
+                            <div class="col-md-6 text-end">
                                 <a href="{% url 'agent_support:edit_agent_supplier' supplier.id %}"
                                     class="btn btn-primary btn-sm" title="Edit Supplier">
                                     <i class="fas fa-edit"></i> Edit
@@ -185,104 +267,88 @@
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Delete Modal for each supplier -->
-                        <div class="modal fade" id="deleteModal{{ supplier.id }}" tabindex="-1"
-                            aria-labelledby="deleteModalLabel{{ supplier.id }}" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="deleteModalLabel{{ supplier.id }}">
-                                            Confirm Delete
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                            aria-label="Close"></button>
+                    </div>
+                </div>
+                <!-- Add Attachment Modal -->
+                <div class="modal fade" id="addAttachmentModal{{ supplier.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add Attachment</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <form method="POST" action="{% url 'agent_support:add_attachment' supplier.id %}"
+                                enctype="multipart/form-data" class="attachment-form">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="heading{{ supplier.id }}"
+                                            class="form-label">Heading*</label>
+                                        <input type="text" class="form-control" id="heading{{ supplier.id }}"
+                                            name="heading" required>
                                     </div>
-                                    <div class="modal-body">
-                                        Are you sure you want to delete supplier "{{supplier.supplier_name }}"? This
-                                        action cannot be undone.
+                                    <div class="mb-3">
+                                        <label for="description{{ supplier.id }}" class="form-label">Description
+                                            (Optional)</label>
+                                        <textarea class="form-control" id="description{{ supplier.id }}"
+                                            name="description" rows="3"></textarea>
                                     </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                            Cancel
-                                        </button>
-                                        <form action="{% url 'agent_support:delete_agent_supplier' supplier.id %}"
-                                            method="POST" class="d-inline">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger">Delete</button>
-                                        </form>
+                                    <div class="mb-3">
+                                        <label for="pdf_file{{ supplier.id }}" class="form-label">PDF
+                                            File*</label>
+                                        <input type="file" class="form-control" id="pdf_file{{ supplier.id }}"
+                                            name="pdf_file" accept="application/pdf" required>
                                     </div>
                                 </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Upload</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delete Modal for each supplier -->
+                <div class="modal fade" id="deleteModal{{ supplier.id }}" tabindex="-1"
+                    aria-labelledby="deleteModalLabel{{ supplier.id }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="deleteModalLabel{{ supplier.id }}">
+                                    Confirm Delete
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Are you sure you want to delete supplier "{{supplier.supplier_name }}"? This
+                                action cannot be undone.
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    Cancel
+                                </button>
+                                <form action="{% url 'agent_support:delete_agent_supplier' supplier.id %}"
+                                    method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
             {% empty %}
             <div class="alert alert-info mt-3">
                 No suppliers found. Click "Add Supplier" to add one.
             </div>
             {% endfor %}
         </div>
-    </div>
-    {% endblock %}
-    {% block postload_js %}
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const nameFilter = document.getElementById("supplierNameFilter");
-            const typeFilter = document.getElementById("supplierTypeFilter");
-            const accordionItems = document.querySelectorAll(".accordion-item");
-
-            function filterSuppliers() {
-                const searchTerm = nameFilter.value.toLowerCase();
-                const selectedType = typeFilter.value.toLowerCase();
-
-                accordionItems.forEach((item) => {
-                    const supplierName = item
-                        .querySelector(".col-md-4")
-                        .textContent.toLowerCase();
-                    const supplierType = item
-                        .querySelector(".col-md-4:nth-child(2)")
-                        .textContent.toLowerCase();
-
-                    const nameMatch = supplierName.includes(searchTerm);
-                    const typeMatch =
-                        selectedType === "" || supplierType.includes(selectedType);
-
-                    // Show/hide based on both filters
-                    if (nameMatch && typeMatch) {
-                        item.style.display = "";
-                    } else {
-                        item.style.display = "none";
-                    }
-                });
-
-                // Show "no results" message if all items are hidden
-                const allHidden = Array.from(accordionItems).every(
-                    (item) => item.style.display === "none"
-                );
-                let noResultsMsg = document.getElementById("noResultsMessage");
-
-                if (allHidden) {
-                    if (!noResultsMsg) {
-                        noResultsMsg = document.createElement("div");
-                        noResultsMsg.id = "noResultsMessage";
-                        noResultsMsg.className = "alert alert-info mt-3";
-                        noResultsMsg.textContent =
-                            "No suppliers found matching your filters.";
-                        document
-                            .getElementById("supplierAccordion")
-                            .appendChild(noResultsMsg);
-                    }
-                    noResultsMsg.style.display = "";
-                } else if (noResultsMsg) {
-                    noResultsMsg.style.display = "none";
-                }
-            }
-
-            // Add event listeners for both filters
-            nameFilter.addEventListener("input", filterSuppliers);
-            typeFilter.addEventListener("change", filterSuppliers);
-        });
-    </script>
-    {% endblock %}
+        {% endblock %}
+        {% block postload_js %}
+        <script src="{% static 'agent_support/js/agent_support.js' %}"></script>
+        {% endblock %}

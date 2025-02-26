@@ -35,6 +35,18 @@
     {% block extra_js %}
     {% endblock %}
 
+    {% block extra_head %}
+        <!-- PDF.js CSS -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf_viewer.min.css">
+
+        <!-- PDF.js library -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+        <script>
+        // Initialize PDF.js worker
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        </script>
+    {% endblock %}
+
     <title>Travault{% block title %}{% endblock %}</title>
 </head>
 

@@ -1,6 +1,11 @@
 # agent_support/models.py
 
 from django.db import models
+from django.conf import settings
+from django.core.validators import FileExtensionValidator
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+import os
 
 class AgentSupportSupplier(models.Model):
     
@@ -33,3 +38,27 @@ class AgentSupportSupplier(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+
+class SupplierAttachment(models.Model):
+    supplier = models.ForeignKey('AgentSupportSupplier', on_delete=models.CASCADE, related_name='attachments')
+    heading = models.CharField(max_length=255)
+    description = models.TextField(null=True, blank=True)
+    pdf_file = models.FileField(
+        upload_to='supplier_attachments/',
+        validators=[FileExtensionValidator(allowed_extensions=['pdf'])]
+    )
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.heading} - {self.supplier.supplier_name}"
+
+@receiver(post_delete, sender=SupplierAttachment)
+def delete_attachment_file(sender, instance, **kwargs):
+    """
+    Delete the file from filesystem when SupplierAttachment instance is deleted.
+    """
+    if instance.pdf_file:
+        if os.path.isfile(instance.pdf_file.path):
+            os.remove(instance.pdf_file.path)

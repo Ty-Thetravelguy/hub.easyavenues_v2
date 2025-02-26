@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import AgentSupportSupplierForm
 from django.contrib import messages
+from .models import SupplierAttachment
 
 @login_required
 def agent_support_view(request):
@@ -168,6 +169,30 @@ def delete_agent_supplier(request, supplier_id):
     return redirect('agent_support:agent_support_view')
 
 
+@login_required
+def add_attachment(request, supplier_id):
+    if request.method == 'POST':
+        supplier = get_object_or_404(AgentSupportSupplier, id=supplier_id)
+        
+        attachment = SupplierAttachment.objects.create(
+            supplier=supplier,
+            heading=request.POST['heading'],
+            description=request.POST.get('description'), 
+            pdf_file=request.FILES['pdf_file'],
+            created_by=request.user
+        )
+        
+        return redirect('agent_support:agent_support_view')
+    
+    return redirect('agent_support:agent_support_view')
 
-
-
+@login_required
+def delete_attachment(request, supplier_id, attachment_id):
+    if request.method == 'POST':
+        attachment = get_object_or_404(SupplierAttachment, 
+                                     id=attachment_id,
+                                     supplier_id=supplier_id)
+        attachment.delete()
+        messages.success(request, 'Attachment deleted successfully.')
+        return redirect('agent_support:agent_support_view')
+    return redirect('agent_support:agent_support_view')

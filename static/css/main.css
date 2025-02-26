@@ -135,3 +135,21 @@ body {
 .accordion-button:not(.collapsed) {
     background-color: #9c85db !important;
 }
+
+/************************* PDF **************************/
+.pdf-container {
+    border: 1px solid #ddd;
+    height: 600px;
+    overflow: auto;
+    background-color: #525659;
+    text-align: center;
+}
+.pdf-canvas {
+    display: inline-block;
+    margin: 0 auto;
+}
+.pdf-controls {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}

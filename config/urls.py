@@ -4,6 +4,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 from accounts.views import signup
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -20,5 +22,5 @@ urlpatterns = [
     path('external-links/', include('external_links.urls')),
     path('query-log/', include('query_log.urls')),
     path('itineraries/', include('itineraries.urls')),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
