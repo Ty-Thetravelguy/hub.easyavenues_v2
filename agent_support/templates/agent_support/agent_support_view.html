@@ -255,11 +255,13 @@
                                 </div>
                             </div>
                             {% endfor %}
+
+                            <!-- Scribe Tab -->
                             {% if supplier.scribe_html %}
                             <div class="tab-pane fade" id="scribe{{ supplier.id }}" role="tabpanel">
                                 <div class="container-fluid">
-                                    <div class="row">
-                                        <div class="col-lg-8 col-md-10 mx-auto">
+                                    <div class="row d-flex justify-content-center">
+                                        <div class="col-md-5">
                                             <div class="scribe-content">
                                                 {{ supplier.get_safe_scribe_html }}
                                             </div>
