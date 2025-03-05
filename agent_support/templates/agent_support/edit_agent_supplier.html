@@ -2,7 +2,18 @@
 {% load static %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid mb-5">
+    <div class="row pt-3">
+        <div class="col-4">
+            <a href="{% url 'agent_support:supplier_contacts' %}" class="btn btn-link">
+                <i class="fas fa-arrow-left"></i> Back to Supplier Contacts
+            </a>
+        </div>
+
+        <div class="col-4 text-center">
+            <h1 class="display-6 work-sans">Edit Supplier</h1>
+        </div>
+    </div>
     <div class="row mt-5 mb-5">
         <div class="col-md-2"></div>
         <div class="col-md-6 mx-auto">

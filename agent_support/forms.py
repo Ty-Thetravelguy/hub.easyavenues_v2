@@ -22,7 +22,8 @@ class AgentSupportSupplierForm(forms.ModelForm):
             'account_manager_name',
             'account_manager_email',
             'account_manager_phone',
-            'other_notes'
+            'other_notes',
+            'scribe_html'
         ]
         widgets = {
             'supplier_type': forms.Select(attrs={
@@ -55,6 +56,11 @@ class AgentSupportSupplierForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Enter any additional notes about the supplier'
             }),
+            'scribe_html': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Paste the Scribe HTML content here',
+                'rows': 10
+            }),
         }
         help_texts = {
             'supplier_type': 'Select the type of supplier from the dropdown',
@@ -64,5 +70,6 @@ class AgentSupportSupplierForm(forms.ModelForm):
             'account_manager_name': 'Your dedicated account manager\'s name',
             'account_manager_email': 'Direct email for your account manager',
             'account_manager_phone': 'Direct phone number for your account manager',
-            'other_notes': 'Additional notes about the supplier'
+            'other_notes': 'Additional notes about the supplier',
+            'scribe_html': 'Paste the Scribe HTML content here. This will be displayed in the How to Guide tab.'
         }
