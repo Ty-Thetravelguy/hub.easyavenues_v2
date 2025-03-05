@@ -237,12 +237,12 @@ LOGGING = {
         },
         'accounts': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'WARNING',
             'propagate': False,
         },
         'users': {  # Add this section for the users app
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'WARNING',
             'propagate': False,
         }
     },

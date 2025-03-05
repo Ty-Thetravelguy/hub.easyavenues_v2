@@ -1,0 +1,14 @@
+{% if user.is_authenticated and user.page_bookmarks.exists %}
+<div class="bookmarks mt-3">
+    <div class="list-group" id="bookmark-list">
+        {% for bookmark in user.page_bookmarks.all %}
+        <a href="{{ bookmark.url }}" class="list-group-item list-group-item-action bg-gradient-blue-purple text-white border-0 mb-2">
+            {{ bookmark.title }}
+            <button class="btn btn-sm btn-link text-white float-end remove-bookmark" data-url="{{ bookmark.url }}">
+                <i class="fas fa-times"></i>
+            </button>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %} 

@@ -1,4 +1,24 @@
 document.addEventListener('DOMContentLoaded', function () {
+    // Function to show message
+    function showMessage(message, type = 'success') {
+        const messageContainer = document.getElementById('message-container');
+        if (messageContainer) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show shadow`;
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            messageContainer.appendChild(alertDiv);
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+    }
+
     // Existing alert code
     setTimeout(function () {
         var alerts = document.querySelectorAll('.alert');
@@ -27,7 +47,34 @@ document.addEventListener('DOMContentLoaded', function () {
     updateDateTime();
     setInterval(updateDateTime, 60000);
 
-    // Bookmark code - MOVED INSIDE the same DOMContentLoaded
+    // Function to refresh bookmark list
+    function refreshBookmarkList() {
+        const bookmarkersContent = document.getElementById('bookmarkersContent');
+        if (!bookmarkersContent) return;
+
+        fetch('/users/get-bookmarks/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            bookmarkersContent.innerHTML = html;
+            // Reattach event listeners to new remove buttons
+            document.querySelectorAll('.remove-bookmark').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRemoveBookmark(this);
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error refreshing bookmarks:', error);
+        });
+    }
+
+    // Bookmark code
     const bookmarkButtons = document.querySelectorAll('.bookmark-btn');
     bookmarkButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -35,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const icon = this.querySelector('i');
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-            fetch('/users/bookmark/toggle/', {
+            fetch('/users/toggle-bookmark/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -50,7 +97,36 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     icon.classList.replace('fas', 'far');
                 }
+                
+                // Show success message
+                if (data.message) {
+                    showMessage(data.message);
+                }
+
+                // Refresh the bookmark list
+                refreshBookmarkList();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error updating bookmark', 'danger');
             });
+        });
+    });
+
+    // Add handler for existing remove buttons
+    function handleRemoveBookmark(button) {
+        const url = button.dataset.url;
+        const bookmarkBtn = document.querySelector(`.bookmark-btn[data-url="${url}"]`);
+        if (bookmarkBtn) {
+            bookmarkBtn.click(); // Reuse the existing toggle functionality
+        }
+    }
+
+    document.querySelectorAll('.remove-bookmark').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleRemoveBookmark(this);
         });
     });
 });
