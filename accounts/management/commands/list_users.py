@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from allauth.account.models import EmailAddress
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -24,11 +25,19 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'- Staff: {user.is_staff}'))
             self.stdout.write(self.style.SUCCESS(f'- Superuser: {user.is_superuser}'))
             self.stdout.write(self.style.SUCCESS(f'- Email Verified: {email_verified}'))
+            self.stdout.write(self.style.SUCCESS(f'- Date Joined: {user.date_joined.strftime("%Y-%m-%d %H:%M")}'))
             
             # Print business association if any
             if hasattr(user, 'business'):
-                self.stdout.write(self.style.SUCCESS(f'- Business: {user.business.name}'))
+                business = user.business
+                self.stdout.write(self.style.SUCCESS(f'- Business: {business.business_name if hasattr(business, "business_name") else "Unknown"}'))
             else:
                 self.stdout.write(self.style.SUCCESS('- Business: None'))
+            
+            # Print last login if available
+            if user.last_login:
+                self.stdout.write(self.style.SUCCESS(f'- Last Login: {user.last_login.strftime("%Y-%m-%d %H:%M")}'))
+            else:
+                self.stdout.write(self.style.SUCCESS('- Last Login: Never'))
             
             self.stdout.write('')  # Empty line between users 

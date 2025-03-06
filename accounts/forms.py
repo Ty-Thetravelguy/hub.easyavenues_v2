@@ -4,6 +4,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from allauth.account.forms import SignupForm
 from .models import CustomUser, BusinessDomain, Business
+from django.core.validators import RegexValidator
+from django.utils.translation import gettext_lazy as _
 
 
 class CustomSignupForm(SignupForm):
@@ -51,3 +53,71 @@ class CustomSignupForm(SignupForm):
         self.fields['email'].widget.attrs.update({'class': 'form-control'})
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+
+
+class AdminUserCreationForm(forms.ModelForm):
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('first_name', 'last_name', 'email')
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if not email:
+            raise forms.ValidationError("Email is required.")
+        
+        domain = email.split('@')[-1]
+        if domain != 'easyavenues.co.uk':
+            raise forms.ValidationError(
+                "Only @easyavenues.co.uk email addresses are allowed."
+            )
+        
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError(
+                "A user with this email address already exists."
+            )
+        
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        user.username = self.cleaned_data['email']  # Set username to email
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        user.is_active = True
+        user.is_staff = True  # Make all admin-created users staff members
+        
+        if commit:
+            user.save()
+            
+            # Create email address record
+            from allauth.account.models import EmailAddress
+            EmailAddress.objects.create(
+                user=user,
+                email=user.email,
+                verified=False,  # User needs to verify their email
+                primary=True
+            )
+            
+            # Send verification email
+            from allauth.account.utils import user_email
+            from allauth.account.adapter import get_adapter
+            adapter = get_adapter()
+            adapter.send_confirmation_mail(self.instance, user_email(user))
+        
+        return user
