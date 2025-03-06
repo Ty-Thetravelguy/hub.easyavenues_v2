@@ -187,6 +187,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",  # Default Django authentication
     "allauth.account.auth_backends.AuthenticationBackend",  # Allauth authentication
@@ -204,7 +207,7 @@ ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Options: 'none', 'optional', 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Temporarily disable email verification
 ACCOUNT_SIGNUP_REDIRECT_URL = '/dashboard/'  # Redirect after signup
 ACCOUNT_LOGOUT_REDIRECT_URL = '/'  # Redirect after logout
 
