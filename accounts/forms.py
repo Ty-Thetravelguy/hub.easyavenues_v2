@@ -56,6 +56,12 @@ class CustomSignupForm(SignupForm):
 
 
 class AdminUserCreationForm(forms.ModelForm):
+    ROLE_CHOICES = [
+        ('agent', 'Agent'),
+        ('marketing', 'Marketing'),
+        ('admin', 'Admin'),
+    ]
+
     first_name = forms.CharField(
         max_length=30,
         required=True,
@@ -70,10 +76,15 @@ class AdminUserCreationForm(forms.ModelForm):
         required=True,
         widget=forms.EmailInput(attrs={'class': 'form-control'})
     )
+    role = forms.ChoiceField(
+        choices=ROLE_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = CustomUser
-        fields = ('first_name', 'last_name', 'email')
+        fields = ('first_name', 'last_name', 'email', 'role')
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -100,7 +111,18 @@ class AdminUserCreationForm(forms.ModelForm):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.is_active = True
-        user.is_staff = True  # Make all admin-created users staff members
+        
+        # Set role-based permissions
+        role = self.cleaned_data['role']
+        if role == 'admin':
+            user.is_staff = True
+            user.is_superuser = False  # Admin users are staff but not superusers
+        elif role == 'agent':
+            user.is_staff = True
+            user.is_superuser = False
+        else:  # marketing
+            user.is_staff = False
+            user.is_superuser = False
         
         if commit:
             user.save()

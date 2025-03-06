@@ -49,9 +49,20 @@
                             </div>
                             {% endif %}
                         </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.role.id_for_label }}" class="form-label">Role</label>
+                            {{ form.role }}
+                            <div class="form-text">Select the user's role in the system</div>
+                            {% if form.role.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.role.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
                         
                         <div class="d-flex justify-content-between">
-                            <a href="{% url 'admin:accounts_customuser_changelist' %}" class="btn btn-secondary">Cancel</a>
+                            <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">Cancel</a>
                             <button type="submit" class="btn btn-primary">Create User</button>
                         </div>
                     </form>
