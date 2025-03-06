@@ -1,11 +1,11 @@
 # accounts/views.py
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse
-from .forms import CustomSignupForm, AdminUserCreationForm
+from .forms import CustomSignupForm, AdminUserCreationForm, EditUserForm
 from django.contrib.auth import get_user_model
 from allauth.account.models import EmailAddress
 
@@ -55,4 +55,23 @@ def user_list(request):
         user.email_verified = email_address.verified if email_address else False
     
     return render(request, 'accounts/user_list.html', {'users': users})
+
+@login_required
+@user_passes_test(is_admin)
+def edit_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        form = EditUserForm(request.POST, instance=user)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f'User {user.get_full_name()} has been updated successfully.')
+            return redirect('accounts:user_list')
+    else:
+        form = EditUserForm(instance=user)
+    
+    return render(request, 'accounts/edit_user.html', {
+        'form': form,
+        'user': user
+    })
 

@@ -56,12 +56,6 @@ class CustomSignupForm(SignupForm):
 
 
 class AdminUserCreationForm(forms.ModelForm):
-    ROLE_CHOICES = [
-        ('agent', 'Agent'),
-        ('marketing', 'Marketing'),
-        ('admin', 'Admin'),
-    ]
-
     first_name = forms.CharField(
         max_length=30,
         required=True,
@@ -77,7 +71,7 @@ class AdminUserCreationForm(forms.ModelForm):
         widget=forms.EmailInput(attrs={'class': 'form-control'})
     )
     role = forms.ChoiceField(
-        choices=ROLE_CHOICES,
+        choices=CustomUser.ROLE_CHOICES,
         required=True,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
@@ -111,25 +105,14 @@ class AdminUserCreationForm(forms.ModelForm):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.is_active = True
-        
-        # Set role-based permissions
-        role = self.cleaned_data['role']
-        if role == 'admin':
-            user.is_staff = True
-            user.is_superuser = False  # Admin users are staff but not superusers
-        elif role == 'agent':
-            user.is_staff = True
-            user.is_superuser = False
-        else:  # marketing
-            user.is_staff = False
-            user.is_superuser = False
+        user.role = self.cleaned_data['role']  # Set the role
         
         if commit:
             user.save()
             
             # Create email address record
             from allauth.account.models import EmailAddress
-            EmailAddress.objects.create(
+            email_address = EmailAddress.objects.create(
                 user=user,
                 email=user.email,
                 verified=False,  # User needs to verify their email
@@ -137,9 +120,92 @@ class AdminUserCreationForm(forms.ModelForm):
             )
             
             # Send verification email
-            from allauth.account.utils import user_email
             from allauth.account.adapter import get_adapter
             adapter = get_adapter()
-            adapter.send_confirmation_mail(self.instance, user_email(user))
+            adapter.send_mail(
+                'account/email/email_confirmation_signup',
+                user.email,
+                {
+                    'user': user,
+                    'activate_url': adapter.get_email_confirmation_url(user, email_address),
+                    'key': email_address.key,
+                }
+            )
+        
+        return user
+
+
+class EditUserForm(forms.ModelForm):
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    role = forms.ChoiceField(
+        choices=CustomUser.ROLE_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    is_active = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('first_name', 'last_name', 'email', 'role', 'is_active')
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if not email:
+            raise forms.ValidationError("Email is required.")
+        
+        domain = email.split('@')[-1]
+        if domain != 'easyavenues.co.uk':
+            raise forms.ValidationError(
+                "Only @easyavenues.co.uk email addresses are allowed."
+            )
+        
+        # Check if email exists for other users
+        if CustomUser.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError(
+                "A user with this email address already exists."
+            )
+        
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        user.role = self.cleaned_data['role']
+        user.is_active = self.cleaned_data['is_active']
+        
+        if commit:
+            user.save()
+            
+            # Update email address record if email changed
+            from allauth.account.models import EmailAddress
+            email_address = EmailAddress.objects.filter(user=user).first()
+            if email_address and email_address.email != user.email:
+                email_address.email = user.email
+                email_address.verified = False  # Require re-verification if email changed
+                email_address.save()
+                
+                # Send verification email
+                from allauth.account.utils import user_email
+                from allauth.account.adapter import get_adapter
+                adapter = get_adapter()
+                adapter.send_confirmation_mail(self.instance, user_email(user))
         
         return user

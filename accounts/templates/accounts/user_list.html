@@ -18,7 +18,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>Status</th>
+                            <th>Role</th>
                             <th>Email Verified</th>
                             <th>Last Login</th>
                             <th>Actions</th>
@@ -32,10 +32,12 @@
                             <td>
                                 {% if user.is_superuser %}
                                 <span class="badge bg-danger">Superuser</span>
-                                {% elif user.is_staff %}
-                                <span class="badge bg-primary">Staff</span>
                                 {% else %}
-                                <span class="badge bg-secondary">User</span>
+                                <span class="badge {% if user.role == 'admin' %}bg-danger
+                                                  {% elif user.role == 'agent' %}bg-primary
+                                                  {% else %}bg-secondary{% endif %}">
+                                    {{ user.get_role_display }}
+                                </span>
                                 {% endif %}
                                 {% if not user.is_active %}
                                 <span class="badge bg-warning">Inactive</span>
@@ -57,7 +59,7 @@
                             </td>
                             <td>
                                 <div class="btn-group">
-                                    <a href="{% url 'admin:accounts_customuser_change' user.id %}" 
+                                    <a href="{% url 'accounts:edit_user' user.id %}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-edit"></i>
                                     </a>

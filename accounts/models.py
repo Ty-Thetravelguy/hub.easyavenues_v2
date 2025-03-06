@@ -29,12 +29,19 @@ class BusinessDomain(models.Model):
         return f"{self.domain} ({self.business.business_name})"  
 
 class CustomUser(AbstractUser):
+    ROLE_CHOICES = [
+        ('agent', 'Agent'),
+        ('marketing', 'Marketing'),
+        ('admin', 'Admin'),
+    ]
+
     id = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, blank=True, null=False)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
-    business = models.ForeignKey (
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='agent')
+    business = models.ForeignKey(
         Business,
         on_delete=models.CASCADE,
         null=True,
@@ -45,7 +52,6 @@ class CustomUser(AbstractUser):
     groups = models.ManyToManyField(Group, related_name="customuser_groups")
     user_permissions = models.ManyToManyField(Permission, related_name="customuser_permissions")
 
-
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
@@ -53,4 +59,17 @@ class CustomUser(AbstractUser):
         return self.email
     
     def get_full_name(self):
-        return f"{self.first_name} {self.last_name}".strip() 
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def save(self, *args, **kwargs):
+        # Set permissions based on role
+        if self.role == 'admin':
+            self.is_staff = True
+            self.is_superuser = False
+        elif self.role == 'agent':
+            self.is_staff = True
+            self.is_superuser = False
+        else:  # marketing
+            self.is_staff = False
+            self.is_superuser = False
+        super().save(*args, **kwargs) 
