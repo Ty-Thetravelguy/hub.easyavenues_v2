@@ -64,6 +64,8 @@ function getEntryHTML(type) {
                         placeholder="Enter additional note about the supplier"
                         rows="3"></textarea>
                     <div class="form-text">Add any relevant information about this supplier</div>
+                    <input type="hidden" name="note_created_by[]" value="${document.querySelector('input[name="note_created_by[]"]')?.value || ''}">
+                    <input type="hidden" name="note_created_at[]" value="">
                 </div>
                 <div class="col-md-1">
                     <button type="button" class="btn btn-danger remove-entry">
@@ -124,6 +126,104 @@ document.addEventListener('DOMContentLoaded', function() {
             e.target.closest('.phone-entry, .email-entry, .website-entry, .note-entry').remove();
         }
     });
+
+    /* --- Form Submission --- */
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Collect websites
+            const websites = [];
+            document.querySelectorAll('.website-entry').forEach(entry => {
+                const url = entry.querySelector('input[name="website_url[]"]')?.value;
+                const description = entry.querySelector('input[name="website_description[]"]')?.value;
+                if (url && description) {
+                    websites.push({ url, description });
+                }
+            });
+
+            // Collect phone numbers
+            const phones = [];
+            document.querySelectorAll('.phone-entry').forEach(entry => {
+                const number = entry.querySelector('input[name="phone_number[]"]')?.value;
+                const description = entry.querySelector('input[name="phone_description[]"]')?.value;
+                if (number && description) {
+                    phones.push({ number, description });
+                }
+            });
+
+            // Collect email addresses
+            const emails = [];
+            document.querySelectorAll('.email-entry').forEach(entry => {
+                const email = entry.querySelector('input[name="email_address[]"]')?.value;
+                const description = entry.querySelector('input[name="email_description[]"]')?.value;
+                if (email && description) {
+                    emails.push({ email, description });
+                }
+            });
+
+            // Collect notes
+            const notes = [];
+            document.querySelectorAll('.note-entry').forEach(entry => {
+                const textarea = entry.querySelector('.tinymce-editor');
+                if (textarea) {
+                    const editor = tinymce.get(textarea.id);
+                    if (editor) {
+                        const note = editor.getContent();
+                        if (note) {
+                            const createdBy = entry.querySelector('input[name="note_created_by[]"]')?.value;
+                            const createdAt = entry.querySelector('input[name="note_created_at[]"]')?.value;
+                            
+                            // Format the date if it exists, otherwise use current date
+                            const date = createdAt ? new Date(createdAt) : new Date();
+                            const formattedDate = date.toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+
+                            notes.push({
+                                note: note,
+                                created_by: createdBy || document.querySelector('input[name="note_created_by[]"]')?.value || '',
+                                created_at: formattedDate
+                            });
+                        }
+                    }
+                }
+            });
+
+            // Add to hidden fields
+            const websitesInput = document.createElement('input');
+            websitesInput.type = 'hidden';
+            websitesInput.name = 'agent_websites';
+            websitesInput.value = JSON.stringify(websites);
+            this.appendChild(websitesInput);
+
+            const phonesInput = document.createElement('input');
+            phonesInput.type = 'hidden';
+            phonesInput.name = 'contact_phone';
+            phonesInput.value = JSON.stringify(phones);
+            this.appendChild(phonesInput);
+
+            const emailsInput = document.createElement('input');
+            emailsInput.type = 'hidden';
+            emailsInput.name = 'general_email';
+            emailsInput.value = JSON.stringify(emails);
+            this.appendChild(emailsInput);
+
+            const notesInput = document.createElement('input');
+            notesInput.type = 'hidden';
+            notesInput.name = 'other_notes';
+            notesInput.value = JSON.stringify(notes);
+            this.appendChild(notesInput);
+
+            // Submit the form
+            this.submit();
+        });
+    }
 
     /* --- TinyMCE Initialization for Existing Textareas --- */
     if (typeof tinymce !== 'undefined') {

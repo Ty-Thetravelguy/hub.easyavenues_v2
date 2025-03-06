@@ -14,9 +14,12 @@
         </div>
 
         <div class="col-4 text-center">
-            <h1 class="display-6 work-sans">Supplier Contacts <a href="{% url 'agent_support:add_agent_supplier' %}" class="btn btn-special btn-md me-2 work-sans" style="top: 23px;" title="Add Supplier">
-                <i class="fas fa-plus me-1"></i> Add Supplier
-            </a></h1>
+            <div class="d-flex align-items-center justify-content-center">
+                <h1 class="display-6 work-sans mb-0 me-3">Supplier Contacts</h1>
+                <a href="{% url 'agent_support:add_agent_supplier' %}" class="btn btn-special btn-md work-sans" title="Add Supplier">
+                    <i class="fas fa-plus me-1"></i> Add Supplier
+                </a>
+            </div>
         </div>
         <div class="col-4 text-end pe-5 pt-1">
             <a href="{% url 'agent_support:agent_support_view' %}" class="btn btn-special btn-md me-2">
@@ -143,7 +146,7 @@
                                         <p class="text-muted">No contact information available</p>
                                         {% endif %}
 
-                                        <h5>Group Contact</h5>
+                                        <h5 class="mt-3">Group Contact</h5>
                                         {% if supplier.group_phone %}
                                         <p>{{ supplier.group_phone }}</p>
                                         {% else %}
@@ -199,7 +202,7 @@
                                             <div class="card-body">
                                                 <div class="mb-1">{{ note.note|safe }}</div>
                                                 <small class="text-muted">
-                                                    Added by {{ note.created_by }} on {{ note.created_at }}
+                                                    Added by {{ note.created_by|default:request.user.get_full_name|default:request.user.email }} on {{ note.created_at }}
                                                 </small>
                                             </div>
                                         </div>

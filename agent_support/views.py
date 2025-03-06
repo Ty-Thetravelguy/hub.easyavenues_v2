@@ -53,7 +53,41 @@ def add_agent_supplier(request):
     if request.method == 'POST':
         form = AgentSupportSupplierForm(request.POST)
         if form.is_valid():
-            supplier = form.save()
+            supplier = form.save(commit=False)
+            
+            # Handle JSON fields
+            if 'contact_phone' in request.POST:
+                try:
+                    supplier.contact_phone = json.loads(request.POST['contact_phone'])
+                except json.JSONDecodeError:
+                    supplier.contact_phone = []
+            
+            if 'general_email' in request.POST:
+                try:
+                    supplier.general_email = json.loads(request.POST['general_email'])
+                except json.JSONDecodeError:
+                    supplier.general_email = []
+            
+            if 'agent_websites' in request.POST:
+                try:
+                    supplier.agent_websites = json.loads(request.POST['agent_websites'])
+                except json.JSONDecodeError:
+                    supplier.agent_websites = []
+
+            if 'other_notes' in request.POST:
+                try:
+                    notes_data = json.loads(request.POST['other_notes'])
+                    # Ensure each note has the required fields
+                    for note in notes_data:
+                        if 'created_by' not in note:
+                            note['created_by'] = request.user.first_name or request.user.email
+                        if 'created_at' not in note:
+                            note['created_at'] = datetime.now().strftime('%d/%m/%Y %H:%M')
+                    supplier.other_notes = notes_data
+                except json.JSONDecodeError:
+                    supplier.other_notes = []
+            
+            supplier.save()
             messages.success(request, f'Supplier {supplier.supplier_name} has been added successfully.')
             return redirect('agent_support:supplier_contacts')
     else:
@@ -71,7 +105,41 @@ def edit_agent_supplier(request, pk):
     if request.method == 'POST':
         form = AgentSupportSupplierForm(request.POST, instance=supplier)
         if form.is_valid():
-            supplier = form.save()
+            supplier = form.save(commit=False)
+            
+            # Handle JSON fields
+            if 'contact_phone' in request.POST:
+                try:
+                    supplier.contact_phone = json.loads(request.POST['contact_phone'])
+                except json.JSONDecodeError:
+                    supplier.contact_phone = []
+            
+            if 'general_email' in request.POST:
+                try:
+                    supplier.general_email = json.loads(request.POST['general_email'])
+                except json.JSONDecodeError:
+                    supplier.general_email = []
+            
+            if 'agent_websites' in request.POST:
+                try:
+                    supplier.agent_websites = json.loads(request.POST['agent_websites'])
+                except json.JSONDecodeError:
+                    supplier.agent_websites = []
+
+            if 'other_notes' in request.POST:
+                try:
+                    notes_data = json.loads(request.POST['other_notes'])
+                    # Ensure each note has the required fields
+                    for note in notes_data:
+                        if 'created_by' not in note:
+                            note['created_by'] = request.user.first_name or request.user.email
+                        if 'created_at' not in note:
+                            note['created_at'] = datetime.now().strftime('%d/%m/%Y %H:%M')
+                    supplier.other_notes = notes_data
+                except json.JSONDecodeError:
+                    supplier.other_notes = []
+            
+            supplier.save()
             messages.success(request, f'Supplier {supplier.supplier_name} has been updated successfully.')
             return redirect('agent_support:supplier_contacts')
     else:

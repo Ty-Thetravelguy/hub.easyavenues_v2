@@ -46,13 +46,13 @@
                                         <div class="website-entry mb-2">
                                             <div class="row">
                                                 <div class="col-md-5">
-                                                    <input type="url" class="form-control website-url"
+                                                    <input type="url" name="website_url[]" class="form-control"
                                                         placeholder="Enter website URL">
                                                     <div class="form-text">Enter the website URL (e.g., https://example.com)
                                                     </div>
                                                 </div>
                                                 <div class="col-md-5">
-                                                    <input type="text" class="form-control website-description"
+                                                    <input type="text" name="website_description[]" class="form-control"
                                                         placeholder="Enter description">
                                                     <div class="form-text">Enter a description for this website</div>
                                                 </div>
@@ -80,12 +80,12 @@
                                         <div class="phone-entry mb-2">
                                             <div class="row">
                                                 <div class="col-md-5">
-                                                    <input type="tel" class="form-control phone-number"
+                                                    <input type="tel" name="phone_number[]" class="form-control"
                                                         placeholder="Enter phone number">
                                                     <div class="form-text">Enter the phone number (e.g., +44 123 456 7890)</div>
                                                 </div>
                                                 <div class="col-md-5">
-                                                    <input type="text" class="form-control phone-description"
+                                                    <input type="text" name="phone_description[]" class="form-control"
                                                         placeholder="Enter description">
                                                     <div class="form-text">Enter a description for this number</div>
                                                 </div>
@@ -113,12 +113,12 @@
                                         <div class="email-entry mb-2">
                                             <div class="row">
                                                 <div class="col-md-5">
-                                                    <input type="email" class="form-control email-address"
+                                                    <input type="email" name="email_address[]" class="form-control"
                                                         placeholder="Enter email address">
                                                     <div class="form-text">Enter the email address</div>
                                                 </div>
                                                 <div class="col-md-5">
-                                                    <input type="text" class="form-control email-description"
+                                                    <input type="text" name="email_description[]" class="form-control"
                                                         placeholder="Enter description">
                                                     <div class="form-text">Enter a description for this email</div>
                                                 </div>
@@ -199,7 +199,6 @@
                                     <label class="form-label">Additional Notes</label>
                                     <div id="notes-container">
                                         <div class="note-entry mb-2">
-                                            <!-- In your notes section -->
                                             <div class="row">
                                                 <div class="col-md-11">
                                                     <textarea name="note_text[]" class="tinymce-editor"
@@ -207,6 +206,8 @@
                                                         rows="3"></textarea>
                                                     <div class="form-text">Add any relevant information about this supplier
                                                     </div>
+                                                    <input type="hidden" name="note_created_by[]" value="{{ user.first_name|default:user.email }}">
+                                                    <input type="hidden" name="note_created_at[]" value="">
                                                 </div>
                                                 <div class="col-md-1">
                                                     <button type="button" class="btn btn-danger remove-entry">
