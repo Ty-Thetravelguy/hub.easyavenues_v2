@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% load account socialaccount %}
 
 {% block content %}
 <div class="container mt-5">
@@ -11,23 +10,6 @@
                     <h2 class="text-center mb-0">Create Account</h2>
                 </div>
                 <div class="card-body p-4">
-                    <!-- Microsoft Signup Button -->
-                    <div class="d-grid mb-4">
-                        <a href="{% provider_login_url 'microsoft' %}" class="btn btn-outline-dark btn-lg">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/20px-Microsoft_logo.svg.png"
-                                alt="Microsoft" class="me-2" style="height: 20px;">
-                            Sign up with Microsoft
-                        </a>
-                    </div>
-
-                    <!-- Divider -->
-                    <div class="position-relative my-4">
-                        <hr>
-                        <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted">
-                            or sign up with email
-                        </span>
-                    </div>
-
                     <!-- Signup Form -->
                     <form method="POST" action="{% url 'account_signup' %}">
                         {% csrf_token %}
@@ -130,5 +112,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}

@@ -6,6 +6,12 @@ from allauth.account.forms import SignupForm
 from .models import CustomUser, BusinessDomain, Business
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.hashers import make_password
+import uuid
+from django.db import transaction
+import logging
+from django.urls import reverse
+from django.utils.http import int_to_base36
 
 
 class CustomSignupForm(SignupForm):
@@ -71,14 +77,40 @@ class AdminUserCreationForm(forms.ModelForm):
         widget=forms.EmailInput(attrs={'class': 'form-control'})
     )
     role = forms.ChoiceField(
-        choices=CustomUser.ROLE_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    business = forms.ModelChoiceField(
+        queryset=Business.objects.filter(active=True),
         required=True,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
 
     class Meta:
         model = CustomUser
-        fields = ('first_name', 'last_name', 'email', 'role')
+        fields = ('first_name', 'last_name', 'email', 'role', 'business')
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        user = kwargs.pop('user', None)  # Get the user creating the form
+        super().__init__(*args, **kwargs)
+        
+        # Filter role choices based on the user's permissions
+        if user and user.is_superuser:
+            self.fields['role'].choices = CustomUser.ROLE_CHOICES
+        else:
+            # Non-superusers can't create superusers
+            self.fields['role'].choices = [
+                choice for choice in CustomUser.ROLE_CHOICES 
+                if choice[0] != 'superuser'
+            ]
+        
+        # Set 'agent' as the default selected value
+        self.initial['role'] = 'agent'
+
+        # If there's only one business, select it by default
+        if Business.objects.filter(active=True).count() == 1:
+            self.initial['business'] = Business.objects.filter(active=True).first()
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -99,40 +131,83 @@ class AdminUserCreationForm(forms.ModelForm):
         return email
 
     def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data['email']
-        user.username = self.cleaned_data['email']  # Set username to email
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        user.is_active = True
-        user.role = self.cleaned_data['role']  # Set the role
-        
-        if commit:
-            user.save()
+        try:
+            # First create and save the user
+            user = super().save(commit=False)
+            user.email = self.cleaned_data['email']
+            user.first_name = self.cleaned_data['first_name']
+            user.last_name = self.cleaned_data['last_name']
+            user.is_active = True
+            user.role = self.cleaned_data['role']
+            user.business = self.cleaned_data['business']
+
+            # Set temporary password
+            temp_password = uuid.uuid4().hex[:10]
+            user.set_password(temp_password)
             
-            # Create email address record
+            # Save user
+            user.save()
+
+            # Create EmailAddress record
             from allauth.account.models import EmailAddress
             email_address = EmailAddress.objects.create(
                 user=user,
                 email=user.email,
-                verified=False,  # User needs to verify their email
-                primary=True
+                primary=True,
+                verified=False
             )
+
+            # Send password reset email
+            try:
+                from allauth.account.adapter import get_adapter
+                from allauth.account.utils import user_email
+                from django.contrib.sites.shortcuts import get_current_site
+                from allauth.account.forms import default_token_generator
+                logger = logging.getLogger('accounts')
+                
+                adapter = get_adapter(self.request)
+                current_site = get_current_site(self.request)
+                
+                # Generate the reset token using AllAuth's token generator
+                temp_key = default_token_generator.make_token(user)
+                
+                logger.info(f"Sending password set email to {user.email}")
+                
+                # Generate password reset URL
+                uidb36 = int_to_base36(user.id)
+                path = reverse("account_reset_password_from_key",
+                    kwargs={"uidb36": uidb36, "key": temp_key})
+                password_reset_url = self.request.build_absolute_uri(path)
+                
+                # Include the temp_key in the context
+                adapter.send_mail(
+                    'account/email/password_reset_key',
+                    user.email,
+                    {
+                        'user': user,
+                        'current_site': current_site,
+                        'key': temp_key,
+                        'password_reset_url': password_reset_url,
+                    }
+                )
+                
+                logger.info(f"Password set email sent successfully to {user.email}")
+                
+            except Exception as mail_error:
+                logger.error(f"Failed to send password set email: {str(mail_error)}")
+                # Don't raise the error since the user is created
+                pass
+
+            return user
+
+        except Exception as e:
+            if 'user' in locals() and user.pk:
+                try:
+                    user.delete()
+                except Exception:
+                    pass
             
-            # Send verification email
-            from allauth.account.adapter import get_adapter
-            adapter = get_adapter()
-            adapter.send_mail(
-                'account/email/email_confirmation_signup',
-                user.email,
-                {
-                    'user': user,
-                    'activate_url': adapter.get_email_confirmation_url(user, email_address),
-                    'key': email_address.key,
-                }
-            )
-        
-        return user
+            raise forms.ValidationError(f"Failed to create user: {str(e)}")
 
 
 class EditUserForm(forms.ModelForm):

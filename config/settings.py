@@ -35,12 +35,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'users.apps.UsersConfig',
 
     # Allauth
     "allauth",
     "allauth.account",
-    "allauth.socialaccount",
+    # "allauth.socialaccount",  # Commented out to disable social login
 
     # Editor
     'tinymce',
@@ -54,9 +55,6 @@ INSTALLED_APPS = [
     'external_links',
     'query_log',
     'itineraries',
-
-    # Social providers (Ensure 'microsoft' is listed if you are using it)
-    "allauth.socialaccount.providers.microsoft",
 ]
 
 MIDDLEWARE = [
@@ -74,23 +72,6 @@ MIDDLEWARE = [
     # Recently Viewed
     'users.middleware.RecentlyViewedMiddleware',
 ]
-
-SOCIALACCOUNT_PROVIDERS = {
-    'microsoft': {
-        'APP': {
-            'client_id': 'YOUR_CLIENT_ID',
-            'secret': 'YOUR_CLIENT_SECRET',
-            'key': ''
-        },
-        'SCOPE': [
-            'email',
-            'profile',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        }
-    }
-}
 
 TINYMCE_DEFAULT_CONFIG = {
     'height': 200,
@@ -133,8 +114,41 @@ DATABASES = {
 }
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+# Django AllAuth Configuration
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Easy Avenues] '
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 7
+ACCOUNT_RATE_LIMITS = {
+    "login": "5/5m",  # 5 attempts per 5 minutes for login
+    "login_failed": "5/5m",  # 5 attempts per 5 minutes for failed logins
+    "signup": "5/5m",  # 5 attempts per 5 minutes for signup
+    "send_mail": "5/5m",  # 5 attempts per 5 minutes for sending emails
+}
+ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
+
+# Add this to ensure the site framework works correctly
+SITE_ID = 1
+
+# URL Redirects
+LOGIN_URL = '/'
+LOGOUT_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
+
+ACCOUNT_FORMS = {
+    'signup': 'accounts.forms.CustomSignupForm',
+}
+
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -195,29 +209,8 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",  # Allauth authentication
 ]
 
-SITE_ID = 1
-
-# URL Redirects
-LOGIN_URL = '/'
-LOGOUT_URL = '/'
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/'
-
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_VERIFICATION = 'none'  # Temporarily disable email verification
-ACCOUNT_SIGNUP_REDIRECT_URL = '/dashboard/'  # Redirect after signup
-ACCOUNT_LOGOUT_REDIRECT_URL = '/'  # Redirect after logout
-
-
-ACCOUNT_FORMS = {
-    'signup': 'accounts.forms.CustomSignupForm',
-}
-
-# Add this to your existing settings
-ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
+# Disable social login providers
+SOCIALACCOUNT_PROVIDERS = {}
 
 LOGGING = {
     'version': 1,

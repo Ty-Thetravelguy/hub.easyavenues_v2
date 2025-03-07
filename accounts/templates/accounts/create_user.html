@@ -60,6 +60,17 @@
                             </div>
                             {% endif %}
                         </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.business.id_for_label }}" class="form-label">Business</label>
+                            {{ form.business }}
+                            <div class="form-text">Select the user's business</div>
+                            {% if form.business.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.business.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
                         
                         <div class="d-flex justify-content-between">
                             <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">Cancel</a>

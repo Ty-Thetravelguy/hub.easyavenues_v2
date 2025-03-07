@@ -30,14 +30,15 @@ class BusinessDomain(models.Model):
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
+        ('superuser', 'Superuser'),
+        ('admin', 'Admin'),
         ('agent', 'Agent'),
         ('marketing', 'Marketing'),
-        ('admin', 'Admin'),
     ]
 
     id = models.AutoField(primary_key=True)
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=150, blank=True, null=False)
+    username = None  # Remove username field
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='agent')
@@ -62,14 +63,20 @@ class CustomUser(AbstractUser):
         return f"{self.first_name} {self.last_name}".strip()
 
     def save(self, *args, **kwargs):
+        # Ensure username is set to email if it's blank
+        if not self.username and self.email:
+            self.username = self.email
+
         # Set permissions based on role
-        if self.role == 'admin':
+        if self.role == 'superuser':
+            self.is_superuser = True
             self.is_staff = True
+        elif self.role in ['admin', 'agent']:
             self.is_superuser = False
-        elif self.role == 'agent':
             self.is_staff = True
-            self.is_superuser = False
         else:  # marketing
-            self.is_staff = False
             self.is_superuser = False
-        super().save(*args, **kwargs) 
+            self.is_staff = False
+            
+        # Call parent save
+        super(CustomUser, self).save(*args, **kwargs) 

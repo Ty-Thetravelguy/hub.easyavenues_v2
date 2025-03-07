@@ -36,13 +36,13 @@ def is_admin(user):
 @user_passes_test(is_admin)
 def create_user(request):
     if request.method == 'POST':
-        form = AdminUserCreationForm(request.POST)
+        form = AdminUserCreationForm(request.POST, request=request, user=request.user)
         if form.is_valid():
             user = form.save()
             messages.success(request, f'User {user.get_full_name()} has been created. A verification email has been sent to {user.email}.')
-            return redirect('admin:accounts_customuser_changelist')
+            return redirect('accounts:user_list')
     else:
-        form = AdminUserCreationForm()
+        form = AdminUserCreationForm(request=request, user=request.user)
     
     return render(request, 'accounts/create_user.html', {'form': form})
 
