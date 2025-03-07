@@ -63,7 +63,7 @@
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    {% if not user.is_superuser %}
+                                    {% if request.user.is_superuser and not user.is_superuser %}
                                     <a href="{% url 'admin:accounts_customuser_delete' user.id %}" 
                                        class="btn btn-sm btn-outline-danger">
                                         <i class="fas fa-trash"></i>
