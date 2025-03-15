@@ -74,7 +74,7 @@
                 <a href="{% url 'crm:company_update' company.pk %}" class="btn btn-light me-2">
                     <i class="fas fa-edit"></i> Edit
                 </a>
-                <a href="{% url 'crm:contact_create' %}?company={{ company.pk }}" class="btn btn-light">
+                <a href="{% url 'crm:contact_create' company_pk=company.pk %}" class="btn btn-light">
                     <i class="fas fa-user-plus"></i> Add Contact
                 </a>
             </div>
@@ -315,7 +315,7 @@
                         <div class="timeline-item">
                             <h6 class="mb-1">{{ activity.title }}</h6>
                             <p class="text-muted small mb-2">
-                                {{ activity.timestamp|date:"d M Y, H:i" }} by {{ activity.user.get_full_name }}
+                                {{ activity.performed_at|date:"d M Y, H:i" }} by {{ activity.performed_by.get_full_name }}
                             </p>
                             <p class="mb-0">{{ activity.description }}</p>
                         </div>
@@ -350,7 +350,7 @@
                                 <tr>
                                     <td>{{ document.title }}</td>
                                     <td>{{ document.document_type }}</td>
-                                    <td>{{ document.upload_date|date:"d M Y" }}</td>
+                                    <td>{{ document.uploaded_at|date:"d M Y" }}</td>
                                     <td>
                                         {% if document.expiry_date %}
                                         <span class="{% if document.is_expired %}text-danger{% endif %}">

@@ -117,43 +117,41 @@
 
 /* Radio Button Group */
 .wizard-card .btn-group {
-    gap: 0.5rem;
-    transition: all 0.2s ease;
     display: flex;
-    flex-wrap: nowrap;
+    gap: 1rem;
+    width: 100%;
 }
 
-.wizard-card .btn-group.is-invalid {
-    border-radius: 4px;
-    box-shadow: 0 0 0 1px #dc3545;
-}
-
-.wizard-card input[type="radio"] {
+.wizard-card .btn-check {
     position: absolute;
-    clip: rect(0, 0, 0, 0);
+    clip: rect(0,0,0,0);
     pointer-events: none;
 }
 
-.wizard-card .btn-outline-primary {
-    color: #483f92;
-    border: 1px solid #483f92;
-    background: white;
-    transition: all 0.2s ease;
+.wizard-card .btn-check + .btn-outline-primary {
     flex: 1;
-    white-space: nowrap;
+    color: var(--dark-purple);
+    background-color: white;
+    border-color: var(--dark-purple);
+    transition: all 0.2s ease-in-out;
 }
 
 .wizard-card .btn-check:checked + .btn-outline-primary {
-    background: linear-gradient(to right, #483f92, #a78bc3);
-    border-color: #483f92;
     color: white;
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+    border-color: var(--dark-purple);
 }
 
-.wizard-card .btn-outline-primary:hover {
-    background: linear-gradient(to right, #483f92, #a78bc3);
-    border-color: #483f92;
-    color: white;
+.wizard-card .btn-check + .btn-outline-primary:hover {
+    background-color: rgba(72, 63, 146, 0.1);
+    border-color: var(--dark-purple);
+    color: var(--dark-purple);
+}
+
+.wizard-card .btn-check:checked + .btn-outline-primary:hover {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
     opacity: 0.9;
+    color: white;
 }
 
 /* Navigation Buttons */
@@ -198,4 +196,69 @@
 /* Required Field Indicator */
 .wizard-card .text-danger {
     color: #dc3545;
+}
+
+/* Progress bar and step indicators */
+.wizard-card .progress {
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.wizard-card .progress-bar {
+    background: linear-gradient(to right, #483f92, #a78bc3);
+    transition: width 0.3s ease;
+}
+
+.wizard-card .progress-bar.active {
+    opacity: 1;
+}
+
+.wizard-card .progress-bar:not(.active) {
+    opacity: 0.3;
+}
+
+.wizard-card .step-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.wizard-card .step-indicator.active {
+    background: linear-gradient(to right, #483f92, #a78bc3);
+    color: white;
+}
+
+.wizard-card .step-name {
+    color: #6c757d;
+    transition: color 0.3s ease;
+}
+
+.wizard-card .step-name.active {
+    color: #483f92;
+    font-weight: bold;
+}
+
+/* Form styling */
+.wizard-card .form-label.required-field::after {
+    content: "*";
+    color: #dc3545;
+    margin-left: 4px;
+}
+
+.wizard-card .invalid-feedback {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.wizard-card .btn-group.is-invalid {
+    border-color: #dc3545;
 } 

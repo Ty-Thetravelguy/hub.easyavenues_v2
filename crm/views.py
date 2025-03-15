@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile
+from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES
 from django.urls import reverse_lazy
 from formtools.wizard.views import SessionWizardView
 from django.shortcuts import redirect
@@ -56,8 +56,8 @@ class CompanyDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context.update({
             'contacts': self.object.contacts.all(),
-            'activities': self.object.activity_set.all().order_by('-timestamp'),
-            'documents': self.object.document_set.all().order_by('-upload_date')
+            'activities': self.object.activities.all().order_by('-performed_at'),
+            'documents': self.object.documents.all().order_by('-uploaded_at')
         })
         return context
 
@@ -93,9 +93,9 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        company_id = self.request.GET.get('company')
-        if company_id:
-            company = Company.objects.get(pk=company_id)
+        company_pk = self.kwargs.get('company_pk')
+        if company_pk:
+            company = Company.objects.get(pk=company_pk)
             context['company'] = company
             context['title'] = f"Add Contact to {company.company_name}"
         else:
@@ -104,9 +104,9 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        company_id = self.request.GET.get('company')
-        if company_id:
-            form.instance.company_id = company_id
+        company_pk = self.kwargs.get('company_pk')
+        if company_pk:
+            form.instance.company_id = company_pk
         messages.success(self.request, f"Contact {form.instance.get_full_name()} has been created successfully.")
         return super().form_valid(form)
 
@@ -115,8 +115,20 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
             return reverse_lazy('crm:company_detail', kwargs={'pk': self.object.company.pk})
         return reverse_lazy('crm:company_list')
 
+class CompanyTypeForm(forms.Form):
+    company_type = forms.ChoiceField(
+        choices=COMPANY_TYPE,
+        widget=forms.RadioSelect(attrs={
+            'class': 'btn-check',
+            'required': 'required'
+        }),
+        label="Select Company Type",
+        required=True,
+        initial=None
+    )
+
 COMPANY_FORMS = [
-    ('type', forms.Form),  # Will create this form for company type selection
+    ('type', CompanyTypeForm),  # Use our custom form for company type selection
     ('basic', forms.Form),  # Will create this form for basic company info
     ('profile', forms.Form),  # Will create this form for type-specific fields
 ]
@@ -132,23 +144,11 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
         if step is None:
             step = self.steps.current
             
-        if step == 'type':
-            # First step: Company Type Selection
-            form.fields['company_type'] = forms.ChoiceField(
-                choices=[('Client', 'Client'), ('Supplier', 'Supplier')],
-                widget=forms.RadioSelect,
-                label="Select Company Type"
-            )
-        elif step == 'basic':
+        if step == 'basic':
             # Second step: Basic Company Information
             form.fields.update({
                 'company_name': forms.CharField(max_length=255),
-                'industry': forms.ChoiceField(choices=[
-                    ('Travel', 'Travel'),
-                    ('Technology', 'Technology'),
-                    ('Finance', 'Finance'),
-                    ('Other', 'Other')
-                ]),
+                'industry': forms.ChoiceField(choices=INDUSTRY_CHOICES),
                 'street_address': forms.CharField(max_length=255),
                 'city': forms.CharField(max_length=100),
                 'state_province': forms.CharField(max_length=100),
@@ -164,35 +164,16 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
             company_type = self.get_cleaned_data_for_step('type')['company_type']
             if company_type == 'Client':
                 form.fields.update({
-                    'client_type': forms.ChoiceField(choices=[
-                        ('Corporate', 'Corporate'),
-                        ('Individual', 'Individual')
-                    ]),
-                    'client_status': forms.ChoiceField(choices=[
-                        ('Active', 'Active'),
-                        ('Inactive', 'Inactive'),
-                        ('Prospect', 'Prospect')
-                    ]),
+                    'client_type': forms.ChoiceField(choices=CLIENT_TYPE_CHOICES),
+                    'client_status': forms.ChoiceField(choices=CLIENT_STATUS_CHOICES),
                     'sage_name': forms.CharField(max_length=255, required=False),
                     'midoco_crm_number': forms.CharField(max_length=255, required=False),
                 })
             else:
                 form.fields.update({
-                    'supplier_type': forms.ChoiceField(choices=[
-                        ('Airline', 'Airline'),
-                        ('Hotel', 'Hotel'),
-                        ('Car Rental', 'Car Rental'),
-                        ('Other', 'Other')
-                    ]),
-                    'supplier_status': forms.ChoiceField(choices=[
-                        ('Active', 'Active'),
-                        ('Inactive', 'Inactive')
-                    ]),
-                    'supplier_for_department': forms.ChoiceField(choices=[
-                        ('Sales', 'Sales'),
-                        ('Operations', 'Operations'),
-                        ('Finance', 'Finance')
-                    ]),
+                    'supplier_type': forms.ChoiceField(choices=SUPPLIER_TYPE_CHOICES),
+                    'supplier_status': forms.ChoiceField(choices=SUPPLIER_STATUS_CHOICES),
+                    'supplier_for_department': forms.ChoiceField(choices=SUPPLIER_FOR_DEPARTMENT_CHOICES),
                 })
 
         return form
@@ -203,9 +184,10 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
         basic_data = self.get_cleaned_data_for_step('basic')
         profile_data = self.get_cleaned_data_for_step('profile')
 
-        # Create the company
+        # Create the company with the agency
         company = Company.objects.create(
             company_type=type_data['company_type'],
+            agency=self.request.user.business,  # Set the agency from the logged-in user's business
             **basic_data
         )
 

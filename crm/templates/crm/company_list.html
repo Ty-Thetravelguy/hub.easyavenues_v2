@@ -90,7 +90,7 @@
                                    class="btn btn-sm btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{% url 'crm:contact_create' %}?company={{ company.pk }}" 
+                                <a href="{% url 'crm:contact_create' company_pk=company.pk %}" 
                                    class="btn btn-sm btn-success" title="Add Contact">
                                     <i class="fas fa-user-plus"></i>
                                 </a>
