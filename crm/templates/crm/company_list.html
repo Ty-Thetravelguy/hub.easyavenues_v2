@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-0">Companies</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{% url 'crm:company_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Company
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search companies..." 
+                               value="{{ search_query }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="Client" {% if company_type == 'Client' %}selected{% endif %}>Clients</option>
+                        <option value="Supplier" {% if company_type == 'Supplier' %}selected{% endif %}>Suppliers</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'crm:company_list' %}" class="btn btn-secondary w-100">Clear Filters</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Companies Table -->
+    <div class="card">
+        <div class="card-body">
+            <table id="companies-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Company Name</th>
+                        <th>Type</th>
+                        <th>Industry</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Last Activity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for company in companies %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'crm:company_detail' company.pk %}" class="text-primary fw-bold">
+                                {{ company.company_name }}
+                            </a>
+                        </td>
+                        <td>{{ company.company_type }}</td>
+                        <td>{{ company.industry }}</td>
+                        <td>{{ company.city }}, {{ company.country }}</td>
+                        <td>
+                            {% if company.company_type == 'Client' %}
+                                {{ company.client_profile.client_status }}
+                            {% else %}
+                                {{ company.supplier_profile.supplier_status }}
+                            {% endif %}
+                        </td>
+                        <td>{{ company.last_activity_date|date:"d M Y" }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'crm:company_detail' company.pk %}" 
+                                   class="btn btn-sm btn-info" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'crm:company_update' company.pk %}" 
+                                   class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'crm:contact_create' %}?company={{ company.pk }}" 
+                                   class="btn btn-sm btn-success" title="Add Contact">
+                                    <i class="fas fa-user-plus"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if company_type %}&type={{ company_type }}{% endif %}">
+                            Previous
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if company_type %}&type={{ company_type }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if company_type %}&type={{ company_type }}{% endif %}">
+                            Next
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#companies-table').DataTable({
+        "pageLength": 25,
+        "order": [[0, "asc"]],
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "language": {
+            "search": "Quick Search:",
+            "lengthMenu": "Show _MENU_ entries",
+        }
+    });
+});
+</script>
+{% endblock %} 

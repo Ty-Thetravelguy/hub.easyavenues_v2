@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/wizard_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card wizard-card">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ current_step_name }}</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Progress bar -->
+                    <div class="progress mb-4">
+                        {% for step_name in wizard_steps_names %}
+                        <div class="progress-bar {% if forloop.counter0 <= wizard.steps.index %}active{% endif %}"
+                             role="progressbar"
+                             style="width: {% widthratio 1 wizard_steps_names|length 100 %}%"
+                             aria-valuenow="{% widthratio 1 wizard_steps_names|length 100 %}"
+                             aria-valuemin="0"
+                             aria-valuemax="100"></div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Step indicators -->
+                    <div class="d-flex justify-content-between mb-4">
+                        {% for step_name in wizard_steps_names %}
+                        <div class="text-center">
+                            <div class="step-indicator {% if forloop.counter0 <= wizard.steps.index %}active{% endif %}">
+                                {{ forloop.counter }}
+                            </div>
+                            <div class="step-name small mt-1 {% if forloop.counter0 == wizard.steps.index %}active{% endif %}">
+                                {{ step_name }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <form action="" method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        {{ wizard.management_form }}
+
+                        {% if wizard.form.forms %}
+                            {{ wizard.form.management_form }}
+                            {% for form in wizard.form.forms %}
+                                {{ form }}
+                            {% endfor %}
+                        {% else %}
+                            {% if wizard.form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ wizard.form.non_field_errors }}
+                            </div>
+                            {% endif %}
+                            
+                            {% for field in wizard.form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label {% if field.field.required %}required-field{% endif %}">
+                                    {{ field.label }}
+                                </label>
+                                
+                                {% if field.field.widget.input_type == 'radio' %}
+                                    <div class="btn-group w-100" role="group">
+                                        {% for choice in field %}
+                                            {{ choice.tag }}
+                                            <label class="btn btn-outline-primary" for="{{ choice.id_for_label }}">
+                                                {{ choice.choice_label }}
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+
+                                {% if field.help_text %}
+                                    <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                
+                                {% if field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in field.errors %}
+                                            {{ error }}{% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between mt-4">
+                            {% if wizard.steps.prev %}
+                                <button name="wizard_goto_step" type="submit" 
+                                        value="{{ wizard.steps.prev }}"
+                                        class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Previous
+                                </button>
+                            {% else %}
+                                <a href="{% url 'crm:company_list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            {% endif %}
+
+                            <button type="submit" class="btn btn-primary">
+                                {% if wizard.steps.next %}
+                                    Next <i class="fas fa-arrow-right"></i>
+                                {% else %}
+                                    Create Company <i class="fas fa-check"></i>
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('.needs-validation');
+    
+    // Add btn-check class to radio inputs
+    document.querySelectorAll('.btn-group input[type="radio"]').forEach(radio => {
+        radio.classList.add('btn-check');
+    });
+
+    // Function to check if any radio in a group is selected
+    function isRadioGroupValid(radioGroup) {
+        return Array.from(radioGroup).some(radio => radio.checked);
+    }
+
+    Array.from(forms).forEach(form => {
+        // Handle form submission
+        form.addEventListener('submit', event => {
+            let isValid = true;
+            
+            // Check radio button groups
+            const radioGroups = {};
+            form.querySelectorAll('input[type="radio"]').forEach(radio => {
+                if (!radioGroups[radio.name]) {
+                    radioGroups[radio.name] = [];
+                }
+                radioGroups[radio.name].push(radio);
+            });
+
+            // Validate each radio group
+            Object.values(radioGroups).forEach(group => {
+                if (group[0].required && !isRadioGroupValid(group)) {
+                    isValid = false;
+                    // Add error styling to the btn-group container
+                    group[0].closest('.btn-group').classList.add('is-invalid');
+                } else {
+                    group[0].closest('.btn-group').classList.remove('is-invalid');
+                }
+            });
+
+            if (!isValid) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        });
+
+        // Handle radio button changes
+        form.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const group = radio.closest('.btn-group');
+                if (group) {
+                    group.classList.remove('is-invalid');
+                    const errorFeedback = group.nextElementSibling;
+                    if (errorFeedback && errorFeedback.classList.contains('invalid-feedback')) {
+                        errorFeedback.style.display = 'none';
+                    }
+                }
+            });
+        });
+    });
+
+    // Add Bootstrap classes to form fields
+    const formControls = document.querySelectorAll('input:not([type="radio"]), select, textarea');
+    formControls.forEach(element => {
+        element.classList.add('form-control');
+    });
+});
+</script>
+{% endblock %} 
