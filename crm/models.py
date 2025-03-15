@@ -110,65 +110,28 @@ SUPPLIER_STATUS_CHOICES = [
 class Company(models.Model):
     """
     Represents a company that is managed within the CRM system.
+    Base model with fields common to both clients and suppliers.
     """
     agency = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='companies', null=False)
     company_name = models.CharField(max_length=255, blank=False, null=False)
     company_type = models.CharField(max_length=255, choices=COMPANY_TYPE, default='Client')
     industry = models.CharField(max_length=255, blank=False, null=False)
-    client_type = models.CharField(max_length=255, choices=CLIENT_TYPE_CHOICES, default='White Glove Client')
-    supplier_for_department = models.CharField(max_length=255, choices=SUPPLIER_FOR_DEPARTMENT_CHOICES, default='Company Supplier')
-    supplier_type = models.CharField(max_length=255, choices=SUPPLIER_TYPE_CHOICES, default='Air')
-    sage_name = models.CharField(max_length=255, blank=True, null=True) 
-    midoco_crm_number = models.CharField(max_length=255, blank=True, null=True)
-    invoice_references = models.TextField(blank=True)
-    invoicing_type = models.CharField(max_length=100, blank=True, null=True) 
-    invoicing_frequency = models.CharField(max_length=100, blank=True, null=True) 
-    fop_limit = models.CharField(max_length=100, blank=True)
-    payment_terms = models.CharField(max_length=100, blank=True, null=True) 
-    client_status = models.CharField(max_length=255, choices=CLIENT_STATUS_CHOICES, default='Trading')
-    supplier_status = models.CharField(max_length=255, choices=SUPPLIER_STATUS_CHOICES, default='Preferred Supplier')
 
+    # Contact Information
     street_address = models.CharField(max_length=255, blank=False, null=False)
     city = models.CharField(max_length=100, blank=False, null=False)
     state_province = models.CharField(max_length=100, blank=False, null=False)
     postal_code = models.CharField(max_length=20, blank=False, null=False)
     country = models.CharField(max_length=100, blank=False, null=False)
-
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=False, null=False)
     description = models.TextField(blank=True, null=True)
     linkedin_social_page = models.URLField(blank=True, null=True)
-    
-    client_account_manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_companies')
-    supplier_owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='owned_suppliers')
-    client_ops_team = models.CharField(max_length=255, blank=True, null=True)
 
-    corporate_hotel_rates = models.TextField(blank=True)
-    corporate_airline_fares = models.TextField(blank=True)
-    company_memberships = models.TextField(blank=True)
-
+    # Timestamps and relationships
     create_date = models.DateTimeField(auto_now_add=True)
     last_activity_date = models.DateTimeField(null=True, blank=True)
-    
     linked_companies = models.ManyToManyField('self', blank=True, symmetrical=False, related_name='linked_to')
-
-    # Contract and service-related fields
-    has_new_contract_signed = models.BooleanField(default=False)  
-    signed_up_corporate_schemes = models.BooleanField(default=False)  
-    signed_up_travelogix = models.BooleanField(default=False)  
-    meetings_events_requirements = models.BooleanField(default=False)  
-    reporting_standard_bespoke = models.BooleanField(default=False)  
-    access_to_travelogix = models.BooleanField(default=False)  
-    travel_policy_health_check_offered = models.BooleanField(default=False) 
-    testimonial_requested = models.BooleanField(default=False) 
-
-    # Sustainability fields
-    communicated_esg_support = models.BooleanField(default=False)  
-    receive_co2_reporting = models.BooleanField(default=False) 
-    discussed_offsetting = models.BooleanField(default=False)  
-
-    # Goals
-    our_goals = models.TextField(blank=True, null=True) 
 
     def __str__(self):
         return self.company_name
@@ -178,6 +141,61 @@ class Company(models.Model):
             self.last_activity_date = timezone.now()
         super().save(*args, **kwargs)
 
+class ClientProfile(models.Model):
+    """
+    Extended profile for companies that are clients.
+    Contains all client-specific fields.
+    """
+    company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name='client_profile')
+    client_type = models.CharField(max_length=255, choices=CLIENT_TYPE_CHOICES, default='White Glove Client')
+    client_status = models.CharField(max_length=255, choices=CLIENT_STATUS_CHOICES, default='Trading')
+    sage_name = models.CharField(max_length=255, blank=True, null=True)
+    midoco_crm_number = models.CharField(max_length=255, blank=True, null=True)
+    invoice_references = models.TextField(blank=True)
+    invoicing_type = models.CharField(max_length=100, blank=True, null=True)
+    invoicing_frequency = models.CharField(max_length=100, blank=True, null=True)
+    payment_terms = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Management
+    client_account_manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_clients')
+    client_ops_team = models.CharField(max_length=255, blank=True, null=True)
+
+    # Corporate rates and memberships
+    corporate_hotel_rates = models.TextField(blank=True)
+    corporate_airline_fares = models.TextField(blank=True)
+    company_memberships = models.TextField(blank=True)
+
+    # Contract and service-related fields
+    has_new_contract_signed = models.BooleanField(default=False)
+    signed_up_corporate_schemes = models.BooleanField(default=False)
+    signed_up_travelogix = models.BooleanField(default=False)
+    meetings_events_requirements = models.BooleanField(default=False)
+    reporting_standard_bespoke = models.BooleanField(default=False)
+    access_to_travelogix = models.BooleanField(default=False)
+    travel_policy_health_check_offered = models.BooleanField(default=False)
+    testimonial_requested = models.BooleanField(default=False)
+
+    # Sustainability fields
+    communicated_esg_support = models.BooleanField(default=False)
+    receive_co2_reporting = models.BooleanField(default=False)
+    discussed_offsetting = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Client Profile - {self.company.company_name}"
+
+class SupplierProfile(models.Model):
+    """
+    Extended profile for companies that are suppliers.
+    Contains all supplier-specific fields.
+    """
+    company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name='supplier_profile')
+    supplier_type = models.CharField(max_length=255, choices=SUPPLIER_TYPE_CHOICES, default='Air')
+    supplier_status = models.CharField(max_length=255, choices=SUPPLIER_STATUS_CHOICES, default='Preferred Supplier')
+    supplier_for_department = models.CharField(max_length=255, choices=SUPPLIER_FOR_DEPARTMENT_CHOICES, default='Company Supplier')
+    supplier_owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='owned_suppliers')
+
+    def __str__(self):
+        return f"Supplier Profile - {self.company.company_name}"
 
 class Contact(models.Model):
     """
