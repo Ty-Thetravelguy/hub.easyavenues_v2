@@ -4,6 +4,9 @@ from django.db import models
 from accounts.models import Business
 from django.conf import settings
 from django.utils import timezone
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+import re
 
 
 # Choices for industry, company type, client type, and account status
@@ -52,7 +55,14 @@ INDUSTRY_CHOICES = [
     ('tourism', 'Tourism')
 ]
 
-COMPANY_TYPE_CHOICES = [
+COMPANY_TYPE = [
+    # CLIENT OR SUPPLIER
+    ('Client', 'Client'),
+    ('Supplier', 'Supplier'),
+]
+
+
+CLIENT_TYPE_CHOICES = [
     # Types of companies the agency manages
     ('White Glove Client', 'White Glove Client'),
     ('Online Client', 'Online Client'),
@@ -61,11 +71,38 @@ COMPANY_TYPE_CHOICES = [
 ]
 
 
-ACCOUNT_STATUS_CHOICES = [
+SUPPLIER_FOR_DEPARTMENT_CHOICES = [
+    # Supplier for which department
+    ('Company Supplier', 'Company Supplier'),
+    ('Operations Supplier', 'Operations Supplier'),
+    ('Finance Supplier', 'Finance Supplier'),
+    ('Sales Supplier', 'Sales Supplier'),
+    ('Marketing Supplier', 'Marketing Supplier'),
+    ('Other', 'Other'),
+]
+
+
+CLIENT_STATUS_CHOICES = [
     # Statuses for the company's account relationship with the agency
     ('Trading', 'Trading'),
     ('No longer Trading', 'No longer Trading'),
     ('On hold', 'On hold'),
+    ('Other', 'Other'),
+]
+
+SUPPLIER_TYPE_CHOICES = [
+    ('Air', 'Air'),
+    ('Accommodation', 'Accommodation'),
+    ('Car Hire', 'Car Hire'),
+    ('Transfer', 'Transfer'),
+    ('Rail', 'Rail'),
+    ('Other', 'Other'),
+]
+
+SUPPLIER_STATUS_CHOICES = [
+    # Statuses for the company's account relationship with the agency
+    ('Preferred Supplier', 'Preferred Supplier'),
+    ('Non-Preferred Supplier', 'Non-Preferred Supplier'),
     ('Other', 'Other'),
 ]
 
@@ -76,9 +113,21 @@ class Company(models.Model):
     """
     agency = models.ForeignKey(Business, on_delete=models.CASCADE, related_name='companies', null=False)
     company_name = models.CharField(max_length=255, blank=False, null=False)
+    company_type = models.CharField(max_length=255, choices=COMPANY_TYPE, default='Client')
+    industry = models.CharField(max_length=255, blank=False, null=False)
+    client_type = models.CharField(max_length=255, choices=CLIENT_TYPE_CHOICES, default='White Glove Client')
+    supplier_for_department = models.CharField(max_length=255, choices=SUPPLIER_FOR_DEPARTMENT_CHOICES, default='Company Supplier')
+    supplier_type = models.CharField(max_length=255, choices=SUPPLIER_TYPE_CHOICES, default='Air')
     sage_name = models.CharField(max_length=255, blank=True, null=True) 
-    midoco_crm_number = models.CharField(max_length=50, blank=True, null=True)  
-    
+    midoco_crm_number = models.CharField(max_length=255, blank=True, null=True)
+    invoice_references = models.TextField(blank=True)
+    invoicing_type = models.CharField(max_length=100, blank=True, null=True) 
+    invoicing_frequency = models.CharField(max_length=100, blank=True, null=True) 
+    fop_limit = models.CharField(max_length=100, blank=True)
+    payment_terms = models.CharField(max_length=100, blank=True, null=True) 
+    client_status = models.CharField(max_length=255, choices=CLIENT_STATUS_CHOICES, default='Trading')
+    supplier_status = models.CharField(max_length=255, choices=SUPPLIER_STATUS_CHOICES, default='Preferred Supplier')
+
     street_address = models.CharField(max_length=255, blank=False, null=False)
     city = models.CharField(max_length=100, blank=False, null=False)
     state_province = models.CharField(max_length=100, blank=False, null=False)
@@ -90,12 +139,13 @@ class Company(models.Model):
     description = models.TextField(blank=True, null=True)
     linkedin_social_page = models.URLField(blank=True, null=True)
     
-    industry = models.CharField(max_length=255, blank=False, null=False)
-    company_type = models.CharField(max_length=255, default='White Glove Client')
-    company_owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    ops_team = models.CharField(max_length=255, blank=True, null=True)
-    account_status = models.CharField(max_length=255, default='Lead')
-    invoicing_type = models.CharField(max_length=100, blank=True, null=True) 
+    client_account_manager = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_companies')
+    supplier_owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='owned_suppliers')
+    client_ops_team = models.CharField(max_length=255, blank=True, null=True)
+
+    corporate_hotel_rates = models.TextField(blank=True)
+    corporate_airline_fares = models.TextField(blank=True)
+    company_memberships = models.TextField(blank=True)
 
     create_date = models.DateTimeField(auto_now_add=True)
     last_activity_date = models.DateTimeField(null=True, blank=True)
@@ -132,19 +182,15 @@ class Company(models.Model):
 class Contact(models.Model):
     """
     Represents a contact associated with a company within the CRM system.
-
-    Fields:
-        - company: The company this contact is associated with.
-        - first_name, last_name: The contact's name.
-        - email, phone, mobile: Contact details.
-        - job_title: The contact's job title.
-        - department: Department in which the contact works.
-        - is_primary_contact: Whether this contact is the primary contact for the company.
-        - is_travel_booker_contact: Whether this contact books travel for the company.
-        - is_traveller_contact: Whether this contact is a traveller.
-        - is_vip_traveller_contact: Whether this contact is considered a VIP traveller.
-        - notes: Additional notes about the contact.
     """
+    PREFERRED_CONTACT_METHOD = [
+        ('email', 'Email'),
+        ('phone', 'Phone'),
+        ('mobile', 'Mobile'),
+        ('teams', 'Microsoft Teams'),
+        ('whatsapp', 'WhatsApp'),
+    ]
+
     company = models.ForeignKey('Company', on_delete=models.CASCADE, related_name='contacts')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -153,38 +199,63 @@ class Contact(models.Model):
     mobile = models.CharField(max_length=20, blank=True, null=True)
     job_title = models.CharField(max_length=100)
     department = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Contact preferences
+    preferred_contact_method = models.CharField(max_length=20, choices=PREFERRED_CONTACT_METHOD, default='email')
+    preferred_contact_time = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., 'Mornings only', '9-5 GMT'")
+    do_not_contact = models.BooleanField(default=False)
+    out_of_office_until = models.DateField(null=True, blank=True)
+    teams_id = models.CharField(max_length=100, blank=True, null=True)
+    whatsapp_number = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Contact roles
     is_primary_contact = models.BooleanField(default=False)
+    is_primary_finance_contact = models.BooleanField(default=False)
+    is_primary_hr_contact = models.BooleanField(default=False)
+    is_primary_it_contact = models.BooleanField(default=False)
     is_travel_booker_contact = models.BooleanField(default=False)
     is_traveller_contact = models.BooleanField(default=False)
     is_vip_traveller_contact = models.BooleanField(default=False)
+    
+    # Additional fields
     notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='contacts_created')
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='contacts_updated')
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.company})"
 
+    def clean(self):
+        # Email validation
+        if self.email:
+            try:
+                validate_email(self.email)
+            except ValidationError:
+                raise ValidationError({'email': 'Please enter a valid email address.'})
+        
+        # Phone validation (basic format)
+        if self.phone and not re.match(r'^\+?1?\d{9,15}$', self.phone):
+            raise ValidationError({'phone': 'Phone number must be between 9 and 15 digits.'})
+        
+        if self.mobile and not re.match(r'^\+?1?\d{9,15}$', self.mobile):
+            raise ValidationError({'mobile': 'Mobile number must be between 9 and 15 digits.'})
 
-class CompanyNotes(models.Model):
-    """
-    Represents detailed notes about a company, including policies, rates, and other information.
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
-    Fields:
-        - company: The company these notes are associated with.
-        - account_number: The company's account number.
-        - fop_limit: Limit for form of payment (FOP).
-        - invoice_references: References for invoicing.
-        - corporate_hotel_rates, corporate_airline_fares: Details of negotiated rates.
-        - company_memberships: Memberships the company holds.
-        - travel_policy: Travel policy for the company.
-        - flight_notes, accommodation_notes, car_hire_notes, transfer_notes, rail_notes, other_notes: Various notes sections.
-        - last_updated: Timestamp of the last update to the notes.
+
+class ClientTravelPolicy(models.Model):
     """
-    company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name='notes')
-    account_number = models.CharField(max_length=100, blank=True)
-    fop_limit = models.CharField(max_length=100, blank=True)
-    invoice_references = models.TextField(blank=True)
-    corporate_hotel_rates = models.TextField(blank=True)
-    corporate_airline_fares = models.TextField(blank=True)
-    company_memberships = models.TextField(blank=True)
+    Represents a travel policy for a company. Companies can have multiple travel policies,
+    which allows for tracking policy changes over time or different policies for different purposes.
+    """
+    client = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='travel_policies')
+    policy_name = models.CharField(max_length=255, default="Default Policy")
+    effective_date = models.DateField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
     travel_policy = models.TextField(blank=True)
     flight_notes = models.TextField(blank=True)
     accommodation_notes = models.TextField(blank=True)
@@ -194,9 +265,12 @@ class CompanyNotes(models.Model):
     other_notes = models.TextField(blank=True)
     last_updated = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"Notes for {self.company.company_name}"
+    class Meta:
+        verbose_name_plural = "Client travel policies"
+        ordering = ['-effective_date']  # Most recent policies first
 
+    def __str__(self):
+        return f"{self.policy_name} for {self.client.company_name} (Effective: {self.effective_date})"
 
 class TransactionFee(models.Model):
     """
@@ -214,3 +288,164 @@ class TransactionFee(models.Model):
 
     def __str__(self):
         return f"{self.service} fee for {self.company.company_name}"
+
+class Tag(models.Model):
+    """
+    Flexible tagging system for both companies and contacts.
+    """
+    name = models.CharField(max_length=100)
+    category = models.CharField(max_length=50)  # 'position', 'company', 'communication', etc.
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.category})"
+
+    class Meta:
+        ordering = ['category', 'name']
+
+class CompanyTag(models.Model):
+    """
+    Links tags to companies with metadata about who added them and when.
+    """
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='tags')
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+    added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('company', 'tag')
+
+class ContactTag(models.Model):
+    """
+    Links tags to contacts with metadata about who added them and when.
+    """
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='tags')
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+    added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('contact', 'tag')
+
+class Document(models.Model):
+    """
+    Stores documents related to companies (contracts, agreements, etc.).
+    """
+    DOCUMENT_TYPES = [
+        ('contract', 'Contract'),
+        ('agreement', 'Agreement'),
+        ('policy', 'Policy'),
+        ('presentation', 'Presentation'),
+        ('proposal', 'Proposal'),
+        ('other', 'Other'),
+    ]
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='documents')
+    title = models.CharField(max_length=255)
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+    file = models.FileField(upload_to='company_documents/')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True)
+    version = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.company.company_name}"
+
+class Activity(models.Model):
+    """
+    Tracks all activities and interactions with companies and contacts.
+    """
+    ACTIVITY_TYPES = [
+        ('meeting', 'Meeting'),
+        ('call', 'Phone Call'),
+        ('email', 'Email'),
+        ('note', 'Note'),
+        ('document', 'Document Upload'),
+        ('status_change', 'Status Change'),
+        ('policy_update', 'Policy Update'),
+    ]
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='activities')
+    contact = models.ForeignKey(Contact, on_delete=models.SET_NULL, related_name='activities', null=True, blank=True)
+    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES)
+    description = models.TextField()
+    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    performed_at = models.DateTimeField(auto_now_add=True)
+    scheduled_for = models.DateTimeField(null=True, blank=True)
+    outcome = models.TextField(blank=True)
+    follow_up_date = models.DateField(null=True, blank=True)
+    follow_up_notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name_plural = "Activities"
+        ordering = ['-performed_at']
+
+    def __str__(self):
+        return f"{self.activity_type} with {self.company.company_name}"
+
+class StatusHistory(models.Model):
+    """
+    Tracks changes in company status over time.
+    """
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='status_history')
+    old_status = models.CharField(max_length=255)
+    new_status = models.CharField(max_length=255)
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name_plural = "Status histories"
+        ordering = ['-changed_at']
+
+    def __str__(self):
+        return f"{self.company.company_name}: {self.old_status} → {self.new_status}"
+
+class CustomField(models.Model):
+    """
+    Defines custom fields that can be added to companies or contacts.
+    """
+    FIELD_TYPES = [
+        ('text', 'Text'),
+        ('number', 'Number'),
+        ('date', 'Date'),
+        ('boolean', 'Yes/No'),
+        ('choice', 'Choice'),
+    ]
+
+    name = models.CharField(max_length=100)
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPES)
+    required = models.BooleanField(default=False)
+    choices = models.JSONField(null=True, blank=True)  # For choice fields
+    default_value = models.JSONField(null=True, blank=True)
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.name} ({self.field_type})"
+
+class CustomFieldValue(models.Model):
+    """
+    Stores values for custom fields for companies and contacts.
+    """
+    field = models.ForeignKey(CustomField, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='custom_field_values', null=True, blank=True)
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='custom_field_values', null=True, blank=True)
+    value = models.JSONField()
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [
+            ('field', 'company'),
+            ('field', 'contact'),
+        ]
+
+    def __str__(self):
+        return f"{self.field.name}: {self.value}"
