@@ -8,6 +8,7 @@ from formtools.wizard.views import SessionWizardView
 from django.shortcuts import redirect
 from django.contrib import messages
 from django import forms
+from .forms import CompanyForm
 
 # Create your views here.
 
@@ -63,13 +64,9 @@ class CompanyDetailView(LoginRequiredMixin, DetailView):
 
 class CompanyUpdateView(LoginRequiredMixin, UpdateView):
     model = Company
+    form_class = CompanyForm
     template_name = 'crm/company_form.html'
     success_url = reverse_lazy('crm:company_list')
-    fields = [
-        'company_name', 'industry', 'email', 'phone_number',
-        'street_address', 'city', 'state_province', 'postal_code',
-        'country', 'description', 'linkedin_social_page'
-    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

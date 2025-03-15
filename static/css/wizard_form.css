@@ -43,6 +43,23 @@
     opacity: 1;
 }
 
+/* Progress bar step widths */
+.wizard-steps-2 .progress-bar {
+    width: 50%;
+}
+
+.wizard-steps-3 .progress-bar {
+    width: 33.333%;
+}
+
+.wizard-steps-4 .progress-bar {
+    width: 25%;
+}
+
+.wizard-steps-5 .progress-bar {
+    width: 20%;
+}
+
 /* Step Indicators */
 .step-indicator {
     width: 30px;

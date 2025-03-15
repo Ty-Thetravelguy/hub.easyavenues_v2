@@ -2,59 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-<style>
-.profile-header {
-    background: linear-gradient(to right, #4e73df, #224abe);
-    padding: 2rem 0;
-    color: white;
-    margin-bottom: 2rem;
-}
-
-.contact-card {
-    transition: transform 0.2s;
-}
-
-.contact-card:hover {
-    transform: translateY(-5px);
-}
-
-.status-badge {
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-}
-
-.activity-timeline {
-    position: relative;
-    padding-left: 3rem;
-}
-
-.activity-timeline::before {
-    content: '';
-    position: absolute;
-    left: 1rem;
-    top: 0;
-    height: 100%;
-    width: 2px;
-    background: #e3e6f0;
-}
-
-.timeline-item {
-    position: relative;
-    padding-bottom: 1.5rem;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -2.25rem;
-    top: 0.25rem;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 50%;
-    background: #4e73df;
-    border: 2px solid white;
-}
-</style>
+<link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -71,6 +19,9 @@
                 </p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="{% url 'crm:company_list' %}" class="btn btn-light me-2">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
                 <a href="{% url 'crm:company_update' company.pk %}" class="btn btn-light me-2">
                     <i class="fas fa-edit"></i> Edit
                 </a>

@@ -1,6 +1,6 @@
 from django import forms
 from django.db import models
-from .models import Company, Contact, ClientProfile, SupplierProfile, TransactionFee
+from .models import Company, Contact, ClientProfile, SupplierProfile, TransactionFee, INDUSTRY_CHOICES
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -9,6 +9,12 @@ class CompanyForm(forms.ModelForm):
     """
     Dynamic form for creating/editing companies with their respective profiles.
     """
+    industry = forms.ChoiceField(
+        choices=INDUSTRY_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
     class Meta:
         model = Company
         fields = [
