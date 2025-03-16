@@ -1,0 +1,30 @@
+{% extends "accounts/admin/base_admin.html" %}
+
+{% block admin_title %}Admin Dashboard{% endblock %}
+
+{% block admin_content %}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">User Management</h5>
+                <p class="card-text">Manage users, their roles, and permissions.</p>
+                <a href="{% url 'accounts:admin_user_list' %}" class="btn btn-primary-ea">
+                    <i class="fas fa-users"></i> Manage Users
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Team Management</h5>
+                <p class="card-text">Create and manage teams and their members.</p>
+                <a href="{% url 'accounts:admin_team_list' %}" class="btn btn-primary-ea">
+                    <i class="fas fa-users-cog"></i> Manage Teams
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,92 @@
+{% extends "accounts/admin/base_admin.html" %}
+
+{% block admin_title %}Users{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="card-title mb-0">Users</h5>
+            <a href="{% url 'accounts:admin_user_create' %}" class="btn btn-primary-ea">
+                <i class="fas fa-plus"></i> Add New User
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Email Verified</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.get_full_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.is_superuser %}
+                                <span class="badge bg-danger">Superuser</span>
+                            {% else %}
+                                <span class="badge {% if user.role == 'admin' %}bg-danger
+                                                  {% elif user.role == 'agent' %}bg-primary
+                                                  {% else %}bg-secondary{% endif %}">
+                                    {{ user.get_role_display }}
+                                </span>
+                            {% endif %}
+                            {% if not user.is_active %}
+                                <span class="badge bg-warning">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.email_verified %}
+                                <span class="badge bg-success">Verified</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.last_login %}
+                                {{ user.last_login|date:"Y-m-d H:i" }}
+                            {% else %}
+                                Never
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'accounts:admin_user_edit' user.id %}" class="btn btn-sm btn-secondary-ea">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if request.user.role == 'superuser' or request.user.role == 'admin' %}
+                                    {% if user != request.user and not user.is_superuser %}
+                                        {% if request.user.role == 'superuser' or user.role != 'admin' %}
+                                            <form action="{% url 'accounts:admin_toggle_user_active' user.id %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" 
+                                                        class="btn btn-sm {% if user.is_active %}btn-danger-ea{% else %}btn-success-ea{% endif %}"
+                                                        onclick="return confirm('Are you sure you want to {% if user.is_active %}deactivate{% else %}activate{% endif %} this user?')">
+                                                    <i class="fas {% if user.is_active %}fa-user-times{% else %}fa-user-check{% endif %}"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No users found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

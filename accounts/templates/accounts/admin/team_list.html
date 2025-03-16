@@ -1,0 +1,53 @@
+{% extends "accounts/admin/base_admin.html" %}
+
+{% block admin_title %}Teams{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="card-title mb-0">Teams</h5>
+            <a href="{% url 'accounts:admin_team_create' %}" class="btn btn-primary-ea">
+                <i class="fas fa-plus"></i> Add New Team
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Members</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                    <tr>
+                        <td>{{ team.name }}</td>
+                        <td>{{ team.members.count }}</td>
+                        <td>
+                            <a href="{% url 'accounts:admin_team_edit' team.id %}" class="btn btn-sm btn-secondary-ea">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'accounts:admin_team_members' team.id %}" class="btn btn-sm btn-tertiary-ea">
+                                <i class="fas fa-users"></i>
+                            </a>
+                            <a href="{% url 'accounts:admin_team_delete' team.id %}" 
+                               class="btn btn-sm btn-danger-ea"
+                               onclick="return confirm('Are you sure you want to delete this team?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center">No teams found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

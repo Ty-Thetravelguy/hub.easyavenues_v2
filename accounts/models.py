@@ -33,7 +33,7 @@ class CustomUser(AbstractUser):
         ('superuser', 'Superuser'),
         ('admin', 'Admin'),
         ('agent', 'Agent'),
-        ('marketing', 'Marketing'),
+        ('marketing', 'Sales/Marketing/Account Management'),
     ]
 
     id = models.AutoField(primary_key=True)
@@ -80,3 +80,31 @@ class CustomUser(AbstractUser):
             
         # Call parent save
         super(CustomUser, self).save(*args, **kwargs) 
+
+class Team(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    members = models.ManyToManyField('accounts.CustomUser', related_name='teams')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name'] 
+
+class InvoiceRemark(models.Model):
+    name = models.CharField(max_length=255, help_text="Display name of the invoice remark")
+    backoffice_code = models.CharField(max_length=50, help_text="Code used in the backoffice system")
+    amadeus_code = models.CharField(max_length=50, help_text="Code used in Amadeus")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Invoice Remark'
+        verbose_name_plural = 'Invoice Remarks' 

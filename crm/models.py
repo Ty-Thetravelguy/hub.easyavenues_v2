@@ -152,6 +152,7 @@ class ClientProfile(models.Model):
     sage_name = models.CharField(max_length=255, blank=True, null=True)
     midoco_crm_number = models.CharField(max_length=255, blank=True, null=True)
     invoice_references = models.TextField(blank=True)
+    invoice_remarks = models.ManyToManyField('accounts.InvoiceRemark', related_name='clients', blank=True)
     invoicing_type = models.CharField(max_length=100, blank=True, null=True)
     invoicing_frequency = models.CharField(max_length=100, blank=True, null=True)
     payment_terms = models.CharField(max_length=100, blank=True, null=True)

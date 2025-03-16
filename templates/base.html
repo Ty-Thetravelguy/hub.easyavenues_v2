@@ -129,7 +129,7 @@
                                         </li>
                                         {% if user.is_superuser or user.is_staff %}
                                         <li class="nav-item">
-                                            <a class="nav-link text-white" href="{% url 'accounts:user_list' %}">Users</a>
+                                            <a class="nav-link text-white" href="{% url 'accounts:admin_user_list' %}">Admin Panel</a>
                                         </li>
                                         {% endif %}
                                         <li class="nav-item">

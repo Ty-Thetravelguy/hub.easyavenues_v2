@@ -186,3 +186,56 @@ body {
     padding: 10px;
     border-bottom: 1px solid #ddd;
 }
+
+/************************* BUTTONS **************************/
+
+.btn-primary-ea {
+    background-color: #444a9f !important;
+    border-color: #444a9f !important;
+    color: #fff !important;
+}
+
+.btn-secondary-ea {
+    background: linear-gradient(to right, #4e54c8, #9c85db) !important;
+    border: none !important;
+    color: #fff !important;
+}
+
+.btn-tertiary-ea {
+    background-color: #ff8568 !important;
+    border-color: #ff8568 !important;
+    color: #fff !important;
+}
+
+.btn-accent-ea {
+    background-color: #f9f871 !important;
+    border-color: #f9f871 !important;
+    color: #000 !important;
+}
+
+.btn-danger-ea {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+/* Hover states */
+.btn-primary-ea:hover {
+    opacity: 0.9;
+}
+
+.btn-secondary-ea:hover {
+    background: linear-gradient(to right, #3f44a0, #9c85db) !important;
+}
+
+.btn-tertiary-ea:hover {
+    opacity: 0.9;
+}
+
+.btn-accent-ea:hover {
+    opacity: 0.9;
+}
+
+.btn-danger-ea:hover {
+    opacity: 0.9;
+}

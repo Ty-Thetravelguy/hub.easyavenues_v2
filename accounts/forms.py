@@ -3,7 +3,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from allauth.account.forms import SignupForm
-from .models import CustomUser, BusinessDomain, Business
+from .models import CustomUser, BusinessDomain, Business, Team, InvoiceRemark
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
@@ -12,7 +12,9 @@ from django.db import transaction
 import logging
 from django.urls import reverse
 from django.utils.http import int_to_base36
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 class CustomSignupForm(SignupForm):
     first_name = forms.CharField(max_length=30, label='First Name', 
@@ -284,3 +286,21 @@ class EditUserForm(forms.ModelForm):
                 adapter.send_confirmation_mail(self.instance, user_email(user))
         
         return user
+
+class TeamForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        fields = ['name', 'description']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
+
+class InvoiceRemarkForm(forms.ModelForm):
+    class Meta:
+        model = InvoiceRemark
+        fields = ['name', 'backoffice_code', 'amadeus_code']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'backoffice_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'amadeus_code': forms.TextInput(attrs={'class': 'form-control'}),
+        }
