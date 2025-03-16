@@ -9,6 +9,7 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django import forms
 from .forms import CompanyForm
+from django.contrib.auth import get_user_model
 
 # Create your views here.
 
@@ -66,7 +67,9 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
     model = Company
     form_class = CompanyForm
     template_name = 'crm/company_form.html'
-    success_url = reverse_lazy('crm:company_list')
+    
+    def get_success_url(self):
+        return reverse_lazy('crm:company_detail', kwargs={'pk': self.object.pk})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -160,11 +163,44 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
             # Third step: Type-specific fields
             company_type = self.get_cleaned_data_for_step('type')['company_type']
             if company_type == 'Client':
+                # Basic Client Information
                 form.fields.update({
-                    'client_type': forms.ChoiceField(choices=CLIENT_TYPE_CHOICES),
-                    'client_status': forms.ChoiceField(choices=CLIENT_STATUS_CHOICES),
-                    'sage_name': forms.CharField(max_length=255, required=False),
-                    'midoco_crm_number': forms.CharField(max_length=255, required=False),
+                    'client_type': forms.ChoiceField(choices=CLIENT_TYPE_CHOICES, label='Client Type'),
+                    'client_status': forms.ChoiceField(choices=CLIENT_STATUS_CHOICES, label='Client Status'),
+                    'client_account_manager': forms.ModelChoiceField(
+                        queryset=get_user_model().objects.all(),
+                        required=False,
+                        label='Account Manager'
+                    ),
+                    'client_ops_team': forms.CharField(max_length=255, required=False, label='Operations Team'),
+                    
+                    # Finance/Invoice Information
+                    'sage_name': forms.CharField(max_length=255, required=False, label='Sage Name'),
+                    'midoco_crm_number': forms.CharField(max_length=255, required=False, label='Midoco CRM Number'),
+                    'invoice_references': forms.CharField(widget=forms.Textarea, required=False, label='Invoice References'),
+                    'invoicing_type': forms.CharField(max_length=100, required=False, label='Invoicing Type'),
+                    'invoicing_frequency': forms.CharField(max_length=100, required=False, label='Invoicing Frequency'),
+                    'payment_terms': forms.CharField(max_length=100, required=False, label='Payment Terms'),
+                    
+                    # Corporate Benefits
+                    'corporate_hotel_rates': forms.CharField(widget=forms.Textarea, required=False, label='Corporate Hotel Rates'),
+                    'corporate_airline_fares': forms.CharField(widget=forms.Textarea, required=False, label='Corporate Airline Fares'),
+                    'company_memberships': forms.CharField(widget=forms.Textarea, required=False, label='Company Memberships'),
+                    
+                    # Service Status
+                    'has_new_contract_signed': forms.BooleanField(required=False, label='New Contract Signed'),
+                    'signed_up_corporate_schemes': forms.BooleanField(required=False, label='Signed Up for Corporate Schemes'),
+                    'signed_up_travelogix': forms.BooleanField(required=False, label='Signed Up for Travelogix'),
+                    'meetings_events_requirements': forms.BooleanField(required=False, label='Has Meetings & Events Requirements'),
+                    'reporting_standard_bespoke': forms.BooleanField(required=False, label='Has Standard/Bespoke Reporting'),
+                    'access_to_travelogix': forms.BooleanField(required=False, label='Has Access to Travelogix'),
+                    'travel_policy_health_check_offered': forms.BooleanField(required=False, label='Travel Policy Health Check Offered'),
+                    'testimonial_requested': forms.BooleanField(required=False, label='Testimonial Requested'),
+                    
+                    # Sustainability Information
+                    'communicated_esg_support': forms.BooleanField(required=False, label='ESG Support Communicated'),
+                    'receive_co2_reporting': forms.BooleanField(required=False, label='Receives CO2 Reporting'),
+                    'discussed_offsetting': forms.BooleanField(required=False, label='Offsetting Discussed')
                 })
             else:
                 form.fields.update({
@@ -172,6 +208,13 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
                     'supplier_status': forms.ChoiceField(choices=SUPPLIER_STATUS_CHOICES),
                     'supplier_for_department': forms.ChoiceField(choices=SUPPLIER_FOR_DEPARTMENT_CHOICES),
                 })
+
+        # Add Bootstrap classes to all fields
+        for field in form.fields.values():
+            if isinstance(field.widget, (forms.TextInput, forms.Select, forms.Textarea, forms.URLInput, forms.EmailInput)):
+                field.widget.attrs.update({'class': 'form-control'})
+            elif isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.update({'class': 'form-check-input'})
 
         return form
 

@@ -49,9 +49,34 @@ body {
     background: linear-gradient(to right, #483f92, #a78bc3);
 }
 
+.bg-gradient-blue-purple-left {
+    background: linear-gradient(to left, #483f92, #a78bc3);
+}
+
 /* .bg-gradient-more-blue {
     background: linear-gradient(to right, #444a9f 70%, #9c85db);
 } */
+
+.link-color {
+    color: #9281dd;
+}
+
+
+.action-btn-purple {
+    background-color: #a44493 !important;
+    border-color: #a44493 !important;
+}
+
+.action-btn-orange {
+    background-color: #ff8568 !important;
+    border-color: #ff8568 !important;
+}
+
+.action-btn-yellow {
+    background-color: #f9f871 !important;
+    border-color: #f9f871 !important;
+    color: #000 !important;
+}
 
 /************************* HEADER **************************/
 

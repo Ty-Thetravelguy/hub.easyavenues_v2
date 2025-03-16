@@ -63,7 +63,8 @@ class CompanyForm(forms.ModelForm):
         """Get list of supplier-specific field names."""
         return [
             'supplier_type', 'supplier_status', 'supplier_for_department',
-            'supplier_owner'
+            'supplier_owner', 'invoicing_type', 'invoicing_frequency',
+            'payment_terms', 'new_supplier_form_signed', 'contract_signed'
         ]
 
     def add_client_fields(self, instance):
@@ -74,16 +75,27 @@ class CompanyForm(forms.ModelForm):
         for field_name in self.get_client_field_names():
             if hasattr(ClientProfile, field_name):
                 field = ClientProfile._meta.get_field(field_name)
-                self.fields[field_name] = forms.CharField(
-                    required=not field.blank,
-                    initial=getattr(client_profile, field_name) if client_profile else None
-                )
                 if isinstance(field, models.BooleanField):
-                    self.fields[field_name] = forms.BooleanField(required=False)
+                    self.fields[field_name] = forms.BooleanField(
+                        required=False,
+                        initial=getattr(client_profile, field_name) if client_profile else False,
+                        widget=forms.CheckboxInput(attrs={
+                            'class': 'form-check-input',
+                            'role': 'switch'
+                        })
+                    )
                 elif hasattr(field, 'choices') and field.choices:
                     self.fields[field_name] = forms.ChoiceField(
                         choices=field.choices,
-                        required=not field.blank
+                        required=not field.blank,
+                        initial=getattr(client_profile, field_name) if client_profile else None,
+                        widget=forms.Select(attrs={'class': 'form-control'})
+                    )
+                else:
+                    self.fields[field_name] = forms.CharField(
+                        required=not field.blank,
+                        initial=getattr(client_profile, field_name) if client_profile else None,
+                        widget=forms.TextInput(attrs={'class': 'form-control'})
                     )
 
     def add_supplier_fields(self, instance):
@@ -94,16 +106,27 @@ class CompanyForm(forms.ModelForm):
         for field_name in self.get_supplier_field_names():
             if hasattr(SupplierProfile, field_name):
                 field = SupplierProfile._meta.get_field(field_name)
-                self.fields[field_name] = forms.CharField(
-                    required=not field.blank,
-                    initial=getattr(supplier_profile, field_name) if supplier_profile else None
-                )
                 if isinstance(field, models.BooleanField):
-                    self.fields[field_name] = forms.BooleanField(required=False)
+                    self.fields[field_name] = forms.BooleanField(
+                        required=False,
+                        initial=getattr(supplier_profile, field_name) if supplier_profile else False,
+                        widget=forms.CheckboxInput(attrs={
+                            'class': 'form-check-input',
+                            'role': 'switch'
+                        })
+                    )
                 elif hasattr(field, 'choices') and field.choices:
                     self.fields[field_name] = forms.ChoiceField(
                         choices=field.choices,
-                        required=not field.blank
+                        required=not field.blank,
+                        initial=getattr(supplier_profile, field_name) if supplier_profile else None,
+                        widget=forms.Select(attrs={'class': 'form-control'})
+                    )
+                else:
+                    self.fields[field_name] = forms.CharField(
+                        required=not field.blank,
+                        initial=getattr(supplier_profile, field_name) if supplier_profile else None,
+                        widget=forms.TextInput(attrs={'class': 'form-control'})
                     )
 
     def save(self, commit=True):

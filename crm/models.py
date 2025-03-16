@@ -170,7 +170,11 @@ class ClientProfile(models.Model):
     signed_up_corporate_schemes = models.BooleanField(default=False)
     signed_up_travelogix = models.BooleanField(default=False)
     meetings_events_requirements = models.BooleanField(default=False)
-    reporting_standard_bespoke = models.BooleanField(default=False)
+    REPORTING_CHOICES = [
+        ('Standard', 'Standard'),
+        ('Bespoke', 'Bespoke'),
+    ]
+    reporting_standard_bespoke = models.CharField(max_length=10, choices=REPORTING_CHOICES, default='Standard')
     access_to_travelogix = models.BooleanField(default=False)
     travel_policy_health_check_offered = models.BooleanField(default=False)
     testimonial_requested = models.BooleanField(default=False)
@@ -193,6 +197,15 @@ class SupplierProfile(models.Model):
     supplier_status = models.CharField(max_length=255, choices=SUPPLIER_STATUS_CHOICES, default='Preferred Supplier')
     supplier_for_department = models.CharField(max_length=255, choices=SUPPLIER_FOR_DEPARTMENT_CHOICES, default='Company Supplier')
     supplier_owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='owned_suppliers')
+
+    # Finance/Invoice Information
+    invoicing_type = models.CharField(max_length=100, blank=True, null=True)
+    invoicing_frequency = models.CharField(max_length=100, blank=True, null=True)
+    payment_terms = models.CharField(max_length=100, blank=True, null=True)
+
+    # Service Status
+    new_supplier_form_signed = models.BooleanField(default=False)
+    contract_signed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Supplier Profile - {self.company.company_name}"

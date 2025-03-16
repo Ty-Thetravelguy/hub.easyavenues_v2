@@ -7,7 +7,7 @@
 
 {% block content %}
 <!-- Company Profile Header -->
-<div class="profile-header">
+<div class="profile-header bg-gradient-blue-purple-left text-white py-4 mb-4">
     <div class="container-fluid">
         <div class="row align-items-center">
             <div class="col-md-8">
@@ -33,7 +33,7 @@
     </div>
 </div>
 
-<div class="container-fluid">
+<div class="container-fluid mb-5">
     <!-- Tabs Navigation -->
     <ul class="nav nav-tabs mb-4" id="companyTabs" role="tablist">
         <li class="nav-item">
@@ -70,36 +70,37 @@
         <!-- Overview Tab -->
         <div class="tab-pane fade show active" id="overview" role="tabpanel">
             <div class="row">
-                <!-- Basic Information -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
+                <!-- Left Column -->
+                <div class="col-md-4">
+                    <!-- Basic Information -->
+                    <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0">Basic Information</h5>
                         </div>
                         <div class="card-body">
                             <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Company Type</div>
-                                <div class="col-sm-8">{{ company.company_type }}</div>
+                                <div class="col-sm-5 text-muted">Company Type</div>
+                                <div class="col-sm-7">{{ company.company_type }}</div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Industry</div>
-                                <div class="col-sm-8">{{ company.industry }}</div>
+                                <div class="col-sm-5 text-muted">Industry</div>
+                                <div class="col-sm-7">{{ company.industry }}</div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Email</div>
-                                <div class="col-sm-8">
+                                <div class="col-sm-5 text-muted">Email</div>
+                                <div class="col-sm-7">
                                     <a href="mailto:{{ company.email }}">{{ company.email }}</a>
                                 </div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Phone</div>
-                                <div class="col-sm-8">
+                                <div class="col-sm-5 text-muted">Phone</div>
+                                <div class="col-sm-7">
                                     <a href="tel:{{ company.phone_number }}">{{ company.phone_number }}</a>
                                 </div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">LinkedIn</div>
-                                <div class="col-sm-8">
+                            <div class="row">
+                                <div class="col-sm-5 text-muted">LinkedIn</div>
+                                <div class="col-sm-7">
                                     {% if company.linkedin_social_page %}
                                     <a href="{{ company.linkedin_social_page }}" target="_blank">
                                         <i class="fab fa-linkedin"></i> View Profile
@@ -111,67 +112,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Profile Information -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                {% if company.company_type == 'Client' %}
-                                Client Profile
-                                {% else %}
-                                Supplier Profile
-                                {% endif %}
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            {% if company.company_type == 'Client' %}
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Client Type</div>
-                                <div class="col-sm-8">{{ company.client_profile.client_type }}</div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Status</div>
-                                <div class="col-sm-8">
-                                    <span class="badge bg-primary status-badge">
-                                        {{ company.client_profile.client_status }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Sage Name</div>
-                                <div class="col-sm-8">{{ company.client_profile.sage_name|default:"Not set" }}</div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Midoco CRM Number</div>
-                                <div class="col-sm-8">{{ company.client_profile.midoco_crm_number|default:"Not set" }}</div>
-                            </div>
-                            {% else %}
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Supplier Type</div>
-                                <div class="col-sm-8">{{ company.supplier_profile.supplier_type }}</div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Status</div>
-                                <div class="col-sm-8">
-                                    <span class="badge bg-primary status-badge">
-                                        {{ company.supplier_profile.supplier_status }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-4 text-muted">Department</div>
-                                <div class="col-sm-8">{{ company.supplier_profile.supplier_for_department }}</div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Address Information -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
+                    <!-- Address Information -->
+                    <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0">Address Information</h5>
                         </div>
@@ -183,11 +126,9 @@
                             </address>
                         </div>
                     </div>
-                </div>
 
-                <!-- Description -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
+                    <!-- Description -->
+                    <div class="card">
                         <div class="card-header">
                             <h5 class="mb-0">Description</h5>
                         </div>
@@ -195,6 +136,244 @@
                             <p class="mb-0">{{ company.description|default:"No description provided." }}</p>
                         </div>
                     </div>
+                </div>
+
+                <!-- Right Column - Client/Supplier Profile -->
+                <div class="col-md-8">
+                    {% if company.company_type == 'Client' %}
+                    <!-- Client Profile -->
+                    <div class="card">
+                        <div class="card-header text-white" style="background-color: #444a9f;">
+                            <h5 class="mb-0">Client Profile</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Basic Client Information -->
+                            <div class="profile-section mb-4">
+                                <h6 class="border-bottom pb-2 mb-3">Basic Client Information</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Client Type</label>
+                                            <span class="fs-6">{{ company.client_profile.client_type }}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Status</label>
+                                            <span class="badge bg-primary">{{ company.client_profile.client_status }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Account Manager</label>
+                                            <span class="fs-6">{{ company.client_profile.client_account_manager|default:"Not assigned" }}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Operations Team</label>
+                                            <span class="fs-6">{{ company.client_profile.client_ops_team|default:"Not assigned" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Finance/Invoice Information -->
+                            <div class="profile-section mb-4">
+                                <h6 class="border-bottom pb-2 mb-3">Finance/Invoice Information</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Sage Name</label>
+                                            <span class="fs-6">{{ company.client_profile.sage_name|default:"Not set" }}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Midoco CRM Number</label>
+                                            <span class="fs-6">{{ company.client_profile.midoco_crm_number|default:"Not set" }}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Invoice References</label>
+                                            <span class="fs-6">{{ company.client_profile.invoice_references|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Invoicing Type</label>
+                                            <span class="fs-6">{{ company.client_profile.invoicing_type|default:"Not set" }}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Invoicing Frequency</label>
+                                            <span class="fs-6">{{ company.client_profile.invoicing_frequency|default:"Not set" }}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Payment Terms</label>
+                                            <span class="fs-6">{{ company.client_profile.payment_terms|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Corporate Benefits -->
+                            <div class="profile-section mb-4">
+                                <h6 class="border-bottom pb-2 mb-3">Corporate Benefits</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Hotel Rates</label>
+                                            <span class="fs-6">{{ company.client_profile.corporate_hotel_rates|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Airline Fares</label>
+                                            <span class="fs-6">{{ company.client_profile.corporate_airline_fares|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Memberships</label>
+                                            <span class="fs-6">{{ company.client_profile.company_memberships|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Service Status and Sustainability -->
+                            <div class="row">
+                                <!-- Service Status -->
+                                <div class="col-md-6">
+                                    <div class="profile-section">
+                                        <h6 class="border-bottom pb-2 mb-3">Service Status</h6>
+                                        <ul class="list-unstyled status-list">
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.has_new_contract_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>New Contract Signed</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.signed_up_corporate_schemes %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Corporate Schemes</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.signed_up_travelogix %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Travelogix</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.meetings_events_requirements %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Meetings & Events Requirements</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.reporting_standard_bespoke %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Standard/Bespoke Reporting</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.access_to_travelogix %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Access to Travelogix</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.travel_policy_health_check_offered %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Travel Policy Health Check Offered</span>
+                                            </li>
+                                            <li class="d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.testimonial_requested %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Testimonial Requested</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Sustainability Information -->
+                                <div class="col-md-6">
+                                    <div class="profile-section">
+                                        <h6 class="border-bottom pb-2 mb-3">Sustainability Information</h6>
+                                        <ul class="list-unstyled status-list">
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.communicated_esg_support %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>ESG Support Communicated</span>
+                                            </li>
+                                            <li class="mb-2 d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.receive_co2_reporting %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>CO2 Reporting</span>
+                                            </li>
+                                            <li class="d-flex align-items-center">
+                                                <i class="fas {% if company.client_profile.discussed_offsetting %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                                <span>Offsetting Discussed</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Supplier Profile -->
+                    <div class="card">
+                        <div class="card-header text-white" style="background-color: #444a9f;">
+                            <h5 class="mb-0">Supplier Profile</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Basic Supplier Information -->
+                            <div class="profile-section mb-4">
+                                <h6 class="border-bottom pb-2 mb-3">Basic Supplier Information</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Supplier Type</label>
+                                            <span class="fs-6">{{ company.supplier_profile.supplier_type }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Status</label>
+                                            <span class="badge bg-primary">{{ company.supplier_profile.supplier_status }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Department</label>
+                                            <span class="fs-6">{{ company.supplier_profile.supplier_for_department }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Finance/Invoice Information -->
+                            <div class="profile-section mb-4">
+                                <h6 class="border-bottom pb-2 mb-3">Finance/Invoice Information</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Invoicing Type</label>
+                                            <span class="fs-6">{{ company.supplier_profile.invoicing_type|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Invoicing Frequency</label>
+                                            <span class="fs-6">{{ company.supplier_profile.invoicing_frequency|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted d-block">Payment Terms</label>
+                                            <span class="fs-6">{{ company.supplier_profile.payment_terms|default:"Not set" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Service Status -->
+                            <div class="profile-section">
+                                <h6 class="border-bottom pb-2 mb-3">Service Status</h6>
+                                <ul class="list-unstyled status-list">
+                                    <li class="mb-2 d-flex align-items-center">
+                                        <i class="fas {% if company.supplier_profile.new_supplier_form_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                        <span>New Supplier Form Signed</span>
+                                    </li>
+                                    <li class="d-flex align-items-center">
+                                        <i class="fas {% if company.supplier_profile.contract_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
+                                        <span>Contract Signed</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

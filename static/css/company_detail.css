@@ -1,8 +1,28 @@
 .profile-header {
-    background: linear-gradient(to right, #4e73df, #224abe);
     padding: 2rem 0;
-    color: white;
     margin-bottom: 2rem;
+}
+
+/* Tab styling */
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.75rem 1rem;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #444a9f;
+    border: none;
+    border-bottom: 2px solid #444a9f;
+}
+
+.nav-tabs .nav-link.active {
+    color: #444a9f;
+    background: none;
+    border: none;
+    border-bottom: 2px solid #444a9f;
+    font-weight: 500;
 }
 
 .contact-card {
@@ -46,7 +66,6 @@
     width: 1rem;
     height: 1rem;
     border-radius: 50%;
-    background: #4e73df;
     border: 2px solid white;
 }
 
