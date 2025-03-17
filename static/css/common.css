@@ -1,0 +1,33 @@
+/* Common styles used across templates */
+
+/* Card headers */
+.card-header-primary {
+    background-color: #444a9f;
+    color: white;
+}
+
+/* Table column widths */
+.table-column-icon {
+    width: 50px;
+}
+
+/* Avatar dimensions */
+.avatar-md {
+    width: 48px;
+    height: 48px;
+}
+
+/* Sticky positioning */
+.sticky-offset-top {
+    top: 20px;
+}
+
+/* Icon sizes */
+.icon-lg {
+    font-size: 3rem;
+}
+
+/* Form visibility */
+.form-hidden {
+    display: none;
+} 

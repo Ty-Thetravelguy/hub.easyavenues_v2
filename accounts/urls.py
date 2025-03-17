@@ -27,4 +27,7 @@ urlpatterns = [
     path('admin/invoice-remarks/create/', views.admin_invoice_remark_create, name='admin_invoice_remark_create'),
     path('admin/invoice-remarks/<int:remark_id>/edit/', views.admin_invoice_remark_edit, name='admin_invoice_remark_edit'),
     path('admin/invoice-remarks/<int:remark_id>/delete/', views.admin_invoice_remark_delete, name='admin_invoice_remark_delete'),
+
+    # API endpoints
+    path('api/teams/<int:team_id>/members/', views.get_team_members, name='api_team_members'),
 ]

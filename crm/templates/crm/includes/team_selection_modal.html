@@ -1,0 +1,57 @@
+<!-- Team Selection Modal -->
+<div class="modal fade" id="teamSelectionModal" tabindex="-1" aria-labelledby="teamSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="teamSelectionModalLabel">Select Team and User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Team Selection -->
+                <div class="mb-3">
+                    <label for="teamSelect" class="form-label">Select Team</label>
+                    <select id="teamSelect" class="form-select">
+                        <option value="">Choose a team...</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Team Members Section (initially hidden) -->
+                <div id="teamMembersSection" class="d-none">
+                    <h6 class="mb-3">Team Members</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="table-column-icon"></th>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teamMembersTableBody">
+                                <!-- Team members will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Template for team member row (hidden) -->
+                <template id="teamMemberRowTemplate">
+                    <tr>
+                        <td>
+                            <input type="radio" name="selectedUser" class="form-check-input">
+                        </td>
+                        <td class="member-name"></td>
+                        <td class="member-role"></td>
+                    </tr>
+                </template>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="selectUserBtn" disabled>Select User</button>
+            </div>
+        </div>
+    </div>
+</div> 

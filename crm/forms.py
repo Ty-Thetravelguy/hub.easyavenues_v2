@@ -75,7 +75,16 @@ class CompanyForm(forms.ModelForm):
         for field_name in self.get_client_field_names():
             if hasattr(ClientProfile, field_name):
                 field = ClientProfile._meta.get_field(field_name)
-                if isinstance(field, models.BooleanField):
+                
+                # Special handling for client_account_manager field
+                if field_name == 'client_account_manager':
+                    self.fields[field_name] = forms.ModelChoiceField(
+                        queryset=User.objects.all(),
+                        required=False,
+                        initial=getattr(client_profile, field_name) if client_profile else None,
+                        widget=forms.HiddenInput()
+                    )
+                elif isinstance(field, models.BooleanField):
                     self.fields[field_name] = forms.BooleanField(
                         required=False,
                         initial=getattr(client_profile, field_name) if client_profile else False,
@@ -106,7 +115,16 @@ class CompanyForm(forms.ModelForm):
         for field_name in self.get_supplier_field_names():
             if hasattr(SupplierProfile, field_name):
                 field = SupplierProfile._meta.get_field(field_name)
-                if isinstance(field, models.BooleanField):
+                
+                # Special handling for supplier_owner field
+                if field_name == 'supplier_owner':
+                    self.fields[field_name] = forms.ModelChoiceField(
+                        queryset=User.objects.all(),
+                        required=False,
+                        initial=getattr(supplier_profile, field_name) if supplier_profile else None,
+                        widget=forms.HiddenInput()
+                    )
+                elif isinstance(field, models.BooleanField):
                     self.fields[field_name] = forms.BooleanField(
                         required=False,
                         initial=getattr(supplier_profile, field_name) if supplier_profile else False,
@@ -139,13 +157,25 @@ class CompanyForm(forms.ModelForm):
                 client_profile, created = ClientProfile.objects.get_or_create(company=company)
                 for field_name in self.get_client_field_names():
                     if field_name in self.cleaned_data:
-                        setattr(client_profile, field_name, self.cleaned_data[field_name])
+                        # Special handling for client_account_manager field
+                        if field_name == 'client_account_manager':
+                            user = self.cleaned_data[field_name]  # Already a CustomUser instance
+                            if user:
+                                setattr(client_profile, field_name, user)
+                        else:
+                            setattr(client_profile, field_name, self.cleaned_data[field_name])
                 client_profile.save()
             else:
                 supplier_profile, created = SupplierProfile.objects.get_or_create(company=company)
                 for field_name in self.get_supplier_field_names():
                     if field_name in self.cleaned_data:
-                        setattr(supplier_profile, field_name, self.cleaned_data[field_name])
+                        # Special handling for supplier_owner field
+                        if field_name == 'supplier_owner':
+                            user = self.cleaned_data[field_name]  # Already a CustomUser instance
+                            if user:
+                                setattr(supplier_profile, field_name, user)
+                        else:
+                            setattr(supplier_profile, field_name, self.cleaned_data[field_name])
                 supplier_profile.save()
                 
         return company

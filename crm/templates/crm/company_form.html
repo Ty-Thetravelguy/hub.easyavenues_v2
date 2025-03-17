@@ -21,7 +21,26 @@
                                     <span class="text-danger">*</span>
                                 {% endif %}
                             </label>
-                            {{ field }}
+
+                            {% if field.name == 'client_account_manager' or field.name == 'supplier_owner' %}
+                                <!-- Custom input for user selection -->
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="selected_user_display_{{ field.name }}" 
+                                           placeholder="Select a user..." readonly
+                                           value="{% if field.value %}{{ field.value.get_full_name }}{% endif %}">
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            data-bs-toggle="modal" data-bs-target="#teamSelectionModal"
+                                            data-target-input="#id_{{ field.name }}"
+                                            data-target-display="#selected_user_display_{{ field.name }}">
+                                        <i class="fas fa-users"></i> Select User
+                                    </button>
+                                </div>
+                                <input type="hidden" name="{{ field.name }}" id="id_{{ field.name }}" 
+                                       value="{{ field.value.id|default:'' }}">
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
+
                             {% if field.help_text %}
                                 <div class="form-text">{{ field.help_text }}</div>
                             {% endif %}
@@ -47,9 +66,12 @@
         </div>
     </div>
 </div>
+
+{% include 'crm/includes/team_selection_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/team_selection.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Add Bootstrap validation classes to form fields
@@ -67,7 +89,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add Bootstrap classes to form fields
     const formControls = document.querySelectorAll('input, select, textarea');
     formControls.forEach(element => {
-        element.classList.add('form-control');
+        if (!element.classList.contains('form-check-input')) {
+            element.classList.add('form-control');
+        }
+    });
+
+    // Configure the select user button with the correct target elements
+    const selectUserBtn = document.getElementById('selectUserBtn');
+    const selectUserBtns = document.querySelectorAll('[data-bs-target="#teamSelectionModal"]');
+    
+    selectUserBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectUserBtn.dataset.targetInput = btn.dataset.targetInput;
+            selectUserBtn.dataset.targetDisplay = btn.dataset.targetDisplay;
+        });
     });
 });
 </script>

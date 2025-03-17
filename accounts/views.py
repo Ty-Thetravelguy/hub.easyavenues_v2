@@ -8,7 +8,7 @@ from django.urls import reverse
 from .forms import CustomSignupForm, AdminUserCreationForm, EditUserForm, TeamForm, InvoiceRemarkForm
 from django.contrib.auth import get_user_model
 from allauth.account.models import EmailAddress
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from .models import Team, InvoiceRemark
 
 User = get_user_model()
@@ -334,4 +334,19 @@ def admin_invoice_remark_delete(request, remark_id):
         return redirect('accounts:admin_invoice_remark_list')
     
     return redirect('accounts:admin_invoice_remark_list')
+
+@login_required
+def get_team_members(request, team_id):
+    """API endpoint to get team members."""
+    try:
+        team = Team.objects.get(id=team_id)
+        members = team.members.all()
+        members_data = [{
+            'id': member.id,
+            'full_name': member.get_full_name(),
+            'role': member.get_role_display()
+        } for member in members]
+        return JsonResponse(members_data, safe=False)
+    except Team.DoesNotExist:
+        return JsonResponse({'error': 'Team not found'}, status=404)
 

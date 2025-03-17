@@ -11,34 +11,36 @@
         <div class="col-md-8">
             <div class="card wizard-card">
                 <div class="card-header">
-                    <h4 class="mb-0">{{ current_step_name }}</h4>
+                    <h4 class="mb-0">Create New Company</h4>
+                    <p class="text-muted mb-0">Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}: {{ current_step_name }}</p>
                 </div>
                 <div class="card-body">
-                    <!-- Progress bar -->
-                    <div class="progress mb-4 wizard-steps-{{ wizard_steps_names|length }}">
-                        {% for step_name in wizard_steps_names %}
-                        <div class="progress-bar {% if forloop.counter0 <= wizard.steps.index %}active{% endif %}"
-                             role="progressbar"
-                             aria-valuemin="0"
-                             aria-valuemax="100"></div>
+                    <!-- Progress Bar -->
+                    <div class="progress mb-4">
+                        {% for i in wizard_steps_names %}
+                        <div class="progress-bar {% if forloop.counter0 <= wizard.steps.step0 %}active{% endif %}" role="progressbar" 
+                             data-step="{{ forloop.counter0 }}"
+                             aria-valuenow="{% widthratio forloop.counter0 wizard.steps.count 100 %}"
+                             aria-valuemin="0" aria-valuemax="100"></div>
                         {% endfor %}
                     </div>
 
-                    <!-- Step indicators -->
+                    <!-- Step Indicators -->
                     <div class="d-flex justify-content-between mb-4">
                         {% for step_name in wizard_steps_names %}
                         <div class="text-center">
-                            <div class="step-indicator {% if forloop.counter0 <= wizard.steps.index %}active{% endif %}">
+                            <div class="step-indicator {% if forloop.counter0 <= wizard.steps.step0 %}active{% endif %}">
                                 {{ forloop.counter }}
                             </div>
-                            <div class="step-name small mt-1 {% if forloop.counter0 == wizard.steps.index %}active{% endif %}">
-                                {{ step_name }}
-                            </div>
+                            <small class="step-name {% if forloop.counter0 <= wizard.steps.step0 %}active{% endif %} mt-2 d-block">{{ step_name }}</small>
                         </div>
+                        {% if not forloop.last %}
+                        <div class="step-line"></div>
+                        {% endif %}
                         {% endfor %}
                     </div>
 
-                    <form action="" method="post" class="needs-validation" novalidate>
+                    <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
                         {{ wizard.management_form }}
 
@@ -75,6 +77,22 @@
                                             </label>
                                         {% endfor %}
                                     </div>
+                                {% elif field.name == 'client_account_manager' %}
+                                    <!-- Custom input for client account manager -->
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="selected_manager_display" 
+                                               placeholder="Select a manager..." readonly
+                                               value="{% if field.value %}{{ field.value.get_full_name }}{% endif %}">
+                                        <button type="button" class="btn btn-primary" 
+                                                data-bs-toggle="modal" data-bs-target="#teamSelectionModal"
+                                                data-target-input="#id_{{ wizard.steps.current }}-client_account_manager"
+                                                data-target-display="#selected_manager_display">
+                                            <i class="fas fa-users"></i> Select Manager
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="{{ field.html_name }}" 
+                                           id="id_{{ wizard.steps.current }}-client_account_manager" 
+                                           value="{{ field.value.id|default:'' }}">
                                 {% else %}
                                     {{ field }}
                                 {% endif %}
@@ -122,8 +140,11 @@
         </div>
     </div>
 </div>
+
+{% include 'crm/includes/team_selection_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/wizard_form.js' %}"></script>
+<script src="{% static 'js/team_selection.js' %}"></script>
+<script src="{% static 'js/company_form.js' %}"></script>
 {% endblock %} 

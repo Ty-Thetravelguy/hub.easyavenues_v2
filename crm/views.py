@@ -10,6 +10,7 @@ from django.contrib import messages
 from django import forms
 from .forms import CompanyForm
 from django.contrib.auth import get_user_model
+from accounts.models import Team
 
 # Create your views here.
 
@@ -75,6 +76,7 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['title'] = f"Update {self.object.company_name}"
         context['submit_text'] = "Update Company"
+        context['teams'] = Team.objects.all()
         return context
 
     def form_valid(self, form):
@@ -241,10 +243,8 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
         return redirect('crm:company_detail', pk=company.pk)
 
     def get_context_data(self, form, **kwargs):
-        wizard_steps_names = ['Company Type', 'Basic Information', 'Additional Information']
-        step_indices = {'type': 0, 'basic': 1, 'profile': 2}
         context = super().get_context_data(form=form, **kwargs)
-        context['wizard_steps_names'] = wizard_steps_names
-        context['current_step_name'] = wizard_steps_names[step_indices[self.steps.current]]
+        context['wizard_steps_names'] = ['Company Type', 'Basic Information', 'Additional Information']
+        context['teams'] = Team.objects.all()
         return context
 
