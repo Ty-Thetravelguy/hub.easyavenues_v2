@@ -22,11 +22,11 @@ urlpatterns = [
     path('admin/teams/<int:team_id>/members/', views.admin_team_members, name='admin_team_members'),
     path('admin/teams/<int:team_id>/delete/', views.admin_team_delete, name='admin_team_delete'),
 
-    # Admin Invoice Remarks
-    path('admin/invoice-remarks/', views.admin_invoice_remark_list, name='admin_invoice_remark_list'),
-    path('admin/invoice-remarks/create/', views.admin_invoice_remark_create, name='admin_invoice_remark_create'),
-    path('admin/invoice-remarks/<int:remark_id>/edit/', views.admin_invoice_remark_edit, name='admin_invoice_remark_edit'),
-    path('admin/invoice-remarks/<int:remark_id>/delete/', views.admin_invoice_remark_delete, name='admin_invoice_remark_delete'),
+    # Admin Invoice References
+    path('admin/invoice-references/', views.admin_invoice_reference_list, name='admin_invoice_reference_list'),
+    path('admin/invoice-references/create/', views.admin_invoice_reference_create, name='admin_invoice_reference_create'),
+    path('admin/invoice-references/<int:reference_id>/edit/', views.admin_invoice_reference_edit, name='admin_invoice_reference_edit'),
+    path('admin/invoice-references/<int:reference_id>/delete/', views.admin_invoice_reference_delete, name='admin_invoice_reference_delete'),
 
     # API endpoints
     path('api/teams/<int:team_id>/members/', views.get_team_members, name='api_team_members'),

@@ -1,10 +1,10 @@
 # accounts/forms.py
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from allauth.account.forms import SignupForm
-from .models import CustomUser, BusinessDomain, Business, Team, InvoiceRemark
-from django.core.validators import RegexValidator
+from .models import CustomUser, BusinessDomain, Business, Team, InvoiceReference
+from django.core.validators import RegexValidator, validate_email
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
 import uuid
@@ -295,9 +295,9 @@ class TeamForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 3}),
         }
 
-class InvoiceRemarkForm(forms.ModelForm):
+class InvoiceReferenceForm(forms.ModelForm):
     class Meta:
-        model = InvoiceRemark
+        model = InvoiceReference
         fields = ['name', 'backoffice_code', 'amadeus_code']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),

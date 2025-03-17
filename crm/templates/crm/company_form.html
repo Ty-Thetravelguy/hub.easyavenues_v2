@@ -37,6 +37,37 @@
                                 </div>
                                 <input type="hidden" name="{{ field.name }}" id="id_{{ field.name }}" 
                                        value="{{ field.value.id|default:'' }}">
+                            {% elif field.name == 'invoice_reference_options' %}
+                                <div class="border rounded p-3">
+                                    <div class="row g-3">
+                                        {% for checkbox in field %}
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center">
+                                                <div class="form-check flex-grow-1">
+                                                    {{ checkbox.tag }}
+                                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                                        {{ checkbox.choice_label }}
+                                                    </label>
+                                                </div>
+                                                <div class="form-check ms-3">
+                                                    <input type="checkbox" 
+                                                           name="mandatory_references" 
+                                                           value="{{ checkbox.data.value }}"
+                                                           id="mandatory_{{ checkbox.id_for_label }}"
+                                                           class="form-check-input"
+                                                           {% if checkbox.data.value in form.mandatory_references.initial|default:"" %}checked{% endif %}
+                                                           >
+                                                    <label class="form-check-label" for="mandatory_{{ checkbox.id_for_label }}">
+                                                        Mandatory
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% elif field.name == 'mandatory_references' %}
+                                {# Hide this field as we handle it inline with invoice_reference_options #}
                             {% else %}
                                 {{ field }}
                             {% endif %}
@@ -72,38 +103,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/team_selection.js' %}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add Bootstrap validation classes to form fields
-    const forms = document.querySelectorAll('.needs-validation');
-    Array.from(forms).forEach(form => {
-        form.addEventListener('submit', event => {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            form.classList.add('was-validated');
-        }, false);
-    });
-
-    // Add Bootstrap classes to form fields
-    const formControls = document.querySelectorAll('input, select, textarea');
-    formControls.forEach(element => {
-        if (!element.classList.contains('form-check-input')) {
-            element.classList.add('form-control');
-        }
-    });
-
-    // Configure the select user button with the correct target elements
-    const selectUserBtn = document.getElementById('selectUserBtn');
-    const selectUserBtns = document.querySelectorAll('[data-bs-target="#teamSelectionModal"]');
-    
-    selectUserBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectUserBtn.dataset.targetInput = btn.dataset.targetInput;
-            selectUserBtn.dataset.targetDisplay = btn.dataset.targetDisplay;
-        });
-    });
-});
-</script>
+<script src="{% static 'js/company_form.js' %}"></script>
 {% endblock %} 

@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Add Bootstrap classes to form fields
-    const formControls = document.querySelectorAll('input:not(.btn-check), select, textarea');
+    const formControls = document.querySelectorAll('input:not([type="checkbox"]), select, textarea');
     formControls.forEach(element => {
         if (!element.classList.contains('form-check-input')) {
             element.classList.add('form-control');
@@ -66,12 +66,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Configure the select user button with the correct target elements
     const selectUserBtn = document.getElementById('selectUserBtn');
-    const selectManagerBtn = document.querySelector('[data-bs-target="#teamSelectionModal"]');
+    const selectUserBtns = document.querySelectorAll('[data-bs-target="#teamSelectionModal"]');
     
-    if (selectManagerBtn) {
-        selectManagerBtn.addEventListener('click', () => {
-            selectUserBtn.dataset.targetInput = selectManagerBtn.dataset.targetInput;
-            selectUserBtn.dataset.targetDisplay = selectManagerBtn.dataset.targetDisplay;
+    selectUserBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectUserBtn.dataset.targetInput = btn.dataset.targetInput;
+            selectUserBtn.dataset.targetDisplay = btn.dataset.targetDisplay;
         });
-    }
+    });
+
+    // Handle invoice reference selection
+    const referenceCheckboxes = document.querySelectorAll('input[name="invoice_reference_options"]');
+    referenceCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const mandatoryCheckbox = document.getElementById('mandatory_' + this.id);
+            if (mandatoryCheckbox) {
+                mandatoryCheckbox.disabled = !this.checked;
+                if (!this.checked) {
+                    mandatoryCheckbox.checked = false;
+                }
+            }
+        });
+    });
+
+    // Initialize mandatory checkboxes state
+    referenceCheckboxes.forEach(checkbox => {
+        const mandatoryCheckbox = document.getElementById('mandatory_' + checkbox.id);
+        if (mandatoryCheckbox) {
+            mandatoryCheckbox.disabled = !checkbox.checked;
+        }
+    });
 }); 

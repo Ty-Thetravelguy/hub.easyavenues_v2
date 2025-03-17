@@ -141,6 +141,22 @@ class Company(models.Model):
             self.last_activity_date = timezone.now()
         super().save(*args, **kwargs)
 
+class ClientInvoiceReference(models.Model):
+    """
+    Through model for client invoice references to store whether each reference is mandatory or optional.
+    """
+    client_profile = models.ForeignKey('ClientProfile', on_delete=models.CASCADE)
+    invoice_reference = models.ForeignKey('accounts.InvoiceReference', on_delete=models.CASCADE)
+    is_mandatory = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['client_profile', 'invoice_reference']
+
+    def __str__(self):
+        return f"{self.invoice_reference.name} for {self.client_profile.company.company_name}"
+
 class ClientProfile(models.Model):
     """
     Extended profile for companies that are clients.
@@ -152,7 +168,12 @@ class ClientProfile(models.Model):
     sage_name = models.CharField(max_length=255, blank=True, null=True)
     midoco_crm_number = models.CharField(max_length=255, blank=True, null=True)
     invoice_references = models.TextField(blank=True)
-    invoice_remarks = models.ManyToManyField('accounts.InvoiceRemark', related_name='clients', blank=True)
+    invoice_reference_options = models.ManyToManyField(
+        'accounts.InvoiceReference',
+        through='ClientInvoiceReference',
+        related_name='clients',
+        blank=True
+    )
     invoicing_type = models.CharField(max_length=100, blank=True, null=True)
     invoicing_frequency = models.CharField(max_length=100, blank=True, null=True)
     payment_terms = models.CharField(max_length=100, blank=True, null=True)

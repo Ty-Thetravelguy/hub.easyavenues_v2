@@ -1,6 +1,6 @@
 from django import forms
 from django.db import models
-from .models import Company, Contact, ClientProfile, SupplierProfile, TransactionFee, INDUSTRY_CHOICES
+from .models import Company, Contact, ClientProfile, SupplierProfile, TransactionFee, INDUSTRY_CHOICES, ClientInvoiceReference
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -15,6 +15,25 @@ class CompanyForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     
+    invoice_reference_options = forms.ModelMultipleChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'form-check-input me-2'
+        }),
+        label='Invoice References'
+    )
+
+    # Add a field for mandatory references
+    mandatory_references = forms.ModelMultipleChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'form-check-input me-2'
+        }),
+        label='Mark as Mandatory'
+    )
+    
     class Meta:
         model = Company
         fields = [
@@ -27,6 +46,19 @@ class CompanyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         instance = kwargs.get('instance')
         
+        # Set up invoice references queryset
+        from accounts.models import InvoiceReference
+        self.fields['invoice_reference_options'].queryset = InvoiceReference.objects.all()
+        self.fields['mandatory_references'].queryset = InvoiceReference.objects.all()
+        
+        # If we have an instance and it's a client, set initial values
+        if instance and instance.company_type == 'Client' and hasattr(instance, 'client_profile'):
+            client_profile = instance.client_profile
+            self.fields['invoice_reference_options'].initial = client_profile.invoice_reference_options.all()
+            self.fields['mandatory_references'].initial = client_profile.invoice_reference_options.filter(
+                clientinvoicereference__is_mandatory=True
+            )
+
         # Add Bootstrap classes to all fields
         for field in self.fields:
             if not isinstance(self.fields[field].widget, (forms.CheckboxInput, forms.RadioSelect)):
@@ -49,8 +81,8 @@ class CompanyForm(forms.ModelForm):
         """Get list of client-specific field names."""
         return [
             'client_type', 'client_status', 'sage_name', 'midoco_crm_number',
-            'invoice_references', 'invoicing_type', 'invoicing_frequency',
-            'payment_terms', 'client_account_manager', 'client_ops_team',
+            'invoicing_type', 'invoicing_frequency', 'payment_terms', 
+            'client_account_manager', 'client_ops_team', 'invoice_reference_options',
             'corporate_hotel_rates', 'corporate_airline_fares', 'company_memberships',
             'has_new_contract_signed', 'signed_up_corporate_schemes',
             'signed_up_travelogix', 'meetings_events_requirements',
@@ -82,8 +114,13 @@ class CompanyForm(forms.ModelForm):
                         queryset=User.objects.all(),
                         required=False,
                         initial=getattr(client_profile, field_name) if client_profile else None,
-                        widget=forms.HiddenInput()
+                        widget=forms.Select(attrs={'class': 'form-control'}),
+                        label='Account Manager'
                     )
+                elif field_name == 'invoice_reference_options':
+                    # This field is already set up in __init__
+                    if client_profile:
+                        self.initial[field_name] = client_profile.invoice_reference_options.all()
                 elif isinstance(field, models.BooleanField):
                     self.fields[field_name] = forms.BooleanField(
                         required=False,
@@ -157,11 +194,22 @@ class CompanyForm(forms.ModelForm):
                 client_profile, created = ClientProfile.objects.get_or_create(company=company)
                 for field_name in self.get_client_field_names():
                     if field_name in self.cleaned_data:
-                        # Special handling for client_account_manager field
                         if field_name == 'client_account_manager':
-                            user = self.cleaned_data[field_name]  # Already a CustomUser instance
+                            user = self.cleaned_data[field_name]
                             if user:
                                 setattr(client_profile, field_name, user)
+                        elif field_name == 'invoice_reference_options':
+                            # Clear existing references
+                            ClientInvoiceReference.objects.filter(client_profile=client_profile).delete()
+                            # Add new references with mandatory status
+                            selected_references = self.cleaned_data['invoice_reference_options']
+                            mandatory_references = self.cleaned_data.get('mandatory_references', [])
+                            for ref in selected_references:
+                                ClientInvoiceReference.objects.create(
+                                    client_profile=client_profile,
+                                    invoice_reference=ref,
+                                    is_mandatory=ref in mandatory_references
+                                )
                         else:
                             setattr(client_profile, field_name, self.cleaned_data[field_name])
                 client_profile.save()
@@ -169,9 +217,8 @@ class CompanyForm(forms.ModelForm):
                 supplier_profile, created = SupplierProfile.objects.get_or_create(company=company)
                 for field_name in self.get_supplier_field_names():
                     if field_name in self.cleaned_data:
-                        # Special handling for supplier_owner field
                         if field_name == 'supplier_owner':
-                            user = self.cleaned_data[field_name]  # Already a CustomUser instance
+                            user = self.cleaned_data[field_name]
                             if user:
                                 setattr(supplier_profile, field_name, user)
                         else:

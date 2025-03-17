@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Business, BusinessDomain
+from .models import CustomUser, Business, BusinessDomain, Team, InvoiceReference
 from users.models import RecentlyViewed, PageBookmark
 
 class BusinessDomainInline(admin.TabularInline):
@@ -32,8 +32,19 @@ class BusinessDomainAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('email', 'first_name', 'last_name', 'is_staff', 'is_active', 'role')
-    list_filter = ('is_staff', 'is_active', 'role')
+    list_display = ('email', 'first_name', 'last_name', 'role', 'business', 'is_active')
+    list_filter = ('role', 'business', 'is_active')
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'role', 'business')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'role', 'business'),
+        }),
+    )
     search_fields = ('email', 'first_name', 'last_name')
     ordering = ('email',)
     
@@ -71,21 +82,14 @@ class CustomUserAdmin(UserAdmin):
         
         return filtered_deleted, model_count, perms_needed, protected
 
-    fieldsets = (
-        (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'business', 'role')}),
-        ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-        }),
-        ('Important dates', {'fields': ('last_login', 'date_joined')}),
-    )
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'business', 'role'),
-        }),
-    )
+class TeamAdmin(admin.ModelAdmin):
+    list_display = ('name', 'created_at', 'updated_at')
+    filter_horizontal = ('members',)
+    search_fields = ('name', 'description')
 
-    # These are the fields used for searching in admin
-    search_fields = ('email', 'first_name', 'last_name')
-    ordering = ('email',)
+class InvoiceReferenceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'backoffice_code', 'amadeus_code')
+    search_fields = ('name', 'backoffice_code', 'amadeus_code')
+
+admin.site.register(Team, TeamAdmin)
+admin.site.register(InvoiceReference, InvoiceReferenceAdmin)

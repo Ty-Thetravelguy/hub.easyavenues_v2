@@ -1,0 +1,62 @@
+<!-- Invoice Remarks Selection Modal -->
+<div class="modal fade" id="invoiceRemarksModal" tabindex="-1" aria-labelledby="invoiceRemarksModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="invoiceRemarksModalLabel">Select Invoice Remarks</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Remark</th>
+                                <th>Type</th>
+                                <th>Backoffice Code</th>
+                                <th>Amadeus Code</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for remark in invoice_remarks %}
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input type="checkbox" 
+                                               class="form-check-input remark-checkbox" 
+                                               id="remark_{{ remark.id }}"
+                                               value="{{ remark.id }}"
+                                               {% if remark in selected_remarks %}checked{% endif %}>
+                                    </div>
+                                </td>
+                                <td>{{ remark.name }}</td>
+                                <td>
+                                    <select class="form-select remark-type" 
+                                            id="type_{{ remark.id }}"
+                                            {% if remark not in selected_remarks %}disabled{% endif %}>
+                                        <option value="optional" {% if remark in selected_remarks and not remark.clientinvoiceremark_set.get.is_mandatory %}selected{% endif %}>Optional</option>
+                                        <option value="mandatory" {% if remark in selected_remarks and remark.clientinvoiceremark_set.get.is_mandatory %}selected{% endif %}>Mandatory</option>
+                                    </select>
+                                </td>
+                                <td>{{ remark.backoffice_code }}</td>
+                                <td>{{ remark.amadeus_code }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveInvoiceRemarks">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for submitting selected remarks -->
+<form id="invoiceRemarksForm" method="post" action="{% url 'crm:update_invoice_remarks' company.id %}">
+    {% csrf_token %}
+    <input type="hidden" name="selected_remarks" id="selectedRemarksInput">
+</form> 

@@ -206,7 +206,17 @@
                                         </div>
                                         <div class="mb-3">
                                             <label class="text-muted d-block">Invoice References</label>
-                                            <span class="fs-6">{{ company.client_profile.invoice_references|default:"Not set" }}</span>
+                                            {% if company.client_profile.invoice_reference_options.exists %}
+                                            <div class="mt-2">
+                                                {% for reference in company.client_profile.invoice_reference_options.all %}
+                                                <div class="badge bg-primary me-1">
+                                                    {{ reference.name }}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% else %}
+                                            <span class="text-muted">No references set</span>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     {% endif %}
@@ -528,28 +538,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Bootstrap tabs
-    var triggerTabList = [].slice.call(document.querySelectorAll('#companyTabs a'))
-    triggerTabList.forEach(function(triggerEl) {
-        var tabTrigger = new bootstrap.Tab(triggerEl)
-        triggerEl.addEventListener('click', function(event) {
-            event.preventDefault()
-            tabTrigger.show()
-        })
-    })
+{{ block.super }}
+<script src="{% static 'js/invoice_remarks.js' %}"></script>
+{% endblock %}
 
-    // Keep tab active after page reload
-    var hash = window.location.hash;
-    if (hash) {
-        $('#companyTabs a[href="' + hash + '"]').tab('show');
-    }
-
-    // Update URL hash when tab changes
-    $('#companyTabs a').on('shown.bs.tab', function(e) {
-        window.location.hash = e.target.hash;
-    });
-});
-</script>
-{% endblock %} 
+{% include 'crm/includes/invoice_remarks_modal.html' %} 

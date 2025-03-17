@@ -1,15 +1,17 @@
 # accounts/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.urls import reverse
-from .forms import CustomSignupForm, AdminUserCreationForm, EditUserForm, TeamForm, InvoiceRemarkForm
+from django.urls import reverse, reverse_lazy
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .forms import CustomSignupForm, AdminUserCreationForm, EditUserForm, TeamForm, InvoiceReferenceForm
 from django.contrib.auth import get_user_model
 from allauth.account.models import EmailAddress
 from django.http import HttpResponseForbidden, JsonResponse
-from .models import Team, InvoiceRemark
+from .models import Team, InvoiceReference
 
 User = get_user_model()
 
@@ -276,64 +278,64 @@ def admin_team_delete(request, team_id):
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
-def admin_invoice_remark_list(request):
-    invoice_remarks = InvoiceRemark.objects.all()
-    return render(request, 'accounts/admin/invoice_remark_list.html', {
-        'invoice_remarks': invoice_remarks,
-        'active_tab': 'invoice_remarks',
-        'title': 'Invoice Remarks'
+def admin_invoice_reference_list(request):
+    invoice_references = InvoiceReference.objects.all()
+    return render(request, 'accounts/admin/invoice_reference_list.html', {
+        'invoice_references': invoice_references,
+        'active_tab': 'invoice_references',
+        'title': 'Invoice References'
     })
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
-def admin_invoice_remark_create(request):
+def admin_invoice_reference_create(request):
     if request.method == 'POST':
-        form = InvoiceRemarkForm(request.POST)
+        form = InvoiceReferenceForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Invoice remark created successfully.')
-            return redirect('accounts:admin_invoice_remark_list')
+            messages.success(request, 'Invoice reference created successfully.')
+            return redirect('accounts:admin_invoice_reference_list')
     else:
-        form = InvoiceRemarkForm()
+        form = InvoiceReferenceForm()
 
-    return render(request, 'accounts/admin/invoice_remark_form.html', {
+    return render(request, 'accounts/admin/invoice_reference_form.html', {
         'form': form,
-        'active_tab': 'invoice_remarks',
-        'title': 'Create Invoice Remark'
+        'active_tab': 'invoice_references',
+        'title': 'Create Invoice Reference'
     })
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
-def admin_invoice_remark_edit(request, remark_id):
-    invoice_remark = get_object_or_404(InvoiceRemark, id=remark_id)
+def admin_invoice_reference_edit(request, reference_id):
+    invoice_reference = get_object_or_404(InvoiceReference, id=reference_id)
     
     if request.method == 'POST':
-        form = InvoiceRemarkForm(request.POST, instance=invoice_remark)
+        form = InvoiceReferenceForm(request.POST, instance=invoice_reference)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Invoice remark updated successfully.')
-            return redirect('accounts:admin_invoice_remark_list')
+            messages.success(request, 'Invoice reference updated successfully.')
+            return redirect('accounts:admin_invoice_reference_list')
     else:
-        form = InvoiceRemarkForm(instance=invoice_remark)
+        form = InvoiceReferenceForm(instance=invoice_reference)
 
-    return render(request, 'accounts/admin/invoice_remark_form.html', {
+    return render(request, 'accounts/admin/invoice_reference_form.html', {
         'form': form,
-        'invoice_remark': invoice_remark,
-        'active_tab': 'invoice_remarks',
-        'title': 'Edit Invoice Remark'
+        'invoice_reference': invoice_reference,
+        'active_tab': 'invoice_references',
+        'title': 'Edit Invoice Reference'
     })
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
-def admin_invoice_remark_delete(request, remark_id):
-    remark = get_object_or_404(InvoiceRemark, id=remark_id)
+def admin_invoice_reference_delete(request, reference_id):
+    reference = get_object_or_404(InvoiceReference, id=reference_id)
     
     if request.method == 'POST':
-        remark.delete()
-        messages.success(request, f'Invoice remark "{remark.name}" has been deleted.')
-        return redirect('accounts:admin_invoice_remark_list')
+        reference.delete()
+        messages.success(request, f'Invoice reference "{reference.name}" has been deleted.')
+        return redirect('accounts:admin_invoice_reference_list')
     
-    return redirect('accounts:admin_invoice_remark_list')
+    return redirect('accounts:admin_invoice_reference_list')
 
 @login_required
 def get_team_members(request, team_id):

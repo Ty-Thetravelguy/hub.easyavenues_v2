@@ -1,8 +1,10 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES
+from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference
+from accounts.models import InvoiceReference
 from django.urls import reverse_lazy
 from formtools.wizard.views import SessionWizardView
 from django.shortcuts import redirect
@@ -11,6 +13,8 @@ from django import forms
 from .forms import CompanyForm
 from django.contrib.auth import get_user_model
 from accounts.models import Team
+import json
+from django.http import JsonResponse
 
 # Create your views here.
 
@@ -247,4 +251,64 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
         context['wizard_steps_names'] = ['Company Type', 'Basic Information', 'Additional Information']
         context['teams'] = Team.objects.all()
         return context
+
+@login_required
+def update_invoice_references(request, company_id):
+    """Update invoice references for a company."""
+    company = get_object_or_404(Company, id=company_id)
+    
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.POST.get('selected_references', '[]'))
+            client_profile = company.client_profile
+            
+            # Clear existing references
+            client_profile.invoice_reference_options.clear()
+            
+            # Add new references
+            for ref_data in data:
+                reference = InvoiceReference.objects.get(id=ref_data['id'])
+                ClientInvoiceReference.objects.create(
+                    client_profile=client_profile,
+                    invoice_reference=reference,
+                    is_mandatory=ref_data['is_mandatory']
+                )
+            
+            messages.success(request, 'Invoice references updated successfully.')
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            messages.error(request, f'Error updating invoice references: {str(e)}')
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def company_detail(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+    contacts = company.contacts.all()
+    activities = company.activities.all()
+    documents = company.documents.all()
+    
+    # Get all available invoice references and mark which ones are selected
+    all_references = InvoiceReference.objects.all()
+    selected_references = []
+    if hasattr(company, 'client_profile'):
+        selected_references = [
+            {
+                'id': ref.id,
+                'is_mandatory': ref.clientinvoicereference_set.get(client_profile=company.client_profile).is_mandatory
+            }
+            for ref in company.client_profile.invoice_reference_options.all()
+        ]
+    
+    context = {
+        'company': company,
+        'contacts': contacts,
+        'activities': activities,
+        'documents': documents,
+        'all_references': all_references,
+        'selected_references': selected_references,
+    }
+    
+    return render(request, 'crm/company_detail.html', context)
 

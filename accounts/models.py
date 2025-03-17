@@ -94,8 +94,8 @@ class Team(models.Model):
     class Meta:
         ordering = ['name'] 
 
-class InvoiceRemark(models.Model):
-    name = models.CharField(max_length=255, help_text="Display name of the invoice remark")
+class InvoiceReference(models.Model):
+    name = models.CharField(max_length=255, help_text="Display name of the invoice reference")
     backoffice_code = models.CharField(max_length=50, help_text="Code used in the backoffice system")
     amadeus_code = models.CharField(max_length=50, help_text="Code used in Amadeus")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -106,5 +106,5 @@ class InvoiceRemark(models.Model):
 
     class Meta:
         ordering = ['name']
-        verbose_name = 'Invoice Remark'
-        verbose_name_plural = 'Invoice Remarks' 
+        verbose_name = 'Invoice Reference'
+        verbose_name_plural = 'Invoice References' 
