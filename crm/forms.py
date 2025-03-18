@@ -42,19 +42,28 @@ class CompanyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         instance = kwargs.get('instance')
         
-        # Set up invoice references queryset
+        # Set up invoice references queryset - only for clients
         from accounts.models import InvoiceReference
-        self.fields['invoice_references'].queryset = InvoiceReference.objects.all()
-        self.fields['mandatory_references'].queryset = InvoiceReference.objects.all()
+        if not instance or instance.company_type == 'Client':
+            self.fields['invoice_references'].queryset = InvoiceReference.objects.all()
+            self.fields['mandatory_references'].queryset = InvoiceReference.objects.all()
+        else:
+            # Remove invoice reference fields for suppliers
+            if 'invoice_references' in self.fields:
+                del self.fields['invoice_references']
+            if 'mandatory_references' in self.fields:
+                del self.fields['mandatory_references']
         
         # If we have an instance and it's a client, set initial values
         if instance and instance.company_type == 'Client' and hasattr(instance, 'client_profile'):
             client_profile = instance.client_profile
             # Set initial values for invoice references
-            self.fields['invoice_references'].initial = client_profile.invoice_reference_options.all()
-            self.fields['mandatory_references'].initial = client_profile.invoice_reference_options.filter(
-                clientinvoicereference__is_mandatory=True
-            )
+            if 'invoice_references' in self.fields:
+                self.fields['invoice_references'].initial = client_profile.invoice_reference_options.all()
+            if 'mandatory_references' in self.fields:
+                self.fields['mandatory_references'].initial = client_profile.invoice_reference_options.filter(
+                    clientinvoicereference__is_mandatory=True
+                )
 
         # Add Bootstrap classes to all fields
         for field in self.fields:
@@ -189,6 +198,11 @@ class CompanyForm(forms.ModelForm):
             if company.company_type == 'Client':
                 client_profile, created = ClientProfile.objects.get_or_create(company=company)
                 
+                # Update all client profile fields from cleaned_data
+                for field_name in self.get_client_field_names():
+                    if field_name in self.cleaned_data and hasattr(client_profile, field_name):
+                        setattr(client_profile, field_name, self.cleaned_data[field_name])
+                
                 # Handle invoice references
                 selected_references = self.cleaned_data.get('invoice_references', [])
                 mandatory_references = self.cleaned_data.get('mandatory_references', [])
@@ -205,6 +219,15 @@ class CompanyForm(forms.ModelForm):
                     )
                 
                 client_profile.save()
+            elif company.company_type == 'Supplier':
+                supplier_profile, created = SupplierProfile.objects.get_or_create(company=company)
+                
+                # Update all supplier profile fields from cleaned_data
+                for field_name in self.get_supplier_field_names():
+                    if field_name in self.cleaned_data and hasattr(supplier_profile, field_name):
+                        setattr(supplier_profile, field_name, self.cleaned_data[field_name])
+                
+                supplier_profile.save()
             
         return company
 

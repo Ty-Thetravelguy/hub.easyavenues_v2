@@ -82,22 +82,24 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
         context['submit_text'] = "Update Company"
         context['teams'] = Team.objects.all()
         
-        # Add invoice reference data for the modal
-        all_references = InvoiceReference.objects.all()
-        selected_references_ids = []
-        mandatory_references_ids = []
-        
-        if hasattr(self.object, 'client_profile'):
-            for ref in self.object.client_profile.invoice_reference_options.all():
-                selected_references_ids.append(ref.id)
-                if ref.clientinvoicereference_set.get(client_profile=self.object.client_profile).is_mandatory:
-                    mandatory_references_ids.append(ref.id)
-        
-        context.update({
-            'all_references': all_references,
-            'selected_references_ids': selected_references_ids,
-            'mandatory_references_ids': mandatory_references_ids,
-        })
+        # Only add invoice reference data for clients
+        if self.object.company_type == 'Client':
+            # Add invoice reference data for the modal
+            all_references = InvoiceReference.objects.all()
+            selected_references_ids = []
+            mandatory_references_ids = []
+            
+            if hasattr(self.object, 'client_profile'):
+                for ref in self.object.client_profile.invoice_reference_options.all():
+                    selected_references_ids.append(ref.id)
+                    if ref.clientinvoicereference_set.get(client_profile=self.object.client_profile).is_mandatory:
+                        mandatory_references_ids.append(ref.id)
+            
+            context.update({
+                'all_references': all_references,
+                'selected_references_ids': selected_references_ids,
+                'mandatory_references_ids': mandatory_references_ids,
+            })
         
         return context
 
@@ -201,7 +203,18 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
                     # Finance/Invoice Information
                     'sage_name': forms.CharField(max_length=255, required=False, label='Sage Name'),
                     'midoco_crm_number': forms.CharField(max_length=255, required=False, label='Midoco CRM Number'),
-                    'invoice_references': forms.CharField(widget=forms.Textarea, required=False, label='Invoice References'),
+                    'invoice_reference_options': forms.ModelMultipleChoiceField(
+                        queryset=InvoiceReference.objects.all(),
+                        required=False,
+                        widget=forms.MultipleHiddenInput(),
+                        label='Invoice References'
+                    ),
+                    'mandatory_references': forms.ModelMultipleChoiceField(
+                        queryset=InvoiceReference.objects.all(),
+                        required=False,
+                        widget=forms.MultipleHiddenInput(),
+                        label='Mandatory References'
+                    ),
                     'invoicing_type': forms.CharField(max_length=100, required=False, label='Invoicing Type'),
                     'invoicing_frequency': forms.CharField(max_length=100, required=False, label='Invoicing Frequency'),
                     'payment_terms': forms.CharField(max_length=100, required=False, label='Payment Terms'),
@@ -231,6 +244,16 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
                     'supplier_type': forms.ChoiceField(choices=SUPPLIER_TYPE_CHOICES),
                     'supplier_status': forms.ChoiceField(choices=SUPPLIER_STATUS_CHOICES),
                     'supplier_for_department': forms.ChoiceField(choices=SUPPLIER_FOR_DEPARTMENT_CHOICES),
+                    'supplier_owner': forms.ModelChoiceField(
+                        queryset=get_user_model().objects.all(),
+                        required=False,
+                        label='Supplier Owner'
+                    ),
+                    'invoicing_type': forms.CharField(max_length=100, required=False, label='Invoicing Type'),
+                    'invoicing_frequency': forms.CharField(max_length=100, required=False, label='Invoicing Frequency'),
+                    'payment_terms': forms.CharField(max_length=100, required=False, label='Payment Terms'),
+                    'new_supplier_form_signed': forms.BooleanField(required=False, label='New Supplier Form Signed'),
+                    'contract_signed': forms.BooleanField(required=False, label='Contract Signed')
                 })
 
         # Add Bootstrap classes to all fields
@@ -269,25 +292,33 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
         context['wizard_steps_names'] = ['Company Type', 'Basic Information', 'Additional Information']
         context['teams'] = Team.objects.all()
         
-        # Add invoice reference data to context if we're on the profile step
+        # Add invoice reference data to context if we're on the profile step for a client
         if self.steps.current == 'profile':
-            all_references = InvoiceReference.objects.all()
-            selected_references_ids = []
-            mandatory_references_ids = []
+            # Get company type from previous step
+            company_type = self.get_cleaned_data_for_step('type')['company_type']
             
-            # Get cleaned data from previous steps
-            step_data = self.get_cleaned_data_for_step('profile')
-            if step_data:
-                for ref in step_data.get('invoice_reference_options', []):
-                    selected_references_ids.append(ref.id)
-                    if ref in step_data.get('mandatory_references', []):
-                        mandatory_references_ids.append(ref.id)
-            
-            context.update({
-                'all_references': all_references,
-                'selected_references_ids': selected_references_ids,
-                'mandatory_references_ids': mandatory_references_ids,
-            })
+            # Only add reference data for client profiles
+            if company_type == 'Client':
+                all_references = InvoiceReference.objects.all()
+                selected_references_ids = []
+                mandatory_references_ids = []
+                
+                # Get cleaned data from current step if it exists
+                step_data = self.get_cleaned_data_for_step('profile')
+                if step_data:
+                    for ref in step_data.get('invoice_reference_options', []):
+                        selected_references_ids.append(ref.id)
+                        if ref in step_data.get('mandatory_references', []):
+                            mandatory_references_ids.append(ref.id)
+                
+                context.update({
+                    'all_references': all_references,
+                    'selected_references_ids': selected_references_ids,
+                    'mandatory_references_ids': mandatory_references_ids,
+                    'current_step_name': 'Client Profile' if company_type == 'Client' else 'Supplier Profile'
+                })
+            else:
+                context['current_step_name'] = 'Supplier Profile'
         
         return context
 

@@ -209,14 +209,18 @@
                                             {% if company.client_profile.invoice_reference_options.exists %}
                                             <div class="mt-2">
                                                 {% for reference in company.client_profile.invoice_reference_options.all %}
-                                                {% with client_ref=reference.clientinvoicereference_set.get %}
-                                                <div class="badge bg-primary me-2 mb-2 p-2">
+                                                <div class="badge bg-primary me-1 mb-1">
                                                     {{ reference.name }}
-                                                    <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-2">
-                                                        {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
-                                                    </span>
+                                                    {% with client_refs=reference.clientinvoicereference_set.all %}
+                                                        {% for client_ref in client_refs %}
+                                                            {% if client_ref.client_profile == company.client_profile %}
+                                                                <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-1">
+                                                                    {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
+                                                                </span>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% endwith %}
                                                 </div>
-                                                {% endwith %}
                                                 {% endfor %}
                                             </div>
                                             {% else %}

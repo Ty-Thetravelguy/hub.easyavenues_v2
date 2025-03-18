@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('invoiceReferenceModal');
+    
+    // Only proceed if the modal exists (should only be for client forms)
+    if (!modal) return;
+    
     const form = document.getElementById('invoiceReferencesForm');
     const saveButton = document.getElementById('saveInvoiceReferences');
     const displayContainer = document.getElementById('selectedReferencesDisplay');

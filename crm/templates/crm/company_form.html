@@ -61,6 +61,7 @@
                                 <input type="hidden" name="{{ field.name }}" id="id_{{ field.name }}" 
                                        value="{% if object %}{% if field.name == 'client_account_manager' %}{{ object.client_profile.client_account_manager.id }}{% else %}{{ object.supplier_profile.supplier_owner.id }}{% endif %}{% endif %}">
                             {% elif field.name == 'invoice_references' %}
+                                {% if object and object.company_type == 'Client' %}
                                 <div class="border rounded p-3">
                                     <button type="button" class="btn btn-outline-primary mb-3" data-bs-toggle="modal" data-bs-target="#invoiceReferenceModal">
                                         <i class="fas fa-list"></i> Select Invoice References
@@ -70,10 +71,14 @@
                                             {% for reference in object.client_profile.invoice_reference_options.all %}
                                                 <div class="badge bg-primary me-1 mb-1">
                                                     {{ reference.name }}
-                                                    {% with client_ref=reference.clientinvoicereference_set.get %}
-                                                        <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-1">
-                                                            {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
-                                                        </span>
+                                                    {% with client_refs=reference.clientinvoicereference_set.all %}
+                                                        {% for client_ref in client_refs %}
+                                                            {% if client_ref.client_profile == object.client_profile %}
+                                                                <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-1">
+                                                                    {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
+                                                                </span>
+                                                            {% endif %}
+                                                        {% endfor %}
                                                     {% endwith %}
                                                 </div>
                                             {% endfor %}
@@ -81,6 +86,9 @@
                                     </div>
                                     {{ field }}  {# This will be hidden #}
                                 </div>
+                                {% else %}
+                                    {{ field }}  {# This will be hidden #}
+                                {% endif %}
                             {% elif field.name == 'mandatory_references' %}
                                 {{ field }}  {# This will be hidden #}
                             {% else %}
