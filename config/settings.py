@@ -25,6 +25,11 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host.strip()]
 ALLOWED_DOMAINS = os.getenv("ALLOWED_DOMAINS", "").split(",")
 
+
+# HubSpot API Configuration
+HUBSPOT_ACCESS_TOKEN = os.environ.get('HUBSPOT_API_KEY', '')  # Get from environment variable
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -245,5 +250,3 @@ LOGGING = {
     },
 }
 
-# HubSpot API Configuration
-HUBSPOT_API_KEY = os.environ.get('HUBSPOT_API_KEY', '')  # Get from environment variable

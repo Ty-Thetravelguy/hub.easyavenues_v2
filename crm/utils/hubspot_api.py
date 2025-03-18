@@ -17,10 +17,10 @@ def get_hubspot_headers():
     """
     Get headers for HubSpot API requests using the API key.
     """
-    api_key = settings.HUBSPOT_API_KEY
+    api_key = settings.HUBSPOT_ACCESS_TOKEN
     
     if not api_key:
-        logger.error("HubSpot API key is not configured. Please set HUBSPOT_API_KEY in your environment.")
+        logger.error("HubSpot API key is not configured. Please set HUBSPOT_ACCESS_TOKEN in your environment.")
         return None
         
     return {
