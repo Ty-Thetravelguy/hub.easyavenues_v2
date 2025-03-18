@@ -27,7 +27,7 @@ ALLOWED_DOMAINS = os.getenv("ALLOWED_DOMAINS", "").split(",")
 
 
 # HubSpot API Configuration
-HUBSPOT_ACCESS_TOKEN = os.environ.get('HUBSPOT_API_KEY', '')  # Get from environment variable
+HUBSPOT_API_KEY = os.environ.get('HUBSPOT_API_KEY', '')  # Get from environment variable
 
 
 # Application definition
