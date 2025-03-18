@@ -15,23 +15,19 @@ class CompanyForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     
-    invoice_reference_options = forms.ModelMultipleChoiceField(
+    # Invoice reference fields - hidden fields that will be populated by the modal
+    invoice_references = forms.ModelMultipleChoiceField(
         queryset=None,
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={
-            'class': 'form-check-input me-2'
-        }),
+        widget=forms.MultipleHiddenInput(),
         label='Invoice References'
     )
-
-    # Add a field for mandatory references
+    
     mandatory_references = forms.ModelMultipleChoiceField(
         queryset=None,
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={
-            'class': 'form-check-input me-2'
-        }),
-        label='Mark as Mandatory'
+        widget=forms.MultipleHiddenInput(),
+        label='Mandatory References'
     )
     
     class Meta:
@@ -48,20 +44,21 @@ class CompanyForm(forms.ModelForm):
         
         # Set up invoice references queryset
         from accounts.models import InvoiceReference
-        self.fields['invoice_reference_options'].queryset = InvoiceReference.objects.all()
+        self.fields['invoice_references'].queryset = InvoiceReference.objects.all()
         self.fields['mandatory_references'].queryset = InvoiceReference.objects.all()
         
         # If we have an instance and it's a client, set initial values
         if instance and instance.company_type == 'Client' and hasattr(instance, 'client_profile'):
             client_profile = instance.client_profile
-            self.fields['invoice_reference_options'].initial = client_profile.invoice_reference_options.all()
+            # Set initial values for invoice references
+            self.fields['invoice_references'].initial = client_profile.invoice_reference_options.all()
             self.fields['mandatory_references'].initial = client_profile.invoice_reference_options.filter(
                 clientinvoicereference__is_mandatory=True
             )
 
         # Add Bootstrap classes to all fields
         for field in self.fields:
-            if not isinstance(self.fields[field].widget, (forms.CheckboxInput, forms.RadioSelect)):
+            if not isinstance(self.fields[field].widget, (forms.HiddenInput, forms.MultipleHiddenInput)):
                 self.fields[field].widget.attrs.update({'class': 'form-control'})
 
         # Add client-specific fields if company_type is Client
@@ -189,43 +186,40 @@ class CompanyForm(forms.ModelForm):
         if commit:
             company.save()
             
-            # Create or update profile based on company type
             if company.company_type == 'Client':
                 client_profile, created = ClientProfile.objects.get_or_create(company=company)
-                for field_name in self.get_client_field_names():
-                    if field_name in self.cleaned_data:
-                        if field_name == 'client_account_manager':
-                            user = self.cleaned_data[field_name]
-                            if user:
-                                setattr(client_profile, field_name, user)
-                        elif field_name == 'invoice_reference_options':
-                            # Clear existing references
-                            ClientInvoiceReference.objects.filter(client_profile=client_profile).delete()
-                            # Add new references with mandatory status
-                            selected_references = self.cleaned_data['invoice_reference_options']
-                            mandatory_references = self.cleaned_data.get('mandatory_references', [])
-                            for ref in selected_references:
-                                ClientInvoiceReference.objects.create(
-                                    client_profile=client_profile,
-                                    invoice_reference=ref,
-                                    is_mandatory=ref in mandatory_references
-                                )
-                        else:
-                            setattr(client_profile, field_name, self.cleaned_data[field_name])
-                client_profile.save()
-            else:
-                supplier_profile, created = SupplierProfile.objects.get_or_create(company=company)
-                for field_name in self.get_supplier_field_names():
-                    if field_name in self.cleaned_data:
-                        if field_name == 'supplier_owner':
-                            user = self.cleaned_data[field_name]
-                            if user:
-                                setattr(supplier_profile, field_name, user)
-                        else:
-                            setattr(supplier_profile, field_name, self.cleaned_data[field_name])
-                supplier_profile.save()
                 
+                # Handle invoice references
+                selected_references = self.cleaned_data.get('invoice_references', [])
+                mandatory_references = self.cleaned_data.get('mandatory_references', [])
+                
+                # Clear existing references
+                ClientInvoiceReference.objects.filter(client_profile=client_profile).delete()
+                
+                # Add new references
+                for reference in selected_references:
+                    ClientInvoiceReference.objects.create(
+                        client_profile=client_profile,
+                        invoice_reference=reference,
+                        is_mandatory=reference in mandatory_references
+                    )
+                
+                client_profile.save()
+            
         return company
+
+    def clean(self):
+        cleaned_data = super().clean()
+        mandatory_refs = cleaned_data.get('mandatory_references', [])
+        selected_refs = cleaned_data.get('invoice_references', [])
+        
+        # Ensure all mandatory references are also selected
+        for ref in mandatory_refs:
+            if ref not in selected_refs:
+                self.add_error('mandatory_references', 
+                             f'Reference "{ref}" is marked as mandatory but not selected')
+        
+        return cleaned_data
 
 class ContactForm(forms.ModelForm):
     class Meta:

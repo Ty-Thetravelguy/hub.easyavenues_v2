@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crm_tags %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/wizard_form.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -13,21 +18,39 @@
                     <form method="post" class="needs-validation" novalidate>
                         {% csrf_token %}
                         
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+                        
                         {% for field in form %}
                         <div class="mb-3">
-                            <label for="{{ field.id_for_label }}" class="form-label">
+                            <label class="form-label {% if field.field.required %}required-field{% endif %}">
                                 {{ field.label }}
-                                {% if field.field.required %}
-                                    <span class="text-danger">*</span>
-                                {% endif %}
                             </label>
-
-                            {% if field.name == 'client_account_manager' or field.name == 'supplier_owner' %}
+                            
+                            {% if field.field.widget.input_type == 'radio' %}
+                                <div class="btn-group w-100" role="group">
+                                    {% for radio in field %}
+                                        <input type="radio" 
+                                            class="btn-check" 
+                                            name="{{ field.html_name }}" 
+                                            id="{{ radio.id_for_label }}" 
+                                            value="{{ radio.data.value }}"
+                                            {% if radio.data.selected %}checked{% endif %}
+                                            required>
+                                        <label class="btn btn-outline-primary" for="{{ radio.id_for_label }}">
+                                            {{ radio.choice_label }}
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            {% elif field.name == 'client_account_manager' or field.name == 'supplier_owner' %}
                                 <!-- Custom input for user selection -->
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="selected_user_display_{{ field.name }}" 
                                            placeholder="Select a user..." readonly
-                                           value="{% if field.value %}{{ field.value.get_full_name }}{% endif %}">
+                                           value="{% if object %}{% if field.name == 'client_account_manager' %}{{ object.client_profile.client_account_manager.get_full_name }}{% else %}{{ object.supplier_profile.supplier_owner.get_full_name }}{% endif %}{% endif %}">
                                     <button type="button" class="btn btn-outline-secondary" 
                                             data-bs-toggle="modal" data-bs-target="#teamSelectionModal"
                                             data-target-input="#id_{{ field.name }}"
@@ -36,38 +59,30 @@
                                     </button>
                                 </div>
                                 <input type="hidden" name="{{ field.name }}" id="id_{{ field.name }}" 
-                                       value="{{ field.value.id|default:'' }}">
-                            {% elif field.name == 'invoice_reference_options' %}
+                                       value="{% if object %}{% if field.name == 'client_account_manager' %}{{ object.client_profile.client_account_manager.id }}{% else %}{{ object.supplier_profile.supplier_owner.id }}{% endif %}{% endif %}">
+                            {% elif field.name == 'invoice_references' %}
                                 <div class="border rounded p-3">
-                                    <div class="row g-3">
-                                        {% for checkbox in field %}
-                                        <div class="col-12">
-                                            <div class="d-flex align-items-center">
-                                                <div class="form-check flex-grow-1">
-                                                    {{ checkbox.tag }}
-                                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
-                                                        {{ checkbox.choice_label }}
-                                                    </label>
+                                    <button type="button" class="btn btn-outline-primary mb-3" data-bs-toggle="modal" data-bs-target="#invoiceReferenceModal">
+                                        <i class="fas fa-list"></i> Select Invoice References
+                                    </button>
+                                    <div id="selectedReferencesDisplay" class="mt-2">
+                                        {% if object and object.client_profile %}
+                                            {% for reference in object.client_profile.invoice_reference_options.all %}
+                                                <div class="badge bg-primary me-1 mb-1">
+                                                    {{ reference.name }}
+                                                    {% with client_ref=reference.clientinvoicereference_set.get %}
+                                                        <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-1">
+                                                            {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
+                                                        </span>
+                                                    {% endwith %}
                                                 </div>
-                                                <div class="form-check ms-3">
-                                                    <input type="checkbox" 
-                                                           name="mandatory_references" 
-                                                           value="{{ checkbox.data.value }}"
-                                                           id="mandatory_{{ checkbox.id_for_label }}"
-                                                           class="form-check-input"
-                                                           {% if checkbox.data.value in form.mandatory_references.initial|default:"" %}checked{% endif %}
-                                                           >
-                                                    <label class="form-check-label" for="mandatory_{{ checkbox.id_for_label }}">
-                                                        Mandatory
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {% endfor %}
+                                            {% endfor %}
+                                        {% endif %}
                                     </div>
+                                    {{ field }}  {# This will be hidden #}
                                 </div>
                             {% elif field.name == 'mandatory_references' %}
-                                {# Hide this field as we handle it inline with invoice_reference_options #}
+                                {{ field }}  {# This will be hidden #}
                             {% else %}
                                 {{ field }}
                             {% endif %}
@@ -75,6 +90,7 @@
                             {% if field.help_text %}
                                 <div class="form-text">{{ field.help_text }}</div>
                             {% endif %}
+                            
                             {% if field.errors %}
                                 <div class="invalid-feedback d-block">
                                     {{ field.errors }}
@@ -99,9 +115,11 @@
 </div>
 
 {% include 'crm/includes/team_selection_modal.html' %}
+{% include 'crm/includes/invoice_reference_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/team_selection.js' %}"></script>
 <script src="{% static 'js/company_form.js' %}"></script>
+<script src="{% static 'js/invoice_reference_selection.js' %}"></script>
 {% endblock %} 

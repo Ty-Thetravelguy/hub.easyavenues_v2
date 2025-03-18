@@ -209,9 +209,14 @@
                                             {% if company.client_profile.invoice_reference_options.exists %}
                                             <div class="mt-2">
                                                 {% for reference in company.client_profile.invoice_reference_options.all %}
-                                                <div class="badge bg-primary me-1">
+                                                {% with client_ref=reference.clientinvoicereference_set.get %}
+                                                <div class="badge bg-primary me-2 mb-2 p-2">
                                                     {{ reference.name }}
+                                                    <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-2">
+                                                        {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
+                                                    </span>
                                                 </div>
+                                                {% endwith %}
                                                 {% endfor %}
                                             </div>
                                             {% else %}

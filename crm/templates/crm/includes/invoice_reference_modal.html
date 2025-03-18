@@ -1,0 +1,58 @@
+<!-- Invoice References Selection Modal -->
+<div class="modal fade" id="invoiceReferenceModal" tabindex="-1" aria-labelledby="invoiceReferenceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="invoiceReferenceModalLabel">Select Invoice References</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Reference</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reference in all_references %}
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input type="checkbox" 
+                                               class="form-check-input reference-checkbox" 
+                                               id="reference_{{ reference.id }}"
+                                               value="{{ reference.id }}"
+                                               {% if reference.id in selected_references_ids %}checked{% endif %}>
+                                    </div>
+                                </td>
+                                <td>{{ reference.name }}</td>
+                                <td>
+                                    <select class="form-select reference-type" 
+                                            id="type_{{ reference.id }}"
+                                            {% if reference.id not in selected_references_ids %}disabled{% endif %}>
+                                        <option value="optional" {% if not reference.id in mandatory_references_ids %}selected{% endif %}>Optional</option>
+                                        <option value="mandatory" {% if reference.id in mandatory_references_ids %}selected{% endif %}>Mandatory</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveInvoiceReferences">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for submitting selected references -->
+<form id="invoiceReferencesForm" method="post" action="{% url 'crm:update_invoice_references' object.pk|default:company.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="selected_references" id="selectedReferencesInput">
+</form> 

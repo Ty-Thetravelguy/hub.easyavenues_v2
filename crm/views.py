@@ -81,6 +81,24 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
         context['title'] = f"Update {self.object.company_name}"
         context['submit_text'] = "Update Company"
         context['teams'] = Team.objects.all()
+        
+        # Add invoice reference data for the modal
+        all_references = InvoiceReference.objects.all()
+        selected_references_ids = []
+        mandatory_references_ids = []
+        
+        if hasattr(self.object, 'client_profile'):
+            for ref in self.object.client_profile.invoice_reference_options.all():
+                selected_references_ids.append(ref.id)
+                if ref.clientinvoicereference_set.get(client_profile=self.object.client_profile).is_mandatory:
+                    mandatory_references_ids.append(ref.id)
+        
+        context.update({
+            'all_references': all_references,
+            'selected_references_ids': selected_references_ids,
+            'mandatory_references_ids': mandatory_references_ids,
+        })
+        
         return context
 
     def form_valid(self, form):
@@ -250,6 +268,27 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
         context = super().get_context_data(form=form, **kwargs)
         context['wizard_steps_names'] = ['Company Type', 'Basic Information', 'Additional Information']
         context['teams'] = Team.objects.all()
+        
+        # Add invoice reference data to context if we're on the profile step
+        if self.steps.current == 'profile':
+            all_references = InvoiceReference.objects.all()
+            selected_references_ids = []
+            mandatory_references_ids = []
+            
+            # Get cleaned data from previous steps
+            step_data = self.get_cleaned_data_for_step('profile')
+            if step_data:
+                for ref in step_data.get('invoice_reference_options', []):
+                    selected_references_ids.append(ref.id)
+                    if ref in step_data.get('mandatory_references', []):
+                        mandatory_references_ids.append(ref.id)
+            
+            context.update({
+                'all_references': all_references,
+                'selected_references_ids': selected_references_ids,
+                'mandatory_references_ids': mandatory_references_ids,
+            })
+        
         return context
 
 @login_required
@@ -289,25 +328,17 @@ def company_detail(request, company_id):
     activities = company.activities.all()
     documents = company.documents.all()
     
-    # Get all available invoice references and mark which ones are selected
-    all_references = InvoiceReference.objects.all()
-    selected_references = []
+    # Prefetch invoice references and their mandatory status for better performance
     if hasattr(company, 'client_profile'):
-        selected_references = [
-            {
-                'id': ref.id,
-                'is_mandatory': ref.clientinvoicereference_set.get(client_profile=company.client_profile).is_mandatory
-            }
-            for ref in company.client_profile.invoice_reference_options.all()
-        ]
+        company.client_profile.invoice_reference_options = company.client_profile.invoice_reference_options.prefetch_related(
+            'clientinvoicereference_set'
+        )
     
     context = {
         'company': company,
         'contacts': contacts,
         'activities': activities,
         'documents': documents,
-        'all_references': all_references,
-        'selected_references': selected_references,
     }
     
     return render(request, 'crm/company_detail.html', context)

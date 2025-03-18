@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crm_tags %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/wizard_form.css' %}">
@@ -93,6 +94,26 @@
                                     <input type="hidden" name="{{ field.html_name }}" 
                                            id="id_{{ wizard.steps.current }}-client_account_manager" 
                                            value="{{ field.value.id|default:'' }}">
+                                {% elif field.name == 'invoice_reference_options' %}
+                                    <div class="border rounded p-3">
+                                        <button type="button" class="btn btn-outline-primary mb-3" data-bs-toggle="modal" data-bs-target="#invoiceReferenceModal">
+                                            <i class="fas fa-list"></i> Select Invoice References
+                                        </button>
+                                        <div id="selectedReferencesDisplay" class="mt-2">
+                                            {% for reference in field.value.all %}
+                                            <div class="badge bg-primary me-1 mb-1">
+                                                {{ reference.name }}
+                                                {% if reference.clientinvoicereference_set.first.is_mandatory %}
+                                                <span class="badge bg-danger ms-1">Mandatory</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary ms-1">Optional</span>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% elif field.name == 'mandatory_references' %}
+                                    {# Hide this field as we handle it in the modal #}
                                 {% else %}
                                     {{ field }}
                                 {% endif %}
@@ -142,9 +163,11 @@
 </div>
 
 {% include 'crm/includes/team_selection_modal.html' %}
+{% include 'crm/includes/invoice_reference_modal.html' %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/team_selection.js' %}"></script>
 <script src="{% static 'js/company_form.js' %}"></script>
+<script src="{% static 'js/invoice_reference_selection.js' %}"></script>
 {% endblock %} 

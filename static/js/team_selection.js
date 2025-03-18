@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const teamMembersTableBody = document.getElementById('teamMembersTableBody');
     const selectUserBtn = document.getElementById('selectUserBtn');
     const teamMemberRowTemplate = document.getElementById('teamMemberRowTemplate');
+    const modal = document.getElementById('teamSelectionModal');
 
     // Function to fetch team members from the API
     async function fetchTeamMembers(teamId) {
@@ -78,8 +79,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Close the modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('teamSelectionModal'));
-            modal.hide();
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            modalInstance.hide();
         }
+    });
+
+    // Store target elements when modal is opened
+    modal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const targetInput = button.getAttribute('data-target-input');
+        const targetDisplay = button.getAttribute('data-target-display');
+        
+        // Store these values in the modal's save button
+        selectUserBtn.dataset.targetInput = targetInput;
+        selectUserBtn.dataset.targetDisplay = targetDisplay;
     });
 }); 
