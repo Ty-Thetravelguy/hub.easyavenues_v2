@@ -502,3 +502,48 @@ class CustomFieldValue(models.Model):
 
     def __str__(self):
         return f"{self.field.name}: {self.value}"
+
+class CompanyRelationship(models.Model):
+    """Model to define relationships between companies."""
+    RELATIONSHIP_TYPES = (
+        ('parent', 'Parent Company'),
+        ('subsidiary', 'Subsidiary'),
+        ('branch', 'Branch Office'),
+        ('partner', 'Partner'),
+        ('affiliate', 'Affiliate'),
+        ('vendor', 'Vendor'),
+        ('client', 'Client'),
+        ('other', 'Other'),
+    )
+    from_company = models.ForeignKey(
+        Company, 
+        on_delete=models.CASCADE, 
+        related_name='from_relationships',
+        help_text="Company initiating the relationship"
+    )
+    to_company = models.ForeignKey(
+        Company, 
+        on_delete=models.CASCADE, 
+        related_name='to_relationships',
+        help_text="Company receiving the relationship"
+    )
+    relationship_type = models.CharField(max_length=20, choices=RELATIONSHIP_TYPES)
+    description = models.TextField(blank=True, null=True)
+    established_date = models.DateField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_company_relationships'
+    )
+
+    class Meta:
+        unique_together = ('from_company', 'to_company', 'relationship_type')
+        verbose_name = "Company Relationship"
+        verbose_name_plural = "Company Relationships"
+
+    def __str__(self):
+        return f"{self.from_company.company_name} → {self.relationship_type} → {self.to_company.company_name}"

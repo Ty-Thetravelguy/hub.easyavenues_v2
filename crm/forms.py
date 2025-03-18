@@ -1,6 +1,6 @@
 from django import forms
 from django.db import models
-from .models import Company, Contact, ClientProfile, SupplierProfile, TransactionFee, INDUSTRY_CHOICES, ClientInvoiceReference
+from .models import Company, Contact, ClientProfile, SupplierProfile, TransactionFee, INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -283,4 +283,36 @@ class TransactionFeeForm(forms.ModelForm):
         # Add Bootstrap classes to all fields
         for field in self.fields:
             if not isinstance(self.fields[field].widget, (forms.CheckboxInput, forms.RadioSelect)):
-                self.fields[field].widget.attrs.update({'class': 'form-control'}) 
+                self.fields[field].widget.attrs.update({'class': 'form-control'})
+
+class CompanyRelationshipForm(forms.ModelForm):
+    class Meta:
+        model = CompanyRelationship
+        fields = ['to_company', 'relationship_type', 'description']
+        widgets = {
+            'to_company': forms.Select(attrs={'class': 'form-control'}),
+            'relationship_type': forms.Select(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.from_company = kwargs.pop('from_company', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter the to_company queryset to exclude the current company
+        if self.from_company:
+            self.fields['to_company'].queryset = Company.objects.exclude(
+                id=self.from_company.id
+            )
+            
+            # Filter by company type if needed
+            if self.from_company.company_type == 'Client':
+                # For clients, allow linking to other clients only
+                self.fields['to_company'].queryset = self.fields['to_company'].queryset.filter(
+                    company_type='Client'
+                )
+            elif self.from_company.company_type == 'Supplier':
+                # For suppliers, allow linking to other suppliers only  
+                self.fields['to_company'].queryset = self.fields['to_company'].queryset.filter(
+                    company_type='Supplier'
+                ) 

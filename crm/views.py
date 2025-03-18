@@ -3,14 +3,14 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference
+from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship
 from accounts.models import InvoiceReference
 from django.urls import reverse_lazy
 from formtools.wizard.views import SessionWizardView
 from django.shortcuts import redirect
 from django.contrib import messages
 from django import forms
-from .forms import CompanyForm
+from .forms import CompanyForm, CompanyRelationshipForm
 from django.contrib.auth import get_user_model
 from accounts.models import Team
 import json
@@ -373,4 +373,69 @@ def company_detail(request, company_id):
     }
     
     return render(request, 'crm/company_detail.html', context)
+
+@login_required
+def manage_company_relationships(request, company_id):
+    """View to manage company relationships."""
+    company = get_object_or_404(Company, id=company_id)
+    
+    # Get existing relationships
+    relationships_from = CompanyRelationship.objects.filter(from_company=company, is_active=True)
+    relationships_to = CompanyRelationship.objects.filter(to_company=company, is_active=True)
+    
+    if request.method == 'POST':
+        form = CompanyRelationshipForm(request.POST, from_company=company)
+        if form.is_valid():
+            to_company = form.cleaned_data['to_company']
+            relationship_type = form.cleaned_data['relationship_type']
+            
+            # Check if relationship already exists
+            existing_relationship = CompanyRelationship.objects.filter(
+                from_company=company,
+                to_company=to_company,
+                relationship_type=relationship_type
+            ).first()
+            
+            if existing_relationship:
+                # If relationship exists but was marked inactive, reactivate it
+                if not existing_relationship.is_active:
+                    existing_relationship.is_active = True
+                    existing_relationship.description = form.cleaned_data['description']
+                    existing_relationship.save()
+                    messages.success(request, f"Relationship with {to_company.company_name} has been reactivated.")
+                else:
+                    messages.warning(request, f"Relationship with {to_company.company_name} as {dict(CompanyRelationship.RELATIONSHIP_TYPES)[relationship_type]} already exists.")
+            else:
+                # Create new relationship
+                relationship = form.save(commit=False)
+                relationship.from_company = company
+                relationship.created_by = request.user
+                relationship.save()
+                messages.success(request, f"Relationship with {relationship.to_company.company_name} added successfully.")
+            
+            return redirect('crm:manage_company_relationships', company_id=company.id)
+    else:
+        form = CompanyRelationshipForm(from_company=company)
+    
+    context = {
+        'company': company,
+        'form': form,
+        'relationships_from': relationships_from,
+        'relationships_to': relationships_to,
+    }
+    
+    return render(request, 'crm/manage_company_relationships.html', context)
+
+@login_required
+def delete_company_relationship(request, relationship_id):
+    """Delete a company relationship."""
+    relationship = get_object_or_404(CompanyRelationship, id=relationship_id)
+    company_id = relationship.from_company.id
+    
+    # Check if the user has permission (could add more checks)
+    relationship.is_active = False
+    relationship.save()
+    
+    messages.success(request, f"Relationship with {relationship.to_company.company_name} has been removed.")
+    return redirect('crm:manage_company_relationships', company_id=company_id)
 
