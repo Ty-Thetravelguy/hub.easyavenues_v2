@@ -244,3 +244,6 @@ LOGGING = {
         }
     },
 }
+
+# HubSpot API Configuration
+HUBSPOT_API_KEY = os.environ.get('HUBSPOT_API_KEY', '')  # Get from environment variable

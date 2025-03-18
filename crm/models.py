@@ -127,6 +127,9 @@ class Company(models.Model):
     email = models.EmailField(blank=False, null=False)
     description = models.TextField(blank=True, null=True)
     linkedin_social_page = models.URLField(blank=True, null=True)
+    
+    # External system integration
+    hubspot_id = models.CharField(max_length=100, blank=True, null=True, help_text="HubSpot Company ID")
 
     # Timestamps and relationships
     create_date = models.DateTimeField(auto_now_add=True)

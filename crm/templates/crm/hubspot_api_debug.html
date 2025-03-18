@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}HubSpot API Debug{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:hubspot_search' %}">HubSpot Search</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">API Debug</li>
+                </ol>
+            </nav>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">HubSpot API Debug</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>API Connection Status</h5>
+                        {% if api_connected %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>Successfully connected to HubSpot API
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Failed to connect to HubSpot API
+                                {% if api_error %}
+                                <p class="mt-2"><strong>Error:</strong> {{ api_error }}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>API Configuration</h5>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">API Key Configuration</th>
+                                        <td>
+                                            {% if api_key_set %}
+                                                <span class="badge bg-success">Configured</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Not Configured</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">API Key Format</th>
+                                        <td>
+                                            {% if api_key_format_valid %}
+                                                <span class="badge bg-success">Valid</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Invalid</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">API Endpoint</th>
+                                        <td>{{ api_endpoint }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Troubleshooting Steps</h5>
+                        <ol class="list-group list-group-numbered mb-3">
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">Check API Key</div>
+                                    Verify your API key is correctly set in the .env file. It should start with "pat-".
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">Verify HubSpot Account</div>
+                                    Ensure your HubSpot account is active and has access to the CRM features.
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">Check HubSpot Access Token</div>
+                                    Make sure you're using a Private App token, not a legacy API key.
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">API Scopes</div>
+                                    Ensure your token has all necessary scopes, especially "crm.objects.companies.read".
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">API Rate Limits</div>
+                                    Check if you've exceeded HubSpot's API rate limits. The default is 100 requests per 10 seconds.
+                                </div>
+                            </li>
+                        </ol>
+                        
+                        <div class="alert alert-info">
+                            <h6>HubSpot API Key Format</h6>
+                            <p>Modern HubSpot Private App tokens start with "pat-" followed by your token. Legacy API keys are being deprecated.</p>
+                            <p><strong>To create a Private App in HubSpot:</strong></p>
+                            <ol>
+                                <li>Go to your HubSpot account (not developer account)</li>
+                                <li>Click on Settings (gear icon) in the top right</li>
+                                <li>Navigate to Integrations → Private Apps</li>
+                                <li>Click "Create private app"</li>
+                                <li>Fill in the required details (name, description)</li>
+                                <li>Select the necessary scopes (at minimum "crm.objects.companies.read")</li>
+                                <li>Click "Create app"</li>
+                                <li>Copy the generated Access token that starts with "pat-"</li>
+                                <li>Add this token to your .env file as HUBSPOT_API_KEY</li>
+                            </ol>
+                            <p class="mt-3">Private apps are not available on developer accounts. You must use a regular HubSpot portal.</p>
+                            <a href="https://developers.hubspot.com/docs/api/private-apps" target="_blank" class="btn btn-sm btn-primary">
+                                <i class="fas fa-external-link-alt me-1"></i> HubSpot Private Apps Documentation
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <a href="{% url 'crm:hubspot_api_test' %}" class="btn btn-primary">
+                        <i class="fas fa-sync me-1"></i> Run API Test Again
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

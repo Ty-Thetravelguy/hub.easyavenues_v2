@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}HubSpot: {{ company_data.properties.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:hubspot_search' %}">HubSpot Search</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ company_data.properties.name }}</li>
+                </ol>
+            </nav>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">{{ company_data.properties.name }}</h4>
+                        {% if is_imported %}
+                            <span class="badge bg-white text-primary">Already Imported</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="border-bottom pb-2 mb-3">Company Information</h5>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 text-muted">Company Name</div>
+                                <div class="col-sm-8">{{ company_data.properties.name }}</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 text-muted">Domain</div>
+                                <div class="col-sm-8">
+                                    {% if company_data.properties.domain %}
+                                        <a href="https://{{ company_data.properties.domain }}" target="_blank">
+                                            {{ company_data.properties.domain }}
+                                        </a>
+                                    {% else %}
+                                        Not specified
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 text-muted">Industry</div>
+                                <div class="col-sm-8">{{ company_data.properties.industry|default:"Not specified" }}</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 text-muted">Phone</div>
+                                <div class="col-sm-8">
+                                    {% if company_data.properties.phone %}
+                                        <a href="tel:{{ company_data.properties.phone }}">
+                                            {{ company_data.properties.phone }}
+                                        </a>
+                                    {% else %}
+                                        Not specified
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 text-muted">LinkedIn</div>
+                                <div class="col-sm-8">
+                                    {% if company_data.properties.linkedin_company_page %}
+                                        <a href="{{ company_data.properties.linkedin_company_page }}" target="_blank">
+                                            <i class="fab fa-linkedin"></i> View Profile
+                                        </a>
+                                    {% else %}
+                                        Not available
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-sm-4 text-muted">Address</div>
+                                <div class="col-sm-8">
+                                    <address class="mb-0">
+                                        {{ company_data.properties.address|default:"" }}<br>
+                                        {% if company_data.properties.city or company_data.properties.state or company_data.properties.zip %}
+                                            {{ company_data.properties.city|default:"" }}{% if company_data.properties.city and company_data.properties.state %}, {% endif %}
+                                            {{ company_data.properties.state|default:"" }} {{ company_data.properties.zip|default:"" }}<br>
+                                        {% endif %}
+                                        {{ company_data.properties.country|default:"" }}
+                                    </address>
+                                </div>
+                            </div>
+                            
+                            {% if company_data.properties.description %}
+                            <div class="row mb-3">
+                                <div class="col-sm-4 text-muted">Description</div>
+                                <div class="col-sm-8">{{ company_data.properties.description }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5 class="border-bottom pb-2 mb-3">Contacts ({{ contacts|length }})</h5>
+                            
+                            {% if contacts %}
+                                <div class="list-group">
+                                    {% for contact in contacts %}
+                                        <div class="list-group-item">
+                                            <h6 class="mb-1">
+                                                {{ contact.properties.firstname|default:"" }} {{ contact.properties.lastname|default:"" }}
+                                            </h6>
+                                            <p class="mb-1 text-muted">{{ contact.properties.jobtitle|default:"No job title" }}</p>
+                                            {% if contact.properties.email %}
+                                                <a href="mailto:{{ contact.properties.email }}" class="d-block mb-1">
+                                                    <i class="fas fa-envelope me-1"></i> {{ contact.properties.email }}
+                                                </a>
+                                            {% endif %}
+                                            {% if contact.properties.phone %}
+                                                <a href="tel:{{ contact.properties.phone }}" class="d-block">
+                                                    <i class="fas fa-phone me-1"></i> {{ contact.properties.phone }}
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>No contacts found for this company.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if not is_imported %}
+                    <div class="border-top pt-4 mt-4">
+                        <h5 class="mb-3">Import this company</h5>
+                        <form method="post" action="{% url 'crm:import_hubspot_company' hubspot_id=hubspot_id %}">
+                            {% csrf_token %}
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="company_type" class="form-label">Company Type</label>
+                                        <select class="form-select" id="company_type" name="company_type" required>
+                                            <option value="Client">Client</option>
+                                            <option value="Supplier">Supplier</option>
+                                        </select>
+                                        <div class="form-text">Select whether this company will be a client or supplier.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="import_contacts" name="import_contacts" checked>
+                                        <label class="form-check-label" for="import_contacts">
+                                            Also import contacts ({{ contacts|length }})
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-file-import me-1"></i> Import Company
+                                </button>
+                                <a href="{% url 'crm:hubspot_search' %}" class="btn btn-secondary ms-2">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="border-top pt-4 mt-4">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            This company has already been imported into your CRM.
+                        </div>
+                        <a href="{% url 'crm:hubspot_search' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Search
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

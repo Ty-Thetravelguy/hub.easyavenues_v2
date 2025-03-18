@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}HubSpot Integration Setup Guide{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:hubspot_search' %}">HubSpot Search</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Setup Guide</li>
+                </ol>
+            </nav>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">HubSpot Integration Setup Guide</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <p>This guide will help you set up the HubSpot integration correctly with your HubSpot account. Follow these steps to ensure a successful connection.</p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Step 1: Create a Private App in HubSpot</h5>
+                            <div class="p-3 border rounded bg-light">
+                                <ol>
+                                    <li class="mb-2">Log in to your <strong>regular HubSpot account</strong> (not a developer account) at <a href="https://app.hubspot.com" target="_blank">https://app.hubspot.com</a></li>
+                                    <li class="mb-2">Click on <strong>Settings</strong> (gear icon) in the top-right corner of the screen</li>
+                                    <li class="mb-2">In the left sidebar, navigate to <strong>Integrations</strong> → <strong>Private Apps</strong></li>
+                                    <li class="mb-2">Click the <strong>Create private app</strong> button</li>
+                                    <li class="mb-2">Fill in the required information:
+                                        <ul class="mt-2">
+                                            <li><strong>App name:</strong> Easy Avenues CRM Integration</li>
+                                            <li><strong>Description:</strong> Integration between Easy Avenues CRM and HubSpot</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">Under <strong>Scopes</strong>, select at minimum the following permissions:
+                                        <ul class="mt-2">
+                                            <li><strong>CRM:</strong> All CRM object scopes, especially "crm.objects.companies.read"</li>
+                                            <li><strong>Contacts:</strong> Read, Write</li>
+                                        </ul>
+                                    </li>
+                                    <li class="mb-2">Click <strong>Create app</strong> at the bottom of the page</li>
+                                </ol>
+                                <div class="text-center">
+                                    <img src="{% static 'img/hubspot_private_app.png' %}" class="img-fluid border rounded" alt="HubSpot Private App Creation" style="max-width: 600px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Step 2: Copy Your Access Token</h5>
+                            <div class="p-3 border rounded bg-light">
+                                <ol>
+                                    <li class="mb-2">After creating the app, you'll see a screen with your <strong>Access token</strong></li>
+                                    <li class="mb-2">The token will start with <code>pat-</code> followed by your region code and a string of characters</li>
+                                    <li class="mb-2">Click the <strong>Copy</strong> button to copy this token to your clipboard</li>
+                                    <li class="mb-2"><strong>Important:</strong> This token will only be shown once, so make sure to copy it now!</li>
+                                </ol>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i> The access token format should look like: <code>pat-eu1-12345abcdef...</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Step 3: Update Your .env File</h5>
+                            <div class="p-3 border rounded bg-light">
+                                <ol>
+                                    <li class="mb-2">Open your project's <code>.env</code> file</li>
+                                    <li class="mb-2">Find the line with <code>HUBSPOT_API_KEY</code></li>
+                                    <li class="mb-2">Replace the current value with your new access token:
+                                        <pre class="bg-dark text-light p-3 mt-2 rounded"><code># HubSpot
+HUBSPOT_API_KEY = 'pat-eu1-your-token-goes-here'</code></pre>
+                                    </li>
+                                    <li class="mb-2">Save the file</li>
+                                    <li class="mb-2">Restart your application to load the new environment variable</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Step 4: Test Your Connection</h5>
+                            <div class="p-3 border rounded bg-light">
+                                <ol>
+                                    <li class="mb-2">After updating your .env file and restarting the application, click the button below to test your connection</li>
+                                    <li class="mb-2">If the test is successful, you're ready to start using the HubSpot integration</li>
+                                    <li class="mb-2">If the test fails, verify that:
+                                        <ul class="mt-2">
+                                            <li>You've created the private app in a regular HubSpot account (not a developer account)</li>
+                                            <li>You've selected the necessary scopes (permissions)</li>
+                                            <li>You've correctly copied the access token with the "pat-" prefix</li>
+                                            <li>Your HubSpot account is active and not in a trial period</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+                                <div class="text-center mt-3">
+                                    <a href="{% url 'crm:hubspot_api_test' %}" class="btn btn-primary">
+                                        <i class="fas fa-plug me-2"></i> Test HubSpot Connection
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Common Issues & Troubleshooting</h5>
+                            <div class="accordion" id="troubleshootingAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingOne">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                            401 Unauthorized Error
+                                        </button>
+                                    </h2>
+                                    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#troubleshootingAccordion">
+                                        <div class="accordion-body">
+                                            <p>This error occurs when your authentication credentials are invalid. Possible solutions:</p>
+                                            <ul>
+                                                <li>Ensure your token starts with <code>pat-</code></li>
+                                                <li>Create a new private app and get a fresh token</li>
+                                                <li>Check that your HubSpot account has access to the APIs</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingTwo">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                            403 Forbidden Error
+                                        </button>
+                                    </h2>
+                                    <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#troubleshootingAccordion">
+                                        <div class="accordion-body">
+                                            <p>This error occurs when your app doesn't have the required permissions:</p>
+                                            <ul>
+                                                <li>Go back to your private app settings</li>
+                                                <li>Update the scopes to include all necessary permissions</li>
+                                                <li>Generate a new token after updating the scopes</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingThree">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                            Rate Limit Exceeded
+                                        </button>
+                                    </h2>
+                                    <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#troubleshootingAccordion">
+                                        <div class="accordion-body">
+                                            <p>If you see rate limit errors:</p>
+                                            <ul>
+                                                <li>HubSpot limits API calls to 100 requests per 10 seconds</li>
+                                                <li>Wait a few minutes before trying again</li>
+                                                <li>Consider implementing rate limiting in your code</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 text-center">
+                            <a href="{% url 'crm:hubspot_search' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-search me-2"></i> Go to HubSpot Search
+                            </a>
+                            <a href="https://developers.hubspot.com/docs/api/private-apps" target="_blank" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-external-link-alt me-2"></i> HubSpot Documentation
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

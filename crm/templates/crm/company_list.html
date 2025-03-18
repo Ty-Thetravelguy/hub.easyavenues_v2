@@ -13,6 +13,9 @@
             <h2 class="mb-0">Companies</h2>
         </div>
         <div class="col text-end">
+            <a href="{% url 'crm:hubspot_search' %}" class="btn btn-outline-primary me-2">
+                <i class="fab fa-hubspot me-1"></i> Search HubSpot
+            </a>
             <a href="{% url 'crm:company_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add Company
             </a>

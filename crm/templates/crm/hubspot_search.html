@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search HubSpot Companies{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">HubSpot Search</li>
+                </ol>
+            </nav>
+            
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if error_message %}
+            <div class="alert alert-danger mb-4">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Error</h5>
+                <p>{{ error_message }}</p>
+                <hr>
+                <p class="mb-0">
+                    <strong>Troubleshooting tips:</strong>
+                    <ul>
+                        <li>Check if your HubSpot API key is correct and has proper permissions</li>
+                        <li>Verify that your HubSpot account is active and in good standing</li>
+                        <li>Make sure you're using the correct API endpoints</li>
+                    </ul>
+                </p>
+            </div>
+            {% endif %}
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Search HubSpot Companies</h4>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'crm:hubspot_search' %}">
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="Enter company name" 
+                                   name="query" value="{{ search_query }}" required>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-2 text-end">
+                        <a href="{% url 'crm:hubspot_api_test' %}" class="text-decoration-none me-3">
+                            <i class="fas fa-wrench me-1"></i> Troubleshoot API connection
+                        </a>
+                        <a href="{% url 'crm:hubspot_setup_guide' %}" class="text-decoration-none">
+                            <i class="fas fa-book me-1"></i> Setup Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            {% if search_results %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Search Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Company Name</th>
+                                    <th>Domain</th>
+                                    <th>Industry</th>
+                                    <th>Location</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in search_results %}
+                                <tr>
+                                    <td>{{ result.properties.name }}</td>
+                                    <td>{{ result.properties.domain|default:"--" }}</td>
+                                    <td>{{ result.properties.industry|default:"Not specified" }}</td>
+                                    <td>
+                                        {% if result.properties.city or result.properties.country %}
+                                        {{ result.properties.city|default:"" }}{% if result.properties.city and result.properties.country %}, {% endif %}{{ result.properties.country|default:"" }}
+                                        {% else %}
+                                        Not specified
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.is_imported %}
+                                        <span class="badge bg-success">Already Imported</span>
+                                        {% else %}
+                                        <a href="{% url 'crm:hubspot_company_detail' hubspot_id=result.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View Details
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% elif search_query and not error_message %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No companies found matching your search criteria.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
