@@ -8,22 +8,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle save button click
-    document.getElementById('saveInvoiceRemarks').addEventListener('click', function() {
-        const selectedRemarks = [];
-        document.querySelectorAll('.remark-checkbox:checked').forEach(checkbox => {
-            const remarkId = checkbox.value;
-            const typeSelect = document.getElementById(`type_${remarkId}`);
-            selectedRemarks.push({
-                id: remarkId,
-                is_mandatory: typeSelect.value === 'mandatory'
+    // Handle save button click - check if element exists first
+    const saveButton = document.getElementById('saveInvoiceRemarks');
+    if (saveButton) {
+        saveButton.addEventListener('click', function() {
+            const selectedRemarks = [];
+            document.querySelectorAll('.remark-checkbox:checked').forEach(checkbox => {
+                const remarkId = checkbox.value;
+                const typeSelect = document.getElementById(`type_${remarkId}`);
+                selectedRemarks.push({
+                    id: remarkId,
+                    is_mandatory: typeSelect.value === 'mandatory'
+                });
             });
-        });
 
-        // Update hidden input with selected remarks data
-        document.getElementById('selectedRemarksInput').value = JSON.stringify(selectedRemarks);
-        
-        // Submit the form
-        document.getElementById('invoiceRemarksForm').submit();
-    });
+            // Update hidden input with selected remarks data
+            document.getElementById('selectedRemarksInput').value = JSON.stringify(selectedRemarks);
+            
+            // Submit the form
+            document.getElementById('invoiceRemarksForm').submit();
+        });
+    }
 }); 
