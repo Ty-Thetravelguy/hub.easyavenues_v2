@@ -214,7 +214,21 @@
                                 <div class="col-sm-7">
                                     {% if contact.tag_list %}
                                     {% for tag in contact.tag_list %}
-                                    <span class="badge bg-primary me-1">{{ tag }}</span>
+                                    <span class="badge me-1 {% if tag == 'primary' %}bg-primary
+                                        {% elif tag == 'key_personnel' %}bg-success
+                                        {% elif tag == 'booker' %}bg-warning text-dark
+                                        {% elif tag == 'vip_traveller' %}bg-warning
+                                        {% elif tag == 'traveller' %}bg-info
+                                        {% else %}bg-secondary
+                                        {% endif %}">
+                                        {% if tag == 'primary' %}Primary Contact
+                                        {% elif tag == 'key_personnel' %}Key Personnel
+                                        {% elif tag == 'booker' %}Booker
+                                        {% elif tag == 'vip_traveller' %}VIP Traveller
+                                        {% elif tag == 'traveller' %}Traveller
+                                        {% else %}{{ tag }}
+                                        {% endif %}
+                                    </span>
                                     {% endfor %}
                                     {% else %}
                                     <span class="text-muted">No tags</span>

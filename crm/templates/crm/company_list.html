@@ -10,7 +10,7 @@
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col">
-            <h2 class="mb-0">Companies</h2>
+            <h2 class="mb-0">{% if show_contacts %}Contacts{% else %}Companies{% endif %}</h2>
         </div>
         <div class="col text-end">
             <a href="{% url 'crm:company_list' %}?view={% if show_contacts %}companies{% else %}contacts{% endif %}" 
@@ -28,9 +28,11 @@
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
+                <input type="hidden" name="view" value="{% if show_contacts %}contacts{% else %}companies{% endif %}">
                 <div class="col-md-6">
                     <div class="input-group">
-                        <input type="text" name="search" class="form-control" placeholder="Search..." 
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="{% if show_contacts %}Search contacts by name, role, company...{% else %}Search companies by name, type, industry...{% endif %}" 
                                value="{{ search_query }}">
                     </div>
                 </div>
@@ -38,7 +40,7 @@
                     <button type="submit" class="btn btn-primary w-100">Search</button>
                 </div>
                 <div class="col-md-2">
-                    <a href="{% url 'crm:company_list' %}" class="btn btn-secondary w-100">Clear</a>
+                    <a href="{% url 'crm:company_list' %}{% if show_contacts %}?view=contacts{% endif %}" class="btn btn-secondary w-100">Clear</a>
                 </div>
             </form>
         </div>
@@ -53,7 +55,8 @@
                     <tr>
                         <th>Company Name</th>
                         <th>Type</th>
-                        <th>Industry</th>
+                        <th>Owner</th>
+                        <th>Team/Department</th>
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Created</th>
@@ -69,7 +72,20 @@
                             </a>
                         </td>
                         <td>{{ company.company_type }}</td>
-                        <td>{{ company.industry }}</td>
+                        <td>
+                            {% if company.company_type == 'Client' %}
+                                {{ company.client_profile.client_account_manager.get_full_name|default:"Not assigned" }}
+                            {% else %}
+                                {{ company.supplier_profile.supplier_owner.get_full_name|default:"Not assigned" }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if company.company_type == 'Client' %}
+                                {{ company.client_profile.client_ops_team|default:"Not assigned" }}
+                            {% else %}
+                                {{ company.supplier_profile.supplier_for_department|default:"Not assigned" }}
+                            {% endif %}
+                        </td>
                         <td>
                             <a href="mailto:{{ company.email }}">{{ company.email }}</a>
                         </td>
@@ -170,10 +186,13 @@ $(document).ready(function() {
     $('#companies-table').DataTable({
         "pageLength": 25,
         "order": [[0, "asc"]],
-        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6">>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         "language": {
-            "search": "Quick Search:",
-            "lengthMenu": "Show _MENU_ entries",
+            "lengthMenu": "Show _MENU_ companies per page",
+            "info": "Showing _START_ to _END_ of _TOTAL_ companies",
+            "infoEmpty": "No companies available",
+            "infoFiltered": "(filtered from _MAX_ total companies)",
+            "zeroRecords": "No matching companies found"
         },
         "autoWidth": false,
         "scrollX": true,
@@ -190,10 +209,13 @@ $(document).ready(function() {
     $('#contacts-table').DataTable({
         "pageLength": 25,
         "order": [[0, "asc"]],
-        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6">>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         "language": {
-            "search": "Quick Search:",
-            "lengthMenu": "Show _MENU_ entries",
+            "lengthMenu": "Show _MENU_ contacts per page",
+            "info": "Showing _START_ to _END_ of _TOTAL_ contacts",
+            "infoEmpty": "No contacts available",
+            "infoFiltered": "(filtered from _MAX_ total contacts)",
+            "zeroRecords": "No matching contacts found"
         },
         "autoWidth": false,
         "scrollX": true,
