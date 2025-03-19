@@ -3,6 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
 {% endblock %}
 
 {% block content %}
@@ -25,7 +26,7 @@
                 <a href="{% url 'crm:company_update' company.pk %}" class="btn btn-light me-2">
                     <i class="fas fa-edit"></i> Edit
                 </a>
-                <a href="{% url 'crm:contact_create' company_pk=company.pk %}" class="btn btn-light">
+                <a href="{% url 'crm:contact_create' company_id=company.pk %}" class="btn btn-light">
                     <i class="fas fa-user-plus"></i> Add Contact
                 </a>
             </div>
@@ -413,59 +414,87 @@
 
         <!-- Contacts Tab -->
         <div class="tab-pane fade" id="contacts" role="tabpanel">
-            <div class="row">
-                {% for contact in contacts %}
-                <div class="col-md-6 col-xl-4 mb-4">
-                    <div class="card contact-card h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="flex-shrink-0">
-                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                                         style="width: 48px; height: 48px;">
-                                        {{ contact.first_name|first }}{{ contact.last_name|first }}
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h5 class="mb-1">{{ contact.first_name }} {{ contact.last_name }}</h5>
-                                    <p class="mb-0 text-muted">{{ contact.job_title }}</p>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="mb-2">
-                                    <i class="fas fa-envelope text-muted me-2"></i>
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-end mb-3">
+                        <a href="{% url 'crm:contact_create' company_id=company.pk %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Add Contact
+                        </a>
+                    </div>
+                    <table id="contacts-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Job Role</th>
+                                <th>Tags</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contact in contacts %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'crm:contact_detail' contact.pk %}" class="fw-bold link-color">
+                                        {{ contact.first_name }} {{ contact.last_name }}
+                                    </a>
+                                </td>
+                                <td>{{ contact.job_role }}</td>
+                                <td>
+                                    {% for tag in contact.tag_list %}
+                                        <span class="badge me-1 {% if tag == 'primary' %}bg-primary
+                                            {% elif tag == 'key_personnel' %}bg-success
+                                            {% elif tag == 'booker' %}bg-warning text-dark
+                                            {% elif tag == 'vip_traveller' %}bg-warning
+                                            {% elif tag == 'traveller' %}bg-info
+                                            {% else %}bg-secondary
+                                            {% endif %}">
+                                            {% if tag == 'primary' %}Primary Contact
+                                            {% elif tag == 'key_personnel' %}Key Personnel
+                                            {% elif tag == 'booker' %}Booker
+                                            {% elif tag == 'vip_traveller' %}VIP Traveller
+                                            {% elif tag == 'traveller' %}Traveller
+                                            {% else %}{{ tag }}
+                                            {% endif %}
+                                        </span>
+                                    {% endfor %}
+                                </td>
+                                <td>
                                     <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
-                                </div>
-                                {% if contact.phone_number %}
-                                <div class="mb-2">
-                                    <i class="fas fa-phone text-muted me-2"></i>
-                                    <a href="tel:{{ contact.phone_number }}">{{ contact.phone_number }}</a>
-                                </div>
-                                {% endif %}
-                                {% if contact.mobile_number %}
-                                <div class="mb-2">
-                                    <i class="fas fa-mobile-alt text-muted me-2"></i>
-                                    <a href="tel:{{ contact.mobile_number }}">{{ contact.mobile_number }}</a>
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="d-flex justify-content-end">
-                                <a href="#" class="btn btn-sm btn-outline-primary me-2">
-                                    <i class="fas fa-edit"></i> Edit
-                                </a>
-                                <a href="#" class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-trash"></i> Delete
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                                </td>
+                                <td>
+                                    {% if contact.mobile %}
+                                    <a href="tel:{{ contact.mobile }}">{{ contact.mobile }}</a>
+                                    {% else %}
+                                    {{ contact.landline|default:"-" }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ contact.created_at|date:"d M Y" }}</td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'crm:contact_detail' contact.pk %}" class="btn btn-sm action-btn-purple text-white" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'crm:contact_update' contact.pk %}" class="btn btn-sm btn-secondary-ea" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    <div class="alert alert-info mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>No contacts found for this company.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                {% empty %}
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No contacts found for this company.
-                    </div>
-                </div>
-                {% endfor %}
             </div>
         </div>
 
@@ -607,6 +636,68 @@
 {% block extra_js %}
 {{ block.super }}
 <script src="{% static 'js/invoice_remarks.js' %}"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable
+        $('#contacts-table').DataTable({
+            pageLength: 10,
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: -1 }
+            ],
+            language: {
+                search: "Search contacts:",
+                zeroRecords: "No matching contacts found",
+                info: "Showing _START_ to _END_ of _TOTAL_ contacts",
+                infoEmpty: "No contacts available",
+                infoFiltered: "(filtered from _MAX_ total contacts)"
+            }
+        });
+
+        // Function to activate tab based on hash
+        function activateTabFromHash() {
+            let hash = window.location.hash;
+            if (hash) {
+                hash = hash.substring(1);  // remove the # symbol
+                console.log('Activating tab:', hash); // Debug log
+                
+                // Remove active class from all tabs and panes
+                $('.nav-link').removeClass('active');
+                $('.tab-pane').removeClass('show active');
+
+                // Find and activate the target tab
+                const targetTab = $(`#${hash}-tab`);
+                const targetPane = $(`#${hash}`);
+                
+                if (targetTab.length && targetPane.length) {
+                    targetTab.addClass('active');
+                    targetPane.addClass('show active');
+                    console.log('Tab activated successfully'); // Debug log
+                } else {
+                    console.warn('Tab or pane not found:', hash); // Debug log
+                }
+            }
+        }
+
+        // Activate tab on page load
+        activateTabFromHash();
+
+        // Listen for hash changes
+        $(window).on('hashchange', activateTabFromHash);
+
+        // Update hash when tab is clicked
+        $('a[data-bs-toggle="tab"]').on('click', function (event) {
+            const hash = $(this).attr('href');
+            if (history.pushState) {
+                history.pushState(null, null, hash);
+            } else {
+                window.location.hash = hash;
+            }
+        });
+    });
+</script>
 {% endblock %}
 
 {% include 'crm/includes/invoice_remarks_modal.html' %} 

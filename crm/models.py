@@ -239,69 +239,68 @@ class Contact(models.Model):
     """
     Represents a contact associated with a company within the CRM system.
     """
-    PREFERRED_CONTACT_METHOD = [
-        ('email', 'Email'),
-        ('phone', 'Phone'),
-        ('mobile', 'Mobile'),
-        ('teams', 'Microsoft Teams'),
-        ('whatsapp', 'WhatsApp'),
+    CONTACT_TAG_CHOICES = [
+        ('primary', 'Primary Contact'),
+        ('key_personnel', 'Key Personnel'),
+        ('booker', 'Booker'),
+        ('vip_traveller', 'VIP Traveller'),
+        ('traveller', 'Traveller'),
+    ]
+
+    SUPPLIER_TAG_CHOICES = [
+        ('primary', 'Primary Contact'),
+        ('key_personnel', 'Key Personnel'),
     ]
 
     company = models.ForeignKey('Company', on_delete=models.CASCADE, related_name='contacts')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20)
+    job_role = models.CharField(max_length=100, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    landline = models.CharField(max_length=20, blank=True, null=True)
     mobile = models.CharField(max_length=20, blank=True, null=True)
-    job_title = models.CharField(max_length=100)
-    department = models.CharField(max_length=100, blank=True, null=True)
-    
-    # Contact preferences
-    preferred_contact_method = models.CharField(max_length=20, choices=PREFERRED_CONTACT_METHOD, default='email')
-    preferred_contact_time = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., 'Mornings only', '9-5 GMT'")
-    do_not_contact = models.BooleanField(default=False)
-    out_of_office_until = models.DateField(null=True, blank=True)
-    teams_id = models.CharField(max_length=100, blank=True, null=True)
-    whatsapp_number = models.CharField(max_length=20, blank=True, null=True)
-    
-    # Contact roles
-    is_primary_contact = models.BooleanField(default=False)
-    is_primary_finance_contact = models.BooleanField(default=False)
-    is_primary_hr_contact = models.BooleanField(default=False)
-    is_primary_it_contact = models.BooleanField(default=False)
-    is_travel_booker_contact = models.BooleanField(default=False)
-    is_traveller_contact = models.BooleanField(default=False)
-    is_vip_traveller_contact = models.BooleanField(default=False)
-    
-    # Additional fields
-    notes = models.TextField(blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    hospitality = models.CharField(max_length=100, blank=True, null=True)  # Placeholder for now
+    tag_list = models.JSONField(default=list)  # Store tags as a list of strings
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='contacts_created')
-    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='contacts_updated')
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.company})"
+        return f"{self.first_name} {self.last_name}"
+
+    def get_available_tags(self):
+        """Return available tags based on company type"""
+        if self.company.company_type == 'Client':
+            return dict(self.CONTACT_TAG_CHOICES)
+        return dict(self.SUPPLIER_TAG_CHOICES)
 
     def clean(self):
-        # Email validation
-        if self.email:
-            try:
-                validate_email(self.email)
-            except ValidationError:
-                raise ValidationError({'email': 'Please enter a valid email address.'})
-        
-        # Phone validation (basic format)
-        if self.phone and not re.match(r'^\+?1?\d{9,15}$', self.phone):
-            raise ValidationError({'phone': 'Phone number must be between 9 and 15 digits.'})
-        
-        if self.mobile and not re.match(r'^\+?1?\d{9,15}$', self.mobile):
-            raise ValidationError({'mobile': 'Mobile number must be between 9 and 15 digits.'})
+        """Validate phone numbers if provided"""
+        if self.landline:
+            if not re.match(r'^\+?1?\d{9,15}$', self.landline):
+                raise ValidationError('Invalid landline number format')
+        if self.mobile:
+            if not re.match(r'^\+?1?\d{9,15}$', self.mobile):
+                raise ValidationError('Invalid mobile number format')
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        self.clean()
         super().save(*args, **kwargs)
 
+class ContactNote(models.Model):
+    """
+    Represents a note associated with a contact.
+    """
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='notes')
+    content = models.TextField()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Note for {self.contact} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 
 class ClientTravelPolicy(models.Model):
     """

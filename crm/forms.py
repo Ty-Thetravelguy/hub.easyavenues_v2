@@ -1,6 +1,9 @@
 from django import forms
 from django.db import models
-from .models import Company, Contact, ClientProfile, SupplierProfile, TransactionFee, INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship
+from .models import (
+    Company, Contact, ClientProfile, SupplierProfile, TransactionFee,
+    INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote
+)
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -248,26 +251,54 @@ class ContactForm(forms.ModelForm):
     class Meta:
         model = Contact
         fields = [
-            'first_name', 'last_name', 'email', 'phone', 'mobile',
-            'job_title', 'department', 'preferred_contact_method',
-            'preferred_contact_time', 'do_not_contact', 'out_of_office_until',
-            'teams_id', 'whatsapp_number', 'is_primary_contact',
-            'is_primary_finance_contact', 'is_primary_hr_contact',
-            'is_primary_it_contact', 'is_travel_booker_contact',
-            'is_traveller_contact', 'is_vip_traveller_contact',
-            'notes'
+            'first_name', 'last_name', 'job_role', 'email',
+            'landline', 'mobile', 'date_of_birth', 'hospitality'
         ]
         widgets = {
-            'notes': forms.Textarea(attrs={'rows': 4}),
-            'out_of_office_until': forms.DateInput(attrs={'type': 'date'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'job_role': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'landline': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+1234567890'}),
+            'mobile': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+1234567890'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'hospitality': forms.TextInput(attrs={'class': 'form-control'})
         }
 
+    tags = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'})
+    )
+
     def __init__(self, *args, **kwargs):
+        company = kwargs.pop('company', None)
         super().__init__(*args, **kwargs)
-        # Add Bootstrap classes to all fields
-        for field in self.fields:
-            if not isinstance(self.fields[field].widget, (forms.CheckboxInput, forms.RadioSelect)):
-                self.fields[field].widget.attrs.update({'class': 'form-control'})
+        
+        if company:
+            # Set available tags based on company type
+            if company.company_type == 'Client':
+                self.fields['tags'].choices = Contact.CONTACT_TAG_CHOICES
+            else:
+                self.fields['tags'].choices = Contact.SUPPLIER_TAG_CHOICES
+
+            # Set initial tags if editing
+            if self.instance.pk:
+                self.fields['tags'].initial = self.instance.tag_list
+
+    def save(self, commit=True):
+        contact = super().save(commit=False)
+        contact.tag_list = self.cleaned_data.get('tags', [])
+        if commit:
+            contact.save()
+        return contact
+
+class ContactNoteForm(forms.ModelForm):
+    class Meta:
+        model = ContactNote
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
+        }
 
 class TransactionFeeForm(forms.ModelForm):
     class Meta:

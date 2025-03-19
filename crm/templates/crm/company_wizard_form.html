@@ -95,7 +95,7 @@
                                            id="id_{{ wizard.steps.current }}-client_account_manager" 
                                            value="{{ field.value.id|default:'' }}">
                                 {% elif field.name == 'invoice_reference_options' %}
-                                    {% if wizard.steps.current == 'client_profile' %}
+                                    {% if wizard.steps.current == 'profile' %}
                                     <div class="border rounded p-3">
                                         <button type="button" class="btn btn-outline-primary mb-3" data-bs-toggle="modal" data-bs-target="#invoiceReferenceModal">
                                             <i class="fas fa-list"></i> Select Invoice References
@@ -106,7 +106,7 @@
                                                 {{ reference.name }}
                                                 {% with client_refs=reference.clientinvoicereference_set.all %}
                                                     {% for client_ref in client_refs %}
-                                                        {% if client_ref.client_profile.company == wizard.instance %}
+                                                        {% if client_ref.client_profile and client_ref.client_profile.company %}
                                                             <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-1">
                                                                 {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
                                                             </span>

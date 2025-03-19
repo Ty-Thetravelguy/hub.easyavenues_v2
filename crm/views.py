@@ -1,16 +1,16 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship
+from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote
 from accounts.models import InvoiceReference
 from django.urls import reverse_lazy
 from formtools.wizard.views import SessionWizardView
 from django.shortcuts import redirect
 from django.contrib import messages
 from django import forms
-from .forms import CompanyForm, CompanyRelationshipForm
+from .forms import CompanyForm, CompanyRelationshipForm, ContactForm
 from django.contrib.auth import get_user_model
 from accounts.models import Team
 import json
@@ -32,28 +32,53 @@ class CompanyListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        queryset = Company.objects.all()
+        show_contacts = self.request.GET.get('view') == 'contacts'
         
-        # Filter by company type
-        company_type = self.request.GET.get('type')
-        if company_type in ['Client', 'Supplier']:
-            queryset = queryset.filter(company_type=company_type)
+        if show_contacts:
+            queryset = Contact.objects.all().select_related('company')
+        else:
+            queryset = Company.objects.all()
+        
+        # Filter by company type (only for companies view)
+        if not show_contacts:
+            company_type = self.request.GET.get('type')
+            if company_type in ['Client', 'Supplier']:
+                queryset = queryset.filter(company_type=company_type)
 
         # Search functionality
         search_query = self.request.GET.get('search')
         if search_query:
-            queryset = queryset.filter(
-                Q(company_name__icontains=search_query) |
-                Q(industry__icontains=search_query) |
-                Q(email__icontains=search_query) |
-                Q(city__icontains=search_query) |
-                Q(country__icontains=search_query)
-            )
+            if show_contacts:
+                queryset = queryset.filter(
+                    Q(first_name__icontains=search_query) |
+                    Q(last_name__icontains=search_query) |
+                    Q(email__icontains=search_query) |
+                    Q(job_role__icontains=search_query) |
+                    Q(company__company_name__icontains=search_query)
+                )
+            else:
+                queryset = queryset.filter(
+                    Q(company_name__icontains=search_query) |
+                    Q(industry__icontains=search_query) |
+                    Q(email__icontains=search_query) |
+                    Q(city__icontains=search_query) |
+                    Q(country__icontains=search_query)
+                )
 
+        if show_contacts:
+            return queryset.order_by('-created_at')
         return queryset.order_by('-create_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        show_contacts = self.request.GET.get('view') == 'contacts'
+        
+        if show_contacts:
+            context['contacts'] = self.get_queryset()
+            context['show_contacts'] = True
+        else:
+            context['show_contacts'] = False
+            
         context['company_type'] = self.request.GET.get('type', '')
         context['search_query'] = self.request.GET.get('search', '')
         return context
@@ -113,37 +138,45 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
 
 class ContactCreateView(LoginRequiredMixin, CreateView):
     model = Contact
+    form_class = ContactForm
     template_name = 'crm/contact_form.html'
-    fields = [
-        'first_name', 'last_name', 'job_title', 'email',
-        'phone_number', 'mobile_number', 'preferred_contact_method',
-        'preferred_contact_time', 'do_not_contact', 'teams_id',
-        'whatsapp_number'
-    ]
+    success_url = reverse_lazy('crm:company_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        company_id = self.kwargs.get('company_id')
+        if company_id:
+            try:
+                company = Company.objects.get(id=company_id)
+                kwargs['company'] = company
+            except Company.DoesNotExist:
+                messages.error(self.request, "Company not found. Please create the company first.")
+                return redirect('crm:company_list')
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        company_id = self.kwargs.get('company_id')
+        if company_id:
+            try:
+                company = Company.objects.get(id=company_id)
+                form.instance.company = company
+            except Company.DoesNotExist:
+                messages.error(self.request, "Company not found. Please create the company first.")
+                return redirect('crm:company_list')
+        messages.success(self.request, "Contact created successfully.")
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        company_pk = self.kwargs.get('company_pk')
-        if company_pk:
-            company = Company.objects.get(pk=company_pk)
-            context['company'] = company
-            context['title'] = f"Add Contact to {company.company_name}"
-        else:
-            context['title'] = "Add New Contact"
-        context['submit_text'] = "Create Contact"
+        company_id = self.kwargs.get('company_id')
+        if company_id:
+            try:
+                context['company'] = Company.objects.get(id=company_id)
+            except Company.DoesNotExist:
+                messages.error(self.request, "Company not found. Please create the company first.")
+                return redirect('crm:company_list')
         return context
-
-    def form_valid(self, form):
-        company_pk = self.kwargs.get('company_pk')
-        if company_pk:
-            form.instance.company_id = company_pk
-        messages.success(self.request, f"Contact {form.instance.get_full_name()} has been created successfully.")
-        return super().form_valid(form)
-
-    def get_success_url(self):
-        if self.object.company:
-            return reverse_lazy('crm:company_detail', kwargs={'pk': self.object.company.pk})
-        return reverse_lazy('crm:company_list')
 
 class CompanyTypeForm(forms.Form):
     company_type = forms.ChoiceField(
@@ -275,21 +308,25 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
         basic_data = self.get_cleaned_data_for_step('basic')
         profile_data = self.get_cleaned_data_for_step('profile')
 
-        # Create the company with the agency
-        company = Company.objects.create(
-            company_type=type_data['company_type'],
-            agency=self.request.user.business,  # Set the agency from the logged-in user's business
-            **basic_data
-        )
+        try:
+            # Create the company with the agency
+            company = Company.objects.create(
+                company_type=type_data['company_type'],
+                agency=self.request.user.business,  # Set the agency from the logged-in user's business
+                **basic_data
+            )
 
-        # Create the appropriate profile
-        if type_data['company_type'] == 'Client':
-            ClientProfile.objects.create(company=company, **profile_data)
-        else:
-            SupplierProfile.objects.create(company=company, **profile_data)
+            # Create the appropriate profile
+            if type_data['company_type'] == 'Client':
+                ClientProfile.objects.create(company=company, **profile_data)
+            else:
+                SupplierProfile.objects.create(company=company, **profile_data)
 
-        messages.success(self.request, f"Successfully created {company.company_name}")
-        return redirect('crm:company_detail', pk=company.pk)
+            messages.success(self.request, f"Successfully created {company.company_name}")
+            return redirect('crm:company_detail', pk=company.pk)
+        except Exception as e:
+            messages.error(self.request, f"Error creating company: {str(e)}")
+            return redirect('crm:company_list')
 
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
@@ -651,4 +688,94 @@ def hubspot_setup_guide(request):
     Display a guide for setting up the HubSpot integration.
     """
     return render(request, 'crm/hubspot_setup_guide.html')
+
+class ContactListView(LoginRequiredMixin, ListView):
+    model = Contact
+    template_name = 'crm/contact_list.html'
+    context_object_name = 'contacts'
+    paginate_by = 25
+
+    def get_queryset(self):
+        queryset = Contact.objects.all().select_related('company')
+        
+        # Filter by company if specified
+        company_id = self.request.GET.get('company')
+        if company_id:
+            queryset = queryset.filter(company_id=company_id)
+
+        # Search functionality
+        search_query = self.request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(job_role__icontains=search_query) |
+                Q(company__company_name__icontains=search_query)
+            )
+
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_query'] = self.request.GET.get('search', '')
+        context['company_id'] = self.request.GET.get('company', '')
+        if context['company_id']:
+            try:
+                context['company'] = Company.objects.get(id=context['company_id'])
+            except Company.DoesNotExist:
+                context['company'] = None
+        return context
+
+class ContactDetailView(LoginRequiredMixin, DetailView):
+    model = Contact
+    template_name = 'crm/contact_detail.html'
+    context_object_name = 'contact'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'activities': self.object.activities.all().order_by('-performed_at'),
+            'notes': self.object.notes.all().order_by('-created_at')
+        })
+        return context
+
+class ContactUpdateView(LoginRequiredMixin, UpdateView):
+    model = Contact
+    form_class = ContactForm
+    template_name = 'crm/contact_form.html'
+
+    def get_success_url(self):
+        return reverse_lazy('crm:contact_detail', kwargs={'pk': self.object.pk})
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['company'] = self.object.company
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Contact {self.object.first_name} {self.object.last_name} has been updated successfully.")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f"Update {self.object.first_name} {self.object.last_name}"
+        context['submit_text'] = "Update Contact"
+        return context
+
+@login_required
+def contact_add_note(request, pk):
+    contact = get_object_or_404(Contact, pk=pk)
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        if content:
+            ContactNote.objects.create(
+                contact=contact,
+                content=content,
+                created_by=request.user
+            )
+            messages.success(request, 'Note added successfully.')
+        else:
+            messages.error(request, 'Note content cannot be empty.')
+    return redirect('crm:contact_detail', pk=pk)
 
