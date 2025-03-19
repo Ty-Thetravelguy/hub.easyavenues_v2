@@ -635,76 +635,8 @@
 
 {% block extra_js %}
 {{ block.super }}
-<script src="{% static 'js/invoice_remarks.js' %}"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
-<script>
-    $(document).ready(function() {
-        // Initialize DataTable
-        $('#company-contacts-table').DataTable({
-            pageLength: 10,
-            order: [[0, 'asc']],
-            columnDefs: [
-                { orderable: false, targets: -1 }
-            ],
-            language: {
-                search: "Search contacts:",
-                searchPlaceholder: "Name, role, email...",
-                zeroRecords: "No matching contacts found",
-                info: "Showing _START_ to _END_ of _TOTAL_ contacts",
-                infoEmpty: "No contacts available",
-                infoFiltered: "(filtered from _MAX_ total contacts)",
-                paginate: {
-                    first: "First",
-                    last: "Last",
-                    next: "Next",
-                    previous: "Previous"
-                }
-            }
-        });
-
-        // Function to activate tab based on hash
-        function activateTabFromHash() {
-            let hash = window.location.hash;
-            if (hash) {
-                hash = hash.substring(1);  // remove the # symbol
-                console.log('Activating tab:', hash); // Debug log
-                
-                // Remove active class from all tabs and panes
-                $('.nav-link').removeClass('active');
-                $('.tab-pane').removeClass('show active');
-
-                // Find and activate the target tab
-                const targetTab = $(`#${hash}-tab`);
-                const targetPane = $(`#${hash}`);
-                
-                if (targetTab.length && targetPane.length) {
-                    targetTab.addClass('active');
-                    targetPane.addClass('show active');
-                    console.log('Tab activated successfully'); // Debug log
-                } else {
-                    console.warn('Tab or pane not found:', hash); // Debug log
-                }
-            }
-        }
-
-        // Activate tab on page load
-        activateTabFromHash();
-
-        // Listen for hash changes
-        $(window).on('hashchange', activateTabFromHash);
-
-        // Update hash when tab is clicked
-        $('a[data-bs-toggle="tab"]').on('click', function (event) {
-            const hash = $(this).attr('href');
-            if (history.pushState) {
-                history.pushState(null, null, hash);
-            } else {
-                window.location.hash = hash;
-            }
-        });
-    });
-</script>
+<script src="{% static 'js/company_detail.js' %}"></script>
+<script src="{% static 'js/tab_handler.js' %}"></script>
 {% endblock %}
 
 {% include 'crm/includes/invoice_remarks_modal.html' %} 
