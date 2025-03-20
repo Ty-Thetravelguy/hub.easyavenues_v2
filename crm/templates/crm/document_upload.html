@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_detail' company.id %}">{{ company.company_name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Upload Document</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-blue-purple-left text-white py-3">
+                    <h5 class="mb-0">Upload Document for {{ company.company_name }}</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{% url 'crm:document_upload' company.id %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="document_title" class="form-label">Document Title*</label>
+                                <input type="text" class="form-control" id="document_title" name="title" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="document_type" class="form-label">Document Type*</label>
+                                <select class="form-select" id="document_type" name="document_type" required>
+                                    <option value="" selected disabled>Select document type</option>
+                                    {% for value, label in document_types %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="document_file" class="form-label">File*</label>
+                                <input type="file" class="form-control" id="document_file" name="file" 
+                                       accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods" required>
+                                <div class="form-text">
+                                    Upload PDF, Word, Excel, PowerPoint, or other document files. Maximum file size: 10MB.<br>
+                                    Allowed formats: PDF, Word (doc/docx), Excel (xls/xlsx), PowerPoint (ppt/pptx), 
+                                    Text (txt/rtf), CSV, OpenDocument (odt/ods).
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="expiry_date" class="form-label">Expiry Date (Optional)</label>
+                                <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="document_version" class="form-label">Version (Optional)</label>
+                                <input type="text" class="form-control" id="document_version" name="version">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="document_description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="document_description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'crm:company_detail' company.id %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Company
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>Upload Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

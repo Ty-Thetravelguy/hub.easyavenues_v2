@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'users.apps.UsersConfig',
     'formtools',
+    'storages',
+
 
     # Allauth
     "allauth",
@@ -217,6 +219,22 @@ AUTHENTICATION_BACKENDS = [
 
 # Disable social login providers
 SOCIALACCOUNT_PROVIDERS = {}
+
+
+# S3 Storage Configuration
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = 'easyavenues-hub-documents'
+AWS_S3_REGION_NAME = 'eu-west-2' 
+AWS_S3_FILE_OVERWRITE = False  # Don't overwrite files with the same name
+AWS_DEFAULT_ACL = 'private'  # Keep files private
+AWS_S3_CUSTOM_DOMAIN = None  # Don't use a custom domain
+
+# File size limits
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+
 
 LOGGING = {
     'version': 1,

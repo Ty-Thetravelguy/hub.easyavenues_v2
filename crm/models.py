@@ -418,6 +418,26 @@ class Document(models.Model):
             return False
         from datetime import date
         return self.expiry_date < date.today()
+        
+    def delete(self, *args, **kwargs):
+        """
+        Override delete method to clean up the file from storage
+        """
+        # Delete the file from storage
+        if self.file and hasattr(self.file, 'storage'):
+            try:
+                storage = self.file.storage
+                name = self.file.name
+                if storage.exists(name):
+                    storage.delete(name)
+            except Exception as e:
+                # Log the error but continue with deletion
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error deleting document file: {e}")
+        
+        # Call the parent delete method
+        super().delete(*args, **kwargs)
 
 class Activity(models.Model):
     """

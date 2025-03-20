@@ -19,6 +19,7 @@ from .utils import hubspot_api
 from django.conf import settings
 import requests
 import re
+import os
 
 # Create your views here.
 
@@ -792,6 +793,26 @@ def document_upload(request, company_id):
         return redirect('crm:company_detail', pk=company_id)
     
     if request.method == 'POST':
+        # Validate file size (limit to 10MB)
+        if 'file' in request.FILES:
+            file = request.FILES['file']
+            
+            # Size validation
+            if file.size > 10 * 1024 * 1024:  # 10MB in bytes
+                messages.error(request, "File size exceeds the 10MB limit. Please upload a smaller file.")
+                return redirect('crm:document_upload', company_id=company_id)
+            
+            # File type validation
+            ext = os.path.splitext(file.name)[1].lower()
+            allowed_extensions = [
+                '.pdf', '.doc', '.docx', '.xls', '.xlsx', 
+                '.ppt', '.pptx', '.txt', '.csv', '.rtf', '.odt', '.ods'
+            ]
+            
+            if ext not in allowed_extensions:
+                messages.error(request, f"Unsupported file type. Allowed file types: {', '.join(allowed_extensions)}")
+                return redirect('crm:document_upload', company_id=company_id)
+                
         # Create a new document
         document = Document(
             company=company,
@@ -819,8 +840,14 @@ def document_upload(request, company_id):
         )
         
         messages.success(request, f"Document '{document.title}' uploaded successfully.")
+        return redirect('crm:company_detail', pk=company_id)
     
-    return redirect('crm:company_detail', pk=company_id)
+    # Handle GET request - render a form
+    context = {
+        'company': company,
+        'document_types': Document.DOCUMENT_TYPES
+    }
+    return render(request, 'crm/document_upload.html', context)
 
 @login_required
 def document_delete(request, document_id):
@@ -833,6 +860,11 @@ def document_delete(request, document_id):
     # Check if user has permission (superuser, admin, or marketing)
     if request.user.role not in ['superuser', 'admin', 'marketing']:
         messages.error(request, "You don't have permission to delete documents.")
+        return redirect('crm:company_detail', pk=company_id)
+    
+    # Only allow POST requests for deletion
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method for document deletion.")
         return redirect('crm:company_detail', pk=company_id)
     
     document_title = document.title
