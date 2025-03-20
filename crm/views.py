@@ -927,9 +927,8 @@ def travel_policy_create(request, company_id):
             
             # Create activity log
             Activity.objects.create(
-                activity_type='CREATE',
-                title=f"Created travel policy '{policy.policy_name}'",
-                description=f"A new travel policy was created for {company.company_name}.",
+                activity_type='policy_update',
+                description=f"Created travel policy '{policy.policy_name}' for {company.company_name}.",
                 performed_by=request.user,
                 company=company
             )
@@ -998,9 +997,8 @@ def travel_policy_update(request, policy_id):
             
             # Create activity log
             Activity.objects.create(
-                activity_type='UPDATE',
-                title=f"Updated travel policy '{policy.policy_name}'",
-                description=f"Travel policy was updated for {company.company_name}.",
+                activity_type='policy_update',
+                description=f"Updated travel policy '{policy.policy_name}' for {company.company_name}.",
                 performed_by=request.user,
                 company=company
             )
@@ -1034,9 +1032,8 @@ def travel_policy_delete(request, policy_id):
         
         # Create activity log before deletion
         Activity.objects.create(
-            activity_type='DELETE',
-            title=f"Deleted travel policy '{policy_name}'",
-            description=f"Travel policy was deleted from {company.company_name}.",
+            activity_type='policy_update',
+            description=f"Deleted travel policy '{policy_name}' from {company.company_name}.",
             performed_by=request.user,
             company=company
         )

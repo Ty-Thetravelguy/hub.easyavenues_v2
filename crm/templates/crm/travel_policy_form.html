@@ -85,13 +85,20 @@
 
                         <div class="row mb-4">
                             <div class="col-md-12">
-                                <label class="form-label">VIP Travelers</label>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-
-                                    <button type="button" id="select-all-vips" class="btn btn-sm btn-outline-warning text-end">
-                                        <i class="fas fa-star me-1"></i>Select All VIPs
-                                    </button>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            VIP Travelers 
+                                    <i class="fas fa-search text-muted ms-1" style="font-size: 0.8em;" title="Search and select travelers"></i>
+                                </label>
+                                    </div>
+                                    <div class="col-md-6 text-end mb-2">  
+                                        <button type="button" id="select-all-vips" class="btn btn-sm btn-outline-warning ms-auto">
+                                            <i class="fas fa-star me-1"></i>Select All VIPs
+                                        </button>
+                                    </div>
                                 </div>
+
                                 <select name="vip_travelers" id="vip_travelers" class="form-select select2" multiple>
                                     <optgroup label="VIP Travelers">
                                         {% for contact in company_contacts %}
@@ -112,7 +119,7 @@
                                         {% endfor %}
                                     </optgroup>
                                 </select>
-                                <div class="form-text mt-1 p-2 border-start border-primary border-3 bg-light fw-bold">
+                                <div class="form-text mt-2 p-2 border-start border-primary border-3 bg-light fw-bold">
                                     <i class="fas fa-info-circle text-primary me-1"></i>
                                     Search for and select travelers who need to be associated with this policy. VIP travelers are shown at the top.
                                 </div>
@@ -250,6 +257,20 @@
                 }
             }
         });
+
+        // Force placeholder to be properly positioned on load
+        setTimeout(function() {
+            // Adjust placeholder position and styling
+            $('.select2-search__field').css({
+                'margin': '0',
+                'padding': '0.5rem',
+                'height': '34px',
+                'line-height': '34px'
+            });
+            
+            // Focus on the placeholder text field so it's immediately visible
+            $('.select2-search__field').focus().blur();
+        }, 200);
 
         // Show a tooltip for a few seconds when the page loads
 
@@ -496,6 +517,26 @@
     .select2-container--bootstrap4.select2-container--focus .select2-selection {
         box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
         border-color: #80bdff !important;
+    }
+    /* Fix placeholder positioning */
+    .select2-container--bootstrap4 .select2-selection--multiple .select2-search__field {
+        margin: 0 !important;
+        padding: 0.5rem !important;
+        width: 100% !important;
+        height: 34px;
+        line-height: 34px;
+    }
+    
+    /* Improve the container height */
+    .select2-container--bootstrap4 .select2-selection--multiple {
+        min-height: 20px;
+    }
+    
+    /* Fix placeholder text display */
+    .select2-container--bootstrap4 .select2-selection--multiple .select2-search--inline {
+        height: 12px;
+        display: inline-flex;
+        align-items: center;
     }
 </style>
 {% endblock %} 
