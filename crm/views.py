@@ -3,7 +3,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote
+from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote, Document, Activity
 from accounts.models import InvoiceReference
 from django.urls import reverse_lazy
 from formtools.wizard.views import SessionWizardView
@@ -778,4 +778,76 @@ def contact_add_note(request, pk):
         else:
             messages.error(request, 'Note content cannot be empty.')
     return redirect('crm:contact_detail', pk=pk)
+
+@login_required
+def document_upload(request, company_id):
+    """
+    Handle document uploads for a company
+    """
+    company = get_object_or_404(Company, id=company_id)
+    
+    # Check if user has permission (superuser, admin, or marketing)
+    if request.user.role not in ['superuser', 'admin', 'marketing']:
+        messages.error(request, "You don't have permission to upload documents.")
+        return redirect('crm:company_detail', pk=company_id)
+    
+    if request.method == 'POST':
+        # Create a new document
+        document = Document(
+            company=company,
+            title=request.POST['title'],
+            document_type=request.POST['document_type'],
+            file=request.FILES['file'],
+            uploaded_by=request.user,
+            description=request.POST.get('description', ''),
+            version=request.POST.get('version', '')
+        )
+        
+        # Handle expiry date if provided
+        expiry_date = request.POST.get('expiry_date')
+        if expiry_date:
+            document.expiry_date = expiry_date
+            
+        document.save()
+        
+        # Create activity record for document upload
+        Activity.objects.create(
+            company=company,
+            activity_type='document',
+            description=f"Uploaded document: {document.title}",
+            performed_by=request.user
+        )
+        
+        messages.success(request, f"Document '{document.title}' uploaded successfully.")
+    
+    return redirect('crm:company_detail', pk=company_id)
+
+@login_required
+def document_delete(request, document_id):
+    """
+    Delete a document
+    """
+    document = get_object_or_404(Document, id=document_id)
+    company_id = document.company.id
+    
+    # Check if user has permission (superuser, admin, or marketing)
+    if request.user.role not in ['superuser', 'admin', 'marketing']:
+        messages.error(request, "You don't have permission to delete documents.")
+        return redirect('crm:company_detail', pk=company_id)
+    
+    document_title = document.title
+    
+    # Delete the document
+    document.delete()
+    
+    # Create activity record for document deletion
+    Activity.objects.create(
+        company=document.company,
+        activity_type='document',
+        description=f"Deleted document: {document_title}",
+        performed_by=request.user
+    )
+    
+    messages.success(request, f"Document '{document_title}' deleted successfully.")
+    return redirect('crm:company_detail', pk=company_id)
 

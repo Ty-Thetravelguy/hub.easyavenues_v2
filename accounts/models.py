@@ -76,7 +76,7 @@ class CustomUser(AbstractUser):
             self.is_staff = True
         else:  # marketing
             self.is_superuser = False
-            self.is_staff = False
+            self.is_staff = True
             
         # Call parent save
         super(CustomUser, self).save(*args, **kwargs) 

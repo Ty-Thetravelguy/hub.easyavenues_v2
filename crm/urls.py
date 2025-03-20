@@ -18,6 +18,10 @@ urlpatterns = [
     path('company/<int:company_id>/relationships/', views.manage_company_relationships, name='manage_company_relationships'),
     path('company/relationship/<int:relationship_id>/delete/', views.delete_company_relationship, name='delete_company_relationship'),
     
+    # Document Management
+    path('company/<int:company_id>/documents/upload/', views.document_upload, name='document_upload'),
+    path('documents/<int:document_id>/delete/', views.document_delete, name='document_delete'),
+    
     # HubSpot Integration
     path('hubspot/search/', views.hubspot_search, name='hubspot_search'),
     path('hubspot/company/<str:hubspot_id>/', views.hubspot_company_detail, name='hubspot_company_detail'),

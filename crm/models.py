@@ -410,6 +410,14 @@ class Document(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.company.company_name}"
+        
+    @property
+    def is_expired(self):
+        """Check if the document has expired"""
+        if not self.expiry_date:
+            return False
+        from datetime import date
+        return self.expiry_date < date.today()
 
 class Activity(models.Model):
     """
