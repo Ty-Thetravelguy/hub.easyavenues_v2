@@ -1,13 +1,31 @@
 /* Table sorting styles */
 
-/* Hide DataTables sort indicators completely */
+/* Hide DataTables sort indicators completely - extremely aggressive selectors */
 table.dataTable thead .sorting:before,
 table.dataTable thead .sorting:after,
 table.dataTable thead .sorting_asc:before,
 table.dataTable thead .sorting_asc:after,
 table.dataTable thead .sorting_desc:before,
-table.dataTable thead .sorting_desc:after {
+table.dataTable thead .sorting_desc:after,
+table.dataTable thead th.sorting:before,
+table.dataTable thead th.sorting:after,
+table.dataTable thead th.sorting_asc:before,
+table.dataTable thead th.sorting_asc:after,
+table.dataTable thead th.sorting_desc:before,
+table.dataTable thead th.sorting_desc:after,
+.dataTable thead::before,
+.dataTable thead::after,
+.dataTable th::before,
+.dataTable th::after,
+table.dataTable thead th::before,
+table.dataTable thead th::after {
     display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
 }
 
 /* Remove DataTables default classes and styling */
@@ -18,8 +36,12 @@ table.dataTable thead .sorting_desc:after {
 }
 
 /* Force remove all background images from th elements */
-table.dataTable thead th {
+table.dataTable thead th,
+table.dataTable thead th.sorting,
+table.dataTable thead th.sorting_asc,
+table.dataTable thead th.sorting_desc {
     background-image: none !important;
+    background: none !important;
 }
 
 /* Override all DataTables sorting styles completely */
@@ -48,20 +70,19 @@ table.dataTable thead th {
 
 /* Add spacing to make room for the icon */
 table.dataTable thead th {
-    padding-left: 24px;
+    padding-left: 10px;
     position: relative;
 }
 
 /* Position the icon on the left side of the text */
 table.dataTable thead th .sort-icon {
-    position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
+    position: relative;
+    margin-right: 8px;
+    display: inline-block;
 }
 
-/* Purple color for the active sort column */
+/* Black color for the active sort column */
 table.dataTable thead th.sorting_asc .sort-icon, 
 table.dataTable thead th.sorting_desc .sort-icon {
-    color: #444a9f; /* Purple color */
+    color: #000; /* Black color for active sort */
 } 

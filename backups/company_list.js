@@ -28,6 +28,17 @@ $(document).ready(function() {
         if (table.length) {
             console.log('⚙️ Configuring ' + tableType + ' table');
             
+            // Add sort icons to each header before initialization
+            table.find('th').each(function(index) {
+                // Skip the last column (Actions)
+                if (index < table.find('th').length - 1) {
+                    // Only add icon if it doesn't already exist
+                    if ($(this).find('.sort-icon').length === 0) {
+                        $(this).prepend('<i class="fas fa-sort sort-icon"></i>');
+                    }
+                }
+            });
+            
             // Initialize DataTable with all features
             var dataTable = table.DataTable({
                 "pageLength": 25,

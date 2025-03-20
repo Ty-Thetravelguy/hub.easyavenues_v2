@@ -56,20 +56,19 @@ table.dataTable thead th {
 
 /* Add spacing to make room for the icon */
 table.dataTable thead th {
-    padding-left: 24px;
+    padding-left: 10px;
     position: relative;
 }
 
 /* Position the icon on the left side of the text */
 table.dataTable thead th .sort-icon {
-    position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
+    position: relative;
+    margin-right: 8px;
+    display: inline-block;
 }
 
-/* Purple color for the active sort column */
+/* Black color for the active sort column */
 table.dataTable thead th.sorting_asc .sort-icon, 
 table.dataTable thead th.sorting_desc .sort-icon {
-    color: #444a9f; /* Purple color */
+    color: #000; /* Black color for active sort */
 } 

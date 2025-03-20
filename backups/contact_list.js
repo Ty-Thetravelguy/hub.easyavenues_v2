@@ -8,6 +8,17 @@ $(document).ready(function() {
     if (contactsTable.length) {
         console.log('⚙️ Configuring contact DataTable');
         
+        // Add sort icons to each header before initialization
+        contactsTable.find('th').each(function(index) {
+            // Skip the last column (Actions)
+            if (index < contactsTable.find('th').length - 1) {
+                // Only add icon if it doesn't already exist
+                if ($(this).find('.sort-icon').length === 0) {
+                    $(this).prepend('<i class="fas fa-sort sort-icon"></i>');
+                }
+            }
+        });
+        
         // Initialize DataTable with all features
         var dataTable = contactsTable.DataTable({
             "pageLength": 25,
