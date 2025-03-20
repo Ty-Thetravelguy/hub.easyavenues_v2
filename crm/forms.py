@@ -384,7 +384,7 @@ class TravelPolicyForm(forms.ModelForm):
     Form for creating and updating travel policies.
     """
     effective_date = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date'}),
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         initial=datetime.date.today
     )
     
@@ -396,6 +396,8 @@ class TravelPolicyForm(forms.ModelForm):
             'car_hire_notes', 'transfer_notes', 'rail_notes', 'other_notes'
         ]
         widgets = {
+            'policy_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'travel_policy': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'flight_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'accommodation_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),

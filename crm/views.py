@@ -895,8 +895,21 @@ def travel_policy_create(request, company_id):
         messages.error(request, "Travel policies can only be created for client companies.")
         return redirect('crm:company_detail', pk=company_id)
     
-    # Get all contacts from this company who might be VIP travelers
-    company_contacts = company.contacts.all()
+    # Get all contacts from this company
+    company_contacts = company.contacts.all().order_by('first_name', 'last_name')
+    
+    # Separate VIP travelers from regular contacts for better organization in the dropdown
+    vip_travelers = []
+    other_contacts = []
+    
+    for contact in company_contacts:
+        if 'vip_traveller' in contact.tag_list:
+            vip_travelers.append(contact)
+        else:
+            other_contacts.append(contact)
+    
+    # Combine lists with VIP travelers first
+    organized_contacts = vip_travelers + other_contacts
     
     if request.method == 'POST':
         form = TravelPolicyForm(request.POST)
@@ -928,9 +941,10 @@ def travel_policy_create(request, company_id):
     context = {
         'form': form,
         'company': company,
-        'company_contacts': company_contacts,
+        'company_contacts': organized_contacts,
         'title': 'Create Travel Policy',
-        'submit_text': 'Create Policy'
+        'submit_text': 'Create Policy',
+        'vip_travelers': vip_travelers  # Pass VIP travelers separately for special styling
     }
     
     return render(request, 'crm/travel_policy_form.html', context)
@@ -955,8 +969,21 @@ def travel_policy_update(request, policy_id):
     policy = get_object_or_404(ClientTravelPolicy, id=policy_id)
     company = policy.client
     
-    # Get all contacts from this company who might be VIP travelers
-    company_contacts = company.contacts.all()
+    # Get all contacts from this company
+    company_contacts = company.contacts.all().order_by('first_name', 'last_name')
+    
+    # Separate VIP travelers from regular contacts for better organization in the dropdown
+    vip_travelers = []
+    other_contacts = []
+    
+    for contact in company_contacts:
+        if 'vip_traveller' in contact.tag_list:
+            vip_travelers.append(contact)
+        else:
+            other_contacts.append(contact)
+    
+    # Combine lists with VIP travelers first
+    organized_contacts = vip_travelers + other_contacts
     
     if request.method == 'POST':
         form = TravelPolicyForm(request.POST, instance=policy)
@@ -986,10 +1013,11 @@ def travel_policy_update(request, policy_id):
         'form': form,
         'policy': policy,
         'company': company,
-        'company_contacts': company_contacts,
+        'company_contacts': organized_contacts,
         'title': f"Edit Travel Policy: {policy.policy_name}",
         'submit_text': 'Update Policy',
-        'selected_vip_travelers': policy.vip_travelers.values_list('id', flat=True)
+        'selected_vip_travelers': policy.vip_travelers.values_list('id', flat=True),
+        'vip_travelers': vip_travelers  # Pass VIP travelers separately for special styling
     }
     
     return render(request, 'crm/travel_policy_form.html', context)
