@@ -2,9 +2,11 @@ from django import forms
 from django.db import models
 from .models import (
     Company, Contact, ClientProfile, SupplierProfile, TransactionFee,
-    INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote
+    INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote,
+    ClientTravelPolicy, Document
 )
 from django.contrib.auth import get_user_model
+import datetime
 
 User = get_user_model()
 
@@ -316,6 +318,26 @@ class TransactionFeeForm(forms.ModelForm):
             if not isinstance(self.fields[field].widget, (forms.CheckboxInput, forms.RadioSelect)):
                 self.fields[field].widget.attrs.update({'class': 'form-control'})
 
+class ManageRelationshipsForm(forms.Form):
+    """
+    Form for managing company relationships.
+    """
+    relationship_type = forms.ChoiceField(
+        choices=CompanyRelationship.RELATIONSHIP_TYPES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    to_company = forms.ModelChoiceField(
+        queryset=Company.objects.all(),
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    description = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'})
+    )
+
+# Form for company relationships
 class CompanyRelationshipForm(forms.ModelForm):
     class Meta:
         model = CompanyRelationship
@@ -325,7 +347,7 @@ class CompanyRelationshipForm(forms.ModelForm):
             'relationship_type': forms.Select(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
-    
+
     def __init__(self, *args, **kwargs):
         self.from_company = kwargs.pop('from_company', None)
         super().__init__(*args, **kwargs)
@@ -346,4 +368,67 @@ class CompanyRelationshipForm(forms.ModelForm):
                 # For suppliers, allow linking to other suppliers only  
                 self.fields['to_company'].queryset = self.fields['to_company'].queryset.filter(
                     company_type='Supplier'
-                ) 
+                )
+
+# Create a formset for ClientInvoiceReference
+ClientInvoiceReferenceFormSet = forms.inlineformset_factory(
+    ClientProfile, 
+    ClientInvoiceReference,
+    fields=('invoice_reference', 'is_mandatory'),
+    extra=1,
+    can_delete=True
+)
+
+class TravelPolicyForm(forms.ModelForm):
+    """
+    Form for creating and updating travel policies.
+    """
+    effective_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        initial=datetime.date.today
+    )
+    
+    class Meta:
+        model = ClientTravelPolicy
+        fields = [
+            'policy_name', 'effective_date', 'is_active', 
+            'travel_policy', 'flight_notes', 'accommodation_notes',
+            'car_hire_notes', 'transfer_notes', 'rail_notes', 'other_notes'
+        ]
+        widgets = {
+            'travel_policy': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'flight_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'accommodation_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'car_hire_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'transfer_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'rail_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'other_notes': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+        }
+        labels = {
+            'travel_policy': 'Travel Policy Overview',
+            'flight_notes': 'Flight Policy',
+            'accommodation_notes': 'Accommodation Policy',
+            'car_hire_notes': 'Car Hire Policy',
+            'transfer_notes': 'Transfers/Taxi Policy',
+            'rail_notes': 'Rail Policy',
+            'other_notes': 'Other Policy Details',
+        }
+
+class DocumentUploadForm(forms.ModelForm):
+    """
+    Form for uploading documents related to companies.
+    """
+    expiry_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=False
+    )
+    
+    class Meta:
+        model = Document
+        fields = [
+            'title', 'document_type', 'file', 'expiry_date', 
+            'description', 'version', 'is_active'
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        } 

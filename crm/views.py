@@ -1,25 +1,27 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote, Document, Activity
+from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote, Document, Activity, ClientTravelPolicy
 from accounts.models import InvoiceReference
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from formtools.wizard.views import SessionWizardView
 from django.shortcuts import redirect
 from django.contrib import messages
 from django import forms
-from .forms import CompanyForm, CompanyRelationshipForm, ContactForm
+from .forms import CompanyForm, CompanyRelationshipForm, ContactForm, ContactNoteForm, DocumentUploadForm, ManageRelationshipsForm, ClientInvoiceReferenceFormSet, TravelPolicyForm
 from django.contrib.auth import get_user_model
 from accounts.models import Team
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from .utils import hubspot_api
 from django.conf import settings
 import requests
 import re
 import os
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.edit import FormView
 
 # Create your views here.
 
@@ -882,4 +884,140 @@ def document_delete(request, document_id):
     
     messages.success(request, f"Document '{document_title}' deleted successfully.")
     return redirect('crm:company_detail', pk=company_id)
+
+@login_required
+def travel_policy_create(request, company_id):
+    """Create a new travel policy for a company."""
+    company = get_object_or_404(Company, id=company_id)
+    
+    # Ensure the company is a client
+    if company.company_type != 'Client':
+        messages.error(request, "Travel policies can only be created for client companies.")
+        return redirect('crm:company_detail', pk=company_id)
+    
+    # Get all contacts from this company who might be VIP travelers
+    company_contacts = company.contacts.all()
+    
+    if request.method == 'POST':
+        form = TravelPolicyForm(request.POST)
+        if form.is_valid():
+            policy = form.save(commit=False)
+            policy.client = company
+            policy.save()
+            
+            # Handle VIP travelers (multi-select from form)
+            vip_traveler_ids = request.POST.getlist('vip_travelers')
+            if vip_traveler_ids:
+                policy.vip_travelers.set(vip_traveler_ids)
+            
+            messages.success(request, f"Travel policy '{policy.policy_name}' created successfully.")
+            
+            # Create activity log
+            Activity.objects.create(
+                activity_type='CREATE',
+                title=f"Created travel policy '{policy.policy_name}'",
+                description=f"A new travel policy was created for {company.company_name}.",
+                performed_by=request.user,
+                company=company
+            )
+            
+            return redirect('crm:travel_policy_detail', policy_id=policy.id)
+    else:
+        form = TravelPolicyForm()
+    
+    context = {
+        'form': form,
+        'company': company,
+        'company_contacts': company_contacts,
+        'title': 'Create Travel Policy',
+        'submit_text': 'Create Policy'
+    }
+    
+    return render(request, 'crm/travel_policy_form.html', context)
+
+@login_required
+def travel_policy_detail(request, policy_id):
+    """View a travel policy's details."""
+    policy = get_object_or_404(ClientTravelPolicy, id=policy_id)
+    company = policy.client
+    
+    context = {
+        'policy': policy,
+        'company': company,
+        'vip_travelers': policy.vip_travelers.all()
+    }
+    
+    return render(request, 'crm/travel_policy_detail.html', context)
+
+@login_required
+def travel_policy_update(request, policy_id):
+    """Update an existing travel policy."""
+    policy = get_object_or_404(ClientTravelPolicy, id=policy_id)
+    company = policy.client
+    
+    # Get all contacts from this company who might be VIP travelers
+    company_contacts = company.contacts.all()
+    
+    if request.method == 'POST':
+        form = TravelPolicyForm(request.POST, instance=policy)
+        if form.is_valid():
+            form.save()
+            
+            # Handle VIP travelers (multi-select from form)
+            vip_traveler_ids = request.POST.getlist('vip_travelers')
+            policy.vip_travelers.set(vip_traveler_ids)
+            
+            messages.success(request, f"Travel policy '{policy.policy_name}' updated successfully.")
+            
+            # Create activity log
+            Activity.objects.create(
+                activity_type='UPDATE',
+                title=f"Updated travel policy '{policy.policy_name}'",
+                description=f"Travel policy was updated for {company.company_name}.",
+                performed_by=request.user,
+                company=company
+            )
+            
+            return redirect('crm:travel_policy_detail', policy_id=policy.id)
+    else:
+        form = TravelPolicyForm(instance=policy)
+    
+    context = {
+        'form': form,
+        'policy': policy,
+        'company': company,
+        'company_contacts': company_contacts,
+        'title': f"Edit Travel Policy: {policy.policy_name}",
+        'submit_text': 'Update Policy',
+        'selected_vip_travelers': policy.vip_travelers.values_list('id', flat=True)
+    }
+    
+    return render(request, 'crm/travel_policy_form.html', context)
+
+@login_required
+def travel_policy_delete(request, policy_id):
+    """Delete a travel policy."""
+    policy = get_object_or_404(ClientTravelPolicy, id=policy_id)
+    company = policy.client
+    
+    if request.method == 'POST':
+        policy_name = policy.policy_name
+        company_id = company.id
+        
+        # Create activity log before deletion
+        Activity.objects.create(
+            activity_type='DELETE',
+            title=f"Deleted travel policy '{policy_name}'",
+            description=f"Travel policy was deleted from {company.company_name}.",
+            performed_by=request.user,
+            company=company
+        )
+        
+        policy.delete()
+        messages.success(request, f"Travel policy '{policy_name}' deleted successfully.")
+        
+        return redirect('crm:company_detail', pk=company_id)
+    
+    # If not POST, redirect to the policy detail page
+    return redirect('crm:travel_policy_detail', policy_id=policy.id)
 

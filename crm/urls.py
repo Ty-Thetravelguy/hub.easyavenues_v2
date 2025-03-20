@@ -22,6 +22,12 @@ urlpatterns = [
     path('company/<int:company_id>/documents/upload/', views.document_upload, name='document_upload'),
     path('documents/<int:document_id>/delete/', views.document_delete, name='document_delete'),
     
+    # Travel Policy Management
+    path('company/<int:company_id>/travel-policy/create/', views.travel_policy_create, name='travel_policy_create'),
+    path('travel-policy/<int:policy_id>/', views.travel_policy_detail, name='travel_policy_detail'),
+    path('travel-policy/<int:policy_id>/update/', views.travel_policy_update, name='travel_policy_update'),
+    path('travel-policy/<int:policy_id>/delete/', views.travel_policy_delete, name='travel_policy_delete'),
+    
     # HubSpot Integration
     path('hubspot/search/', views.hubspot_search, name='hubspot_search'),
     path('hubspot/company/<str:hubspot_id>/', views.hubspot_company_detail, name='hubspot_company_detail'),

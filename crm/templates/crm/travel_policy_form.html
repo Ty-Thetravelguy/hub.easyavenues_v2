@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/select2.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_detail' company.id %}">{{ company.company_name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-gradient-blue-purple text-white">
+                    <h4 class="mb-0">{{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-12 mb-4">
+                                <h5 class="border-bottom pb-2">General Information</h5>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.policy_name.id_for_label }}" class="form-label">Policy Name *</label>
+                                {{ form.policy_name }}
+                                {% if form.policy_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.policy_name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.effective_date.id_for_label }}" class="form-label">Effective Date *</label>
+                                {{ form.effective_date }}
+                                {% if form.effective_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.effective_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.is_active.id_for_label }}" class="form-label">Active Status</label>
+                                <div class="form-check form-switch mt-2">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Policy is active
+                                    </label>
+                                </div>
+                                {% if form.is_active.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.is_active.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <label class="form-label">VIP Travelers</label>
+                                <select name="vip_travelers" id="vip_travelers" class="form-select select2" multiple>
+                                    {% for contact in company_contacts %}
+                                        <option value="{{ contact.id }}" {% if selected_vip_travelers and contact.id in selected_vip_travelers %}selected{% endif %}>
+                                            {{ contact.first_name }} {{ contact.last_name }} - {{ contact.job_role }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Select contacts who are VIP travelers subject to this policy.</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-4">
+                                <h5 class="border-bottom pb-2">Policy Details</h5>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.travel_policy.id_for_label }}" class="form-label">{{ form.travel_policy.label }}</label>
+                                {{ form.travel_policy }}
+                                {% if form.travel_policy.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.travel_policy.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.flight_notes.id_for_label }}" class="form-label">{{ form.flight_notes.label }}</label>
+                                {{ form.flight_notes }}
+                                {% if form.flight_notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.flight_notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.accommodation_notes.id_for_label }}" class="form-label">{{ form.accommodation_notes.label }}</label>
+                                {{ form.accommodation_notes }}
+                                {% if form.accommodation_notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.accommodation_notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.car_hire_notes.id_for_label }}" class="form-label">{{ form.car_hire_notes.label }}</label>
+                                {{ form.car_hire_notes }}
+                                {% if form.car_hire_notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.car_hire_notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.rail_notes.id_for_label }}" class="form-label">{{ form.rail_notes.label }}</label>
+                                {{ form.rail_notes }}
+                                {% if form.rail_notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.rail_notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.transfer_notes.id_for_label }}" class="form-label">{{ form.transfer_notes.label }}</label>
+                                {{ form.transfer_notes }}
+                                {% if form.transfer_notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.transfer_notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.other_notes.id_for_label }}" class="form-label">{{ form.other_notes.label }}</label>
+                                {{ form.other_notes }}
+                                {% if form.other_notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.other_notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            {% if policy %}
+                            <a href="{% url 'crm:travel_policy_detail' policy.id %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                            {% else %}
+                            <a href="{% url 'crm:company_detail' company.id %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ submit_text }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/select2.min.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            placeholder: "Select VIP travelers",
+            allowClear: true,
+            width: '100%'
+        });
+    });
+</script>
+{% endblock %} 

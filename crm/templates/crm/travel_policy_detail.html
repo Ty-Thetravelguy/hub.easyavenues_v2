@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ policy.policy_name }} - Travel Policy{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_detail' company.id %}">{{ company.company_name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ policy.policy_name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Policy Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-gradient-blue-purple text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">{{ policy.policy_name }}</h4>
+                            <p class="mb-0">
+                                <span class="badge {% if policy.is_active %}bg-success{% else %}bg-secondary{% endif %} me-2">
+                                    {% if policy.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                                <span class="text-white"><i class="far fa-calendar-alt me-1"></i> Effective: {{ policy.effective_date|date:"d M Y" }}</span>
+                                <span class="text-white ms-3"><i class="far fa-clock me-1"></i> Last updated: {{ policy.last_updated|date:"d M Y, H:i" }}</span>
+                            </p>
+                        </div>
+                        <div>
+                            <a href="{% url 'crm:company_detail' company.id %}" class="btn btn-outline-light me-2">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                            <a href="{% url 'crm:travel_policy_update' policy.id %}" class="btn btn-light">
+                                <i class="fas fa-edit"></i> Edit Policy
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-md-4">
+            <!-- VIP Travelers -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">VIP Travelers</h5>
+                </div>
+                <div class="card-body">
+                    {% if vip_travelers %}
+                    <ul class="list-group list-group-flush">
+                        {% for traveler in vip_travelers %}
+                        <li class="list-group-item px-0">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-primary me-3">
+                                    <span class="initials">{{ traveler.first_name|first }}{{ traveler.last_name|first }}</span>
+                                </div>
+                                <div>
+                                    <a href="{% url 'crm:contact_detail' traveler.id %}" class="link-color fw-bold">
+                                        {{ traveler.first_name }} {{ traveler.last_name }}
+                                    </a>
+                                    <div class="text-muted small">{{ traveler.job_role }}</div>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-user-slash fa-2x mb-2"></i>
+                        <p>No VIP travelers assigned</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- General Policy -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Travel Policy Overview</h5>
+                </div>
+                <div class="card-body">
+                    {% if policy.travel_policy %}
+                    <div class="policy-content">
+                        {{ policy.travel_policy|linebreaks }}
+                    </div>
+                    {% else %}
+                    <div class="text-muted">No general policy defined.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="flight-tab" data-bs-toggle="tab" href="#flight" role="tab">
+                                <i class="fas fa-plane me-2"></i>Flight
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="accommodation-tab" data-bs-toggle="tab" href="#accommodation" role="tab">
+                                <i class="fas fa-hotel me-2"></i>Accommodation
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="car-tab" data-bs-toggle="tab" href="#car" role="tab">
+                                <i class="fas fa-car me-2"></i>Car Hire
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="rail-tab" data-bs-toggle="tab" href="#rail" role="tab">
+                                <i class="fas fa-train me-2"></i>Rail
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="transfer-tab" data-bs-toggle="tab" href="#transfer" role="tab">
+                                <i class="fas fa-taxi me-2"></i>Transfers/Taxi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="other-tab" data-bs-toggle="tab" href="#other" role="tab">
+                                <i class="fas fa-ellipsis-h me-2"></i>Other
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Flight Policy -->
+                        <div class="tab-pane fade show active" id="flight" role="tabpanel">
+                            <h5 class="border-bottom pb-2 mb-3">Flight Policy</h5>
+                            {% if policy.flight_notes %}
+                            <div class="policy-content">
+                                {{ policy.flight_notes|linebreaks }}
+                            </div>
+                            {% else %}
+                            <div class="text-muted">No flight policy defined.</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Accommodation Policy -->
+                        <div class="tab-pane fade" id="accommodation" role="tabpanel">
+                            <h5 class="border-bottom pb-2 mb-3">Accommodation Policy</h5>
+                            {% if policy.accommodation_notes %}
+                            <div class="policy-content">
+                                {{ policy.accommodation_notes|linebreaks }}
+                            </div>
+                            {% else %}
+                            <div class="text-muted">No accommodation policy defined.</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Car Hire Policy -->
+                        <div class="tab-pane fade" id="car" role="tabpanel">
+                            <h5 class="border-bottom pb-2 mb-3">Car Hire Policy</h5>
+                            {% if policy.car_hire_notes %}
+                            <div class="policy-content">
+                                {{ policy.car_hire_notes|linebreaks }}
+                            </div>
+                            {% else %}
+                            <div class="text-muted">No car hire policy defined.</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Rail Policy -->
+                        <div class="tab-pane fade" id="rail" role="tabpanel">
+                            <h5 class="border-bottom pb-2 mb-3">Rail Policy</h5>
+                            {% if policy.rail_notes %}
+                            <div class="policy-content">
+                                {{ policy.rail_notes|linebreaks }}
+                            </div>
+                            {% else %}
+                            <div class="text-muted">No rail policy defined.</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Transfers/Taxi Policy -->
+                        <div class="tab-pane fade" id="transfer" role="tabpanel">
+                            <h5 class="border-bottom pb-2 mb-3">Transfers/Taxi Policy</h5>
+                            {% if policy.transfer_notes %}
+                            <div class="policy-content">
+                                {{ policy.transfer_notes|linebreaks }}
+                            </div>
+                            {% else %}
+                            <div class="text-muted">No transfer policy defined.</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Other Policy -->
+                        <div class="tab-pane fade" id="other" role="tabpanel">
+                            <h5 class="border-bottom pb-2 mb-3">Other Policy Details</h5>
+                            {% if policy.other_notes %}
+                            <div class="policy-content">
+                                {{ policy.other_notes|linebreaks }}
+                            </div>
+                            {% else %}
+                            <div class="text-muted">No additional policy details defined.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Activate the first tab
+        $('#flight-tab').tab('show');
+    });
+</script>
+{% endblock %} 

@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
+import datetime
 
 
 # Choices for industry, company type, client type, and account status
@@ -309,7 +310,7 @@ class ClientTravelPolicy(models.Model):
     """
     client = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='travel_policies')
     policy_name = models.CharField(max_length=255, default="Default Policy")
-    effective_date = models.DateField(auto_now_add=True)
+    effective_date = models.DateField(default=datetime.date.today)
     is_active = models.BooleanField(default=True)
     travel_policy = models.TextField(blank=True)
     flight_notes = models.TextField(blank=True)
@@ -319,6 +320,7 @@ class ClientTravelPolicy(models.Model):
     rail_notes = models.TextField(blank=True)
     other_notes = models.TextField(blank=True)
     last_updated = models.DateTimeField(auto_now=True)
+    vip_travelers = models.ManyToManyField('Contact', related_name='travel_policies', blank=True)
 
     class Meta:
         verbose_name_plural = "Client travel policies"
