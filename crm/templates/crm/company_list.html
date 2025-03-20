@@ -124,6 +124,7 @@
                         <th>Name</th>
                         <th>Company</th>
                         <th>Job Role</th>
+                        <th>Tags</th>
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Created</th>
@@ -144,6 +145,25 @@
                             </a>
                         </td>
                         <td>{{ contact.job_role }}</td>
+                        <td>
+                            {% for tag in contact.tag_list %}
+                                <span class="badge me-1 {% if tag == 'primary' %}bg-primary
+                                    {% elif tag == 'key_personnel' %}bg-success
+                                    {% elif tag == 'booker' %}bg-warning text-dark
+                                    {% elif tag == 'vip_traveller' %}bg-warning
+                                    {% elif tag == 'traveller' %}bg-info
+                                    {% else %}bg-secondary
+                                    {% endif %}">
+                                    {% if tag == 'primary' %}Primary Contact
+                                    {% elif tag == 'key_personnel' %}Key Personnel
+                                    {% elif tag == 'booker' %}Booker
+                                    {% elif tag == 'vip_traveller' %}VIP Traveller
+                                    {% elif tag == 'traveller' %}Traveller
+                                    {% else %}{{ tag }}
+                                    {% endif %}
+                                </span>
+                            {% endfor %}
+                        </td>
                         <td>
                             <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
                         </td>

@@ -28,27 +28,85 @@ $(document).ready(function() {
         if (table.length) {
             console.log('⚙️ Configuring ' + tableType + ' table');
             
+            // Add the custom styles for the table first
+            $('head').append(`
+                <style id="datatable-custom-styles-${tableType.toLowerCase()}">
+                    /* Force correct table layout */
+                    ${tableSelector} {
+                        width: 100% !important;
+                        table-layout: fixed !important;
+                    }
+                    
+                    /* Header styles */
+                    ${tableSelector} th {
+                        position: relative !important;
+                        padding-left: 28px !important;
+                        text-align: left !important;
+                        white-space: nowrap !important;
+                        overflow: hidden !important;
+                        text-overflow: ellipsis !important;
+                    }
+                    
+                    /* Sort icon styles */
+                    ${tableSelector} th .sort-icon {
+                        position: absolute !important;
+                        left: 10px !important;
+                        top: 50% !important;
+                        transform: translateY(-50%) !important;
+                        color: #aaa !important;
+                    }
+                    
+                    /* Active sort color */
+                    ${tableSelector} th.sorting_asc .sort-icon,
+                    ${tableSelector} th.sorting_desc .sort-icon {
+                        color: #000 !important;
+                    }
+                    
+                    /* Hide DataTables sort indicators */
+                    ${tableSelector} thead .sorting:before,
+                    ${tableSelector} thead .sorting:after,
+                    ${tableSelector} thead .sorting_asc:before,
+                    ${tableSelector} thead .sorting_asc:after,
+                    ${tableSelector} thead .sorting_desc:before,
+                    ${tableSelector} thead .sorting_desc:after {
+                        display: none !important;
+                    }
+                    
+                    /* Custom column widths for Contacts table */
+                    ${tableSelector === '#contacts-table' ? `
+                        #contacts-table th:nth-child(1) { width: 15% !important; } /* Name */
+                        #contacts-table th:nth-child(2) { width: 12% !important; } /* Company */
+                        #contacts-table th:nth-child(3) { width: 10% !important; } /* Job Role */
+                        #contacts-table th:nth-child(4) { width: 18% !important; } /* Tags */
+                        #contacts-table th:nth-child(5) { width: 15% !important; } /* Email */
+                        #contacts-table th:nth-child(6) { width: 10% !important; } /* Phone */
+                        #contacts-table th:nth-child(7) { width: 10% !important; } /* Created */
+                        #contacts-table th:nth-child(8) { width: 10% !important; } /* Actions */
+                        
+                        #contacts-table td:nth-child(1) { width: 15% !important; }
+                        #contacts-table td:nth-child(2) { width: 12% !important; }
+                        #contacts-table td:nth-child(3) { width: 10% !important; }
+                        #contacts-table td:nth-child(4) { width: 18% !important; }
+                        #contacts-table td:nth-child(5) { width: 15% !important; }
+                        #contacts-table td:nth-child(6) { width: 10% !important; }
+                        #contacts-table td:nth-child(7) { width: 10% !important; }
+                        #contacts-table td:nth-child(8) { width: 10% !important; }
+                    ` : ''}
+                </style>
+            `);
+            
             // First, remove any existing sort icons to prevent duplicates
             table.find('th .sort-icon').remove();
             
-            // Add sort icons to each header before initialization
-            table.find('th').each(function(index) {
-                // Skip the last column (Actions)
-                if (index < table.find('th').length - 1) {
-                    $(this).prepend('<i class="fas fa-sort sort-icon"></i>');
-                }
-            });
-            
-            // Initialize DataTable with all features
+            // Initialize DataTable with all features BEFORE adding icons
             var dataTable = table.DataTable({
                 "pageLength": 25,
                 "order": [[0, "asc"]],
                 "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-                "autoWidth": false,
+                "autoWidth": true, // Allow auto width to ensure proper column size calculations
                 "scrollX": true,
                 "ordering": true,
                 "orderCellsTop": true,
-                "fixedHeader": true,
                 "columnDefs": [
                     {
                         "targets": "_all",
@@ -76,13 +134,15 @@ $(document).ready(function() {
                 "drawCallback": function() {
                     // Update sort icons after each draw
                     updateSortIcons(table);
-                    
-                    // Remove any DataTables generated sort indicators
-                    $('.dataTable th.sorting:before, .dataTable th.sorting:after, .dataTable th.sorting_asc:before, .dataTable th.sorting_asc:after, .dataTable th.sorting_desc:before, .dataTable th.sorting_desc:after').css({
-                        'display': 'none',
-                        'content': 'none',
-                        'opacity': '0'
-                    });
+                }
+            });
+            
+            // Add icons AFTER DataTable initialization
+            table.find('thead th').each(function(index) {
+                // Skip the last column (Actions)
+                if (index < table.find('thead th').length - 1) {
+                    // prepend the icon (don't replace the content)
+                    $(this).prepend('<i class="fas fa-sort sort-icon"></i>');
                 }
             });
             
@@ -100,19 +160,8 @@ $(document).ready(function() {
             // Initial update of the sort icons
             updateSortIcons(table);
             
-            // Force hide default DataTables sort indicators
-            $('head').append(
-                '<style id="dt-force-hide-arrows">' +
-                'table.dataTable thead .sorting:before, table.dataTable thead .sorting:after, ' +
-                'table.dataTable thead .sorting_asc:before, table.dataTable thead .sorting_asc:after, ' +
-                'table.dataTable thead .sorting_desc:before, table.dataTable thead .sorting_desc:after { ' +
-                '   display: none !important; ' +
-                '   content: none !important; ' +
-                '   opacity: 0 !important; ' +
-                '   visibility: hidden !important; ' +
-                '} ' +
-                '</style>'
-            );
+            // Force column widths to recalculate
+            dataTable.columns.adjust().draw();
             
             console.log('✅ ' + tableType + ' table sorting initialized');
         } else {
@@ -130,19 +179,19 @@ $(document).ready(function() {
             
             // Reset all sort icons to default
             table.find('th .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
-            table.find('th').removeClass('sorting_asc sorting_desc').addClass('sorting');
+            table.find('th .sort-icon').css('color', '#aaa'); // Reset color to gray
             
             // Get the header cell being sorted
             var sortedHeader = table.find('th').eq(columnIndex);
             
-            // Update the sort icon and header class
+            // Update the sort icon and its color
             if (direction === 'asc') {
                 sortedHeader.find('.sort-icon').removeClass('fa-sort').addClass('fa-sort-up');
-                sortedHeader.removeClass('sorting').addClass('sorting_asc');
+                sortedHeader.find('.sort-icon').css('color', '#000'); // Set to black when active
                 console.log('Sort ascending on column', columnIndex);
             } else {
                 sortedHeader.find('.sort-icon').removeClass('fa-sort').addClass('fa-sort-down');
-                sortedHeader.removeClass('sorting').addClass('sorting_desc');
+                sortedHeader.find('.sort-icon').css('color', '#000'); // Set to black when active
                 console.log('Sort descending on column', columnIndex);
             }
             

@@ -1,6 +1,6 @@
 /* Table sorting styles */
 
-/* Hide DataTables sort indicators completely - extremely aggressive selectors */
+/* Forcefully hide all DataTables sort indicators */
 table.dataTable thead .sorting:before,
 table.dataTable thead .sorting:after,
 table.dataTable thead .sorting_asc:before,
@@ -18,7 +18,9 @@ table.dataTable thead th.sorting_desc:after,
 .dataTable th::before,
 .dataTable th::after,
 table.dataTable thead th::before,
-table.dataTable thead th::after {
+table.dataTable thead th::after,
+.dataTables_wrapper .dataTables_scroll div.dataTables_scrollBody > table > thead > tr > th:before,
+.dataTables_wrapper .dataTables_scroll div.dataTables_scrollBody > table > thead > tr > th:after {
     display: none !important;
     content: none !important;
     opacity: 0 !important;
@@ -26,11 +28,14 @@ table.dataTable thead th::after {
     width: 0 !important;
     height: 0 !important;
     pointer-events: none !important;
+    position: absolute !important;
 }
 
 /* Remove DataTables default classes and styling */
 .dataTable th:before,
-.dataTable th:after {
+.dataTable th:after,
+table.dataTable thead th:after,
+table.dataTable thead th:before {
     display: none !important;
     content: none !important;
 }
@@ -58,31 +63,20 @@ table.dataTable thead .sorting_desc_disabled {
 
 /* Style for Font Awesome sort icons */
 .sort-icon {
-    margin-right: 8px;
+    margin-right: 5px;
     color: #aaa; /* Default gray color */
+    display: inline-block !important;
 }
 
 /* All sortable columns should have a pointer cursor */
 table.dataTable thead th {
     cursor: pointer;
     white-space: nowrap;
-}
-
-/* Add spacing to make room for the icon */
-table.dataTable thead th {
-    padding-left: 10px;
     position: relative;
-}
-
-/* Position the icon on the left side of the text */
-table.dataTable thead th .sort-icon {
-    position: relative;
-    margin-right: 8px;
-    display: inline-block;
 }
 
 /* Black color for the active sort column */
 table.dataTable thead th.sorting_asc .sort-icon, 
 table.dataTable thead th.sorting_desc .sort-icon {
-    color: #000; /* Black color for active sort */
+    color: #000 !important; /* Black color for active sort */
 } 
