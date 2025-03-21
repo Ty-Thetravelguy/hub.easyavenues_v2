@@ -494,7 +494,56 @@
                             <p class="text-muted small mb-2">
                                 <i class="fas fa-user me-1"></i> {{ activity.performed_by.get_full_name }}
                             </p>
-                            <p class="mb-0">{{ activity.description }}</p>
+                            
+                            {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
+                                <!-- Enhanced card-style presentation for logged activities -->
+                                <div class="card mb-2 activity-content-card {% if activity.activity_type == 'email' %}bg-primary bg-opacity-10{% elif activity.activity_type == 'call' %}bg-success bg-opacity-10{% elif activity.activity_type == 'note' %}bg-warning bg-opacity-10{% elif activity.activity_type == 'exception' %}bg-danger bg-opacity-10{% endif %}">
+                                    <div class="card-body py-2 px-3">
+                                        {% if activity.activity_type == 'email' %}
+                                            {% with email_parts=activity.description|split_email_desc:activity %}
+                                                <div class="mb-1"><strong>Subject:</strong> {{ email_parts.subject }}</div>
+                                                {% if email_parts.recipients %}
+                                                    <div class="small text-muted mb-1">To: {{ email_parts.recipients }}</div>
+                                                {% endif %}
+                                                <div class="content-preview">{{ email_parts.content|truncatechars:100 }}</div>
+                                            {% endwith %}
+                                        {% elif activity.activity_type == 'call' %}
+                                            {% with call_parts=activity.description|split_call_desc:activity %}
+                                                <div class="mb-1">
+                                                    <strong>{{ call_parts.call_type|default:"" }} Call with {{ call_parts.contact }}</strong>
+                                                    {% if call_parts.duration != 'Not specified' %}
+                                                        <span class="text-muted">({{ call_parts.duration }} mins)</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="content-preview">{{ call_parts.summary|truncatechars:100 }}</div>
+                                            {% endwith %}
+                                        {% elif activity.activity_type == 'note' %}
+                                            {% with note_parts=activity.description|split_note_desc:activity %}
+                                                {% if note_parts.contact %}
+                                                    <div class="mb-1"><strong>About:</strong> {{ note_parts.contact }}</div>
+                                                {% endif %}
+                                                <div class="content-preview">{{ note_parts.content|truncatechars:100 }}</div>
+                                            {% endwith %}
+                                        {% elif activity.activity_type == 'exception' %}
+                                            {% with exception_parts=activity.description|split_exception_desc:activity %}
+                                                <div class="mb-1">
+                                                    <strong>{{ exception_parts.type }}</strong>
+                                                    {% if exception_parts.value != 'Not specified' %}
+                                                        <span class="text-muted">(£{{ exception_parts.value }})</span>
+                                                    {% endif %}
+                                                    for {{ exception_parts.contact }}
+                                                </div>
+                                                <div class="content-preview">{{ exception_parts.description|truncatechars:100 }}</div>
+                                            {% endwith %}
+                                        {% else %}
+                                            <p class="mb-0">{{ activity.description }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <p class="mb-0">{{ activity.description }}</p>
+                            {% endif %}
+                            
                             {% if activity.activity_type == 'status_change' and activity.outcome %}
                             <div class="mt-2">
                                 <span class="badge bg-secondary me-2">From</span> {{ activity.outcome|split:"|"|first }}

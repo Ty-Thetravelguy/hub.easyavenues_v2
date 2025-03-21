@@ -63,4 +63,46 @@
 /* White-space preserving for activity descriptions */
 .timeline-item p.mb-0 {
     white-space: pre-line;
+}
+
+/* Activity Content Card Styling */
+.activity-content-card {
+    transition: all 0.2s ease;
+    border-width: 1px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.activity-content-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.activity-content-card .card-body {
+    padding: 0.75rem 1rem;
+}
+
+/* Email activity card */
+.activity-content-card.bg-primary.bg-opacity-10 {
+    border-color: rgba(13, 110, 253, 0.3);
+}
+
+/* Call activity card */
+.activity-content-card.bg-success.bg-opacity-10 {
+    border-color: rgba(25, 135, 84, 0.3);
+}
+
+/* Note activity card */
+.activity-content-card.bg-warning.bg-opacity-10 {
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
+/* Exception activity card */
+.activity-content-card.bg-danger.bg-opacity-10 {
+    border-color: rgba(220, 53, 69, 0.3);
+}
+
+.content-preview {
+    color: #666;
+    font-size: 0.9rem;
 } 
