@@ -465,6 +465,7 @@ class Activity(models.Model):
     outcome = models.TextField(blank=True)
     follow_up_date = models.DateField(null=True, blank=True)
     follow_up_notes = models.TextField(blank=True)
+    data = models.JSONField(null=True, blank=True, help_text="Stores detailed activity data in JSON format")
 
     class Meta:
         verbose_name_plural = "Activities"

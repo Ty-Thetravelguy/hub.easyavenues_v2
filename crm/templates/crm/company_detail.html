@@ -675,7 +675,173 @@
 
         <!-- Activities Tab -->
         <div class="tab-pane fade" id="activities" role="tabpanel">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Log New Activity</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Activity Type Selector - Card Style -->
+                    <div class="activity-type-container mb-4">
+                        <div class="row row-cols-1 row-cols-md-4 g-3">
+                            <div class="col">
+                                <div class="card h-100 activity-type-card active" data-activity-type="email">
+                                    <div class="card-body text-center py-3">
+                                        <i class="fas fa-envelope fa-2x mb-3 text-primary"></i>
+                                        <h5 class="card-title mb-0">Email</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="card h-100 activity-type-card" data-activity-type="call">
+                                    <div class="card-body text-center py-3">
+                                        <i class="fas fa-phone fa-2x mb-3 text-success"></i>
+                                        <h5 class="card-title mb-0">Call</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="card h-100 activity-type-card" data-activity-type="note">
+                                    <div class="card-body text-center py-3">
+                                        <i class="fas fa-sticky-note fa-2x mb-3 text-warning"></i>
+                                        <h5 class="card-title mb-0">Note</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="card h-100 activity-type-card" data-activity-type="exception">
+                                    <div class="card-body text-center py-3">
+                                        <i class="fas fa-star fa-2x mb-3 text-danger"></i>
+                                        <h5 class="card-title mb-0">Exception</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Form Container -->
+                    <div id="activity-form-container">
+                        <!-- Email Form -->
+                        <form id="email-form" class="activity-form" method="post" action="{% url 'crm:log_activity' company.id 'email' %}">
+                            {% csrf_token %}
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Subject</label>
+                                    <input type="text" class="form-control" name="subject" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Recipients</label>
+                                    <select class="form-select" name="recipients" multiple>
+                                        {% for contact in contacts %}
+                                        <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Content</label>
+                                <textarea class="form-control" name="content" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Log Email</button>
+                        </form>
+                        
+                        <!-- Call Form -->
+                        <form id="call-form" class="activity-form d-none" method="post" action="{% url 'crm:log_activity' company.id 'call' %}">
+                            {% csrf_token %}
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Contact</label>
+                                    <select class="form-select" name="contact" required>
+                                        <option value="">Select a contact</option>
+                                        {% for contact in contacts %}
+                                        <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Duration (minutes)</label>
+                                    <input type="number" class="form-control" name="duration" min="1">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Summary</label>
+                                <textarea class="form-control" name="summary" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Log Call</button>
+                        </form>
+                        
+                        <!-- Note Form -->
+                        <form id="note-form" class="activity-form d-none" method="post" action="{% url 'crm:log_activity' company.id 'note' %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label">Note Content</label>
+                                <textarea class="form-control" name="content" rows="4" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Note</button>
+                        </form>
+                        
+                        <!-- Exception Form (Combined Waiver & Favor) -->
+                        <form id="exception-form" class="activity-form d-none" method="post" action="{% url 'crm:log_activity' company.id 'exception' %}">
+                            {% csrf_token %}
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Exception Type</label>
+                                    <select class="form-select" name="exception_type" required id="exception-type-select">
+                                        <option value="">Select type</option>
+                                        <optgroup label="Waivers">
+                                            <option value="fee_waiver">Fee Waiver</option>
+                                            <option value="cancellation_waiver">Cancellation Waiver</option>
+                                            <option value="amendment_waiver">Amendment Waiver</option>
+                                        </optgroup>
+                                        <optgroup label="Favors">
+                                            <option value="client_favor">Client Favor</option>
+                                            <option value="staff_favor">Staff Favor</option>
+                                            <option value="goodwill_gesture">Goodwill Gesture</option>
+                                        </optgroup>
+                                        <option value="other">Other Exception</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Value Amount (if applicable)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">£</span>
+                                        <input type="number" class="form-control" name="value_amount" step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Recipient/Contact</label>
+                                    <select class="form-select" name="contact" required>
+                                        <option value="">Select a contact</option>
+                                        {% for contact in contacts %}
+                                        <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Approval</label>
+                                    <select class="form-select" name="approved_by">
+                                        <option value="">Select who approved</option>
+                                        <option value="manager">Line Manager</option>
+                                        <option value="director">Director</option>
+                                        <option value="none">No Approval Required</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description/Reason</label>
+                                <textarea class="form-control" name="description" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Log Exception</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
             <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Activity History</h5>
+                </div>
                 <div class="card-body">
                     <div class="activity-timeline">
                         {% for activity in activities %}
@@ -720,6 +886,152 @@
                                 <span class="badge bg-primary me-2">To</span> {{ activity.outcome|split:"|"|last }}
                             </div>
                             {% endif %}
+                            
+                            {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#activityModal{{ activity.id }}">
+                                    <i class="fas fa-eye me-1"></i> View Details
+                                </button>
+                                
+                                <!-- Activity Details Modal -->
+                                <div class="modal fade" id="activityModal{{ activity.id }}" tabindex="-1" aria-labelledby="activityModalLabel{{ activity.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header {% if activity.activity_type == 'email' %}bg-primary text-white{% elif activity.activity_type == 'call' %}bg-success text-white{% elif activity.activity_type == 'note' %}bg-warning{% elif activity.activity_type == 'exception' %}bg-danger text-white{% endif %}">
+                                                <h5 class="modal-title" id="activityModalLabel{{ activity.id }}">
+                                                    {% if activity.activity_type == 'email' %}
+                                                        <i class="fas fa-envelope me-2"></i>
+                                                    {% elif activity.activity_type == 'call' %}
+                                                        <i class="fas fa-phone me-2"></i>
+                                                    {% elif activity.activity_type == 'note' %}
+                                                        <i class="fas fa-sticky-note me-2"></i>
+                                                    {% elif activity.activity_type == 'exception' %}
+                                                        <i class="fas fa-star me-2"></i>
+                                                    {% endif %}
+                                                    {{ activity.activity_type|title }} Details
+                                                </h5>
+                                                <button type="button" class="btn-close {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'exception' %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <h6 class="m-0">Created by</h6>
+                                                        <span class="badge bg-light text-dark">{{ activity.performed_at|date:"d M Y, H:i" }}</span>
+                                                    </div>
+                                                    <p class="mb-0">{{ activity.performed_by.get_full_name }}</p>
+                                                </div>
+                                                
+                                                <hr>
+                                                
+                                                {% if activity.activity_type == 'email' %}
+                                                    {% with email_parts=activity.description|split_email_desc:activity %}
+                                                        <div class="mb-3">
+                                                            <h6>Subject</h6>
+                                                            <p class="mb-0">{{ email_parts.subject }}</p>
+                                                        </div>
+                                                        
+                                                        {% if email_parts.recipients %}
+                                                        <div class="mb-3">
+                                                            <h6>Recipients</h6>
+                                                            <p class="mb-0">{{ email_parts.recipients }}</p>
+                                                        </div>
+                                                        {% endif %}
+                                                        
+                                                        <div class="mb-0">
+                                                            <h6>Content</h6>
+                                                            <div class="card">
+                                                                <div class="card-body bg-light">
+                                                                    {{ email_parts.content|linebreaks }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endwith %}
+                                                {% elif activity.activity_type == 'call' %}
+                                                    {% with call_parts=activity.description|split_call_desc:activity %}
+                                                        <div class="mb-3">
+                                                            <h6>Call With</h6>
+                                                            <p class="mb-0">{{ call_parts.contact }}</p>
+                                                        </div>
+                                                        
+                                                        {% if call_parts.duration %}
+                                                        <div class="mb-3">
+                                                            <h6>Duration</h6>
+                                                            <p class="mb-0">{{ call_parts.duration }} {% if call_parts.duration != 'Not specified' %}minutes{% endif %}</p>
+                                                        </div>
+                                                        {% endif %}
+                                                        
+                                                        <div class="mb-0">
+                                                            <h6>Summary</h6>
+                                                            <div class="card">
+                                                                <div class="card-body bg-light">
+                                                                    {{ call_parts.summary|linebreaks }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endwith %}
+                                                {% elif activity.activity_type == 'note' %}
+                                                    {% with note_parts=activity.description|split_note_desc:activity %}
+                                                        {% if note_parts.contact %}
+                                                        <div class="mb-3">
+                                                            <h6>About</h6>
+                                                            <p class="mb-0">{{ note_parts.contact }}</p>
+                                                        </div>
+                                                        {% endif %}
+                                                        
+                                                        <div class="mb-0">
+                                                            <h6>Note Content</h6>
+                                                            <div class="card">
+                                                                <div class="card-body bg-light">
+                                                                    {{ note_parts.content|linebreaks }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endwith %}
+                                                {% elif activity.activity_type == 'exception' %}
+                                                    {% with exception_parts=activity.description|split_exception_desc:activity %}
+                                                        <div class="mb-3">
+                                                            <h6>Exception Type</h6>
+                                                            <p class="mb-0">{{ exception_parts.type }}</p>
+                                                        </div>
+                                                        
+                                                        {% if exception_parts.value != 'Not specified' %}
+                                                        <div class="mb-3">
+                                                            <h6>Value</h6>
+                                                            <p class="mb-0">£{{ exception_parts.value }}</p>
+                                                        </div>
+                                                        {% endif %}
+                                                        
+                                                        <div class="mb-3">
+                                                            <h6>For</h6>
+                                                            <p class="mb-0">{{ exception_parts.contact }}</p>
+                                                        </div>
+                                                        
+                                                        {% if exception_parts.approval %}
+                                                        <div class="mb-3">
+                                                            <h6>Approval</h6>
+                                                            <p class="mb-0">{{ exception_parts.approval }}</p>
+                                                        </div>
+                                                        {% endif %}
+                                                        
+                                                        <div class="mb-0">
+                                                            <h6>Description/Reason</h6>
+                                                            <div class="card">
+                                                                <div class="card-body bg-light">
+                                                                    {{ exception_parts.description|linebreaks }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    {% endwith %}
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                         {% empty %}
                         <div class="text-center text-muted py-4">
@@ -740,6 +1052,67 @@
 {{ block.super }}
 <script src="{% static 'js/company_detail.js' %}"></script>
 <script src="{% static 'js/tab_handler.js' %}"></script>
+
+<script>
+    // Activity form switching
+    document.addEventListener('DOMContentLoaded', function() {
+        const activityCards = document.querySelectorAll('.activity-type-card');
+        const activityForms = document.querySelectorAll('.activity-form');
+        
+        function showSelectedForm(activityType) {
+            // Hide all forms
+            activityForms.forEach(form => {
+                form.classList.add('d-none');
+            });
+            
+            // Show the selected form
+            const selectedForm = document.getElementById(`${activityType}-form`);
+            if (selectedForm) {
+                selectedForm.classList.remove('d-none');
+            }
+            
+            // Update active card styling
+            activityCards.forEach(card => {
+                if (card.dataset.activityType === activityType) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+        }
+        
+        // Add event listeners to cards
+        activityCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const activityType = this.dataset.activityType;
+                showSelectedForm(activityType);
+            });
+        });
+        
+        // Initialize with the default selected form (first card)
+        const defaultActivityType = activityCards[0].dataset.activityType;
+        showSelectedForm(defaultActivityType);
+        
+        // Add CSS for the active cards
+        const style = document.createElement('style');
+        style.textContent = `
+            .activity-type-card {
+                cursor: pointer;
+                transition: all 0.2s ease;
+                border: 1px solid #dee2e6;
+            }
+            .activity-type-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            .activity-type-card.active {
+                border: 2px solid #4e73df;
+                box-shadow: 0 0 0 0.2rem rgba(78,115,223,0.25);
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>
 {% endblock %}
 
 {% include 'crm/includes/invoice_remarks_modal.html' %} 

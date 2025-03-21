@@ -1146,3 +1146,241 @@ def contact_delete(request, pk):
     
     return render(request, 'crm/contact_confirm_delete.html', {'contact': contact})
 
+"""
+Hubspot Setup Guide View
+"""
+def hubspot_setup_guide(request):
+    return render(request, 'crm/hubspot_setup_guide.html')
+
+
+# Activity Logging Views
+@login_required
+def log_activity(request, company_id, activity_type):
+    company = get_object_or_404(Company, id=company_id)
+    
+    if request.method == 'POST':
+        try:
+            # Common data for all activity types
+            description = ""
+            activity_data = {}  # Store detailed content in this dict
+            
+            # Process based on activity type
+            if activity_type == 'email':
+                subject = request.POST.get('subject')
+                content = request.POST.get('content')
+                recipients = request.POST.getlist('recipients')
+                
+                # Store full content
+                activity_data['subject'] = subject
+                activity_data['content'] = content
+                activity_data['recipients'] = recipients
+                
+                # Format description (summary)
+                recipient_names = []
+                if recipients:
+                    for recipient_id in recipients:
+                        try:
+                            contact = Contact.objects.get(id=recipient_id)
+                            recipient_names.append(f"{contact.first_name} {contact.last_name}")
+                        except Contact.DoesNotExist:
+                            pass
+                
+                recipient_text = ", ".join(recipient_names) if recipient_names else "No specific recipients"
+                description = f"Email sent: {subject}"
+                activity_icon = 'fa-envelope'
+                
+            elif activity_type == 'call':
+                contact_id = request.POST.get('contact')
+                duration = request.POST.get('duration')
+                summary = request.POST.get('summary')
+                
+                # Store full content
+                activity_data['contact_id'] = contact_id
+                activity_data['duration'] = duration
+                activity_data['summary'] = summary
+                
+                # Get contact name if provided
+                contact_name = "Unknown"
+                if contact_id:
+                    try:
+                        contact = Contact.objects.get(id=contact_id)
+                        contact_name = f"{contact.first_name} {contact.last_name}"
+                    except Contact.DoesNotExist:
+                        pass
+                
+                # Format description
+                duration_text = f" ({duration} mins)" if duration else ""
+                description = f"Call with {contact_name}{duration_text}: {summary}"
+                activity_icon = 'fa-phone'
+                
+            elif activity_type == 'note':
+                content = request.POST.get('content')
+                
+                # Store full content
+                activity_data['content'] = content
+                
+                # Truncate content for the description if it's too long
+                if len(content) > 100:
+                    short_content = content[:97] + "..."
+                else:
+                    short_content = content
+                
+                description = f"Note: {short_content}"
+                activity_icon = 'fa-sticky-note'
+                
+            elif activity_type == 'exception':
+                exception_type = request.POST.get('exception_type')
+                value_amount = request.POST.get('value_amount')
+                contact_id = request.POST.get('contact')
+                approved_by = request.POST.get('approved_by')
+                description_text = request.POST.get('description')
+                
+                # Store full content
+                activity_data['exception_type'] = exception_type
+                activity_data['value_amount'] = value_amount
+                activity_data['contact_id'] = contact_id
+                activity_data['approved_by'] = approved_by
+                activity_data['description'] = description_text
+                
+                # Get contact name if provided
+                contact_name = "Unknown"
+                if contact_id:
+                    try:
+                        contact = Contact.objects.get(id=contact_id)
+                        contact_name = f"{contact.first_name} {contact.last_name}"
+                    except Contact.DoesNotExist:
+                        pass
+                
+                # Format exception type for display
+                exception_display = exception_type.replace('_', ' ').title()
+                
+                # Format value if provided
+                value_text = f" (£{value_amount})" if value_amount else ""
+                
+                # Format approval info
+                approval_text = ""
+                if approved_by and approved_by != 'none':
+                    approval_text = f", approved by {approved_by.replace('_', ' ').title()}"
+                
+                # Format description
+                description = f"{exception_display}{value_text} for {contact_name}{approval_text}: {description_text}"
+                activity_icon = 'fa-star'
+            
+            # Create activity record
+            Activity.objects.create(
+                company=company,
+                activity_type=activity_type,
+                description=description,
+                performed_by=request.user,
+                data=activity_data  # Save the detailed activity data
+            )
+            
+            messages.success(request, f"{activity_type.title()} activity logged successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error logging activity: {str(e)}")
+        
+    return redirect('crm:company_detail', pk=company_id)
+
+@login_required
+def log_contact_activity(request, contact_id, activity_type):
+    contact = get_object_or_404(Contact, id=contact_id)
+    company = contact.company
+    
+    if request.method == 'POST':
+        try:
+            # Common data for all activity types
+            description = ""
+            activity_data = {}  # Store detailed content in this dict
+            
+            # Process based on activity type
+            if activity_type == 'email':
+                subject = request.POST.get('subject')
+                content = request.POST.get('content')
+                
+                # Store full content
+                activity_data['subject'] = subject
+                activity_data['content'] = content
+                activity_data['contact_id'] = contact_id
+                
+                # Format description
+                description = f"Email to {contact.first_name} {contact.last_name}: {subject}"
+                activity_icon = 'fa-envelope'
+                
+            elif activity_type == 'call':
+                duration = request.POST.get('duration')
+                call_type = request.POST.get('call_type', 'outgoing')
+                summary = request.POST.get('summary')
+                
+                # Store full content
+                activity_data['duration'] = duration
+                activity_data['call_type'] = call_type
+                activity_data['summary'] = summary
+                activity_data['contact_id'] = contact_id
+                
+                # Format description
+                duration_text = f" ({duration} mins)" if duration else ""
+                description = f"{call_type.title()} call with {contact.first_name} {contact.last_name}{duration_text}: {summary}"
+                activity_icon = 'fa-phone'
+                
+            elif activity_type == 'note':
+                content = request.POST.get('content')
+                
+                # Store full content
+                activity_data['content'] = content
+                activity_data['contact_id'] = contact_id
+                
+                # Truncate content for the description if it's too long
+                if len(content) > 100:
+                    short_content = content[:97] + "..."
+                else:
+                    short_content = content
+                
+                description = f"Note about {contact.first_name} {contact.last_name}: {short_content}"
+                activity_icon = 'fa-sticky-note'
+                
+            elif activity_type == 'exception':
+                exception_type = request.POST.get('exception_type')
+                value_amount = request.POST.get('value_amount')
+                approved_by = request.POST.get('approved_by')
+                description_text = request.POST.get('description')
+                
+                # Store full content
+                activity_data['exception_type'] = exception_type
+                activity_data['value_amount'] = value_amount
+                activity_data['approved_by'] = approved_by
+                activity_data['description'] = description_text
+                activity_data['contact_id'] = contact_id
+                
+                # Format exception type for display
+                exception_display = exception_type.replace('_', ' ').title()
+                
+                # Format value if provided
+                value_text = f" (£{value_amount})" if value_amount else ""
+                
+                # Format approval info
+                approval_text = ""
+                if approved_by and approved_by != 'none':
+                    approval_text = f", approved by {approved_by.replace('_', ' ').title()}"
+                
+                # Format description
+                description = f"{exception_display}{value_text} for {contact.first_name} {contact.last_name}{approval_text}: {description_text}"
+                activity_icon = 'fa-star'
+            
+            # Create activity record
+            Activity.objects.create(
+                company=company,
+                contact=contact,
+                activity_type=activity_type,
+                description=description,
+                performed_by=request.user,
+                data=activity_data  # Save the detailed activity data
+            )
+            
+            messages.success(request, f"{activity_type.title()} activity logged successfully!")
+            
+        except Exception as e:
+            messages.error(request, f"Error logging activity: {str(e)}")
+        
+    return redirect('crm:contact_detail', pk=contact_id)
+

@@ -29,6 +29,10 @@ urlpatterns = [
     path('travel-policy/<int:policy_id>/update/', views.travel_policy_update, name='travel_policy_update'),
     path('travel-policy/<int:policy_id>/delete/', views.travel_policy_delete, name='travel_policy_delete'),
     
+    # Activity Logging
+    path('companies/<int:company_id>/log-activity/<str:activity_type>/', views.log_activity, name='log_activity'),
+    path('contacts/<int:contact_id>/log-activity/<str:activity_type>/', views.log_contact_activity, name='log_contact_activity'),
+    
     # HubSpot Integration
     path('hubspot/search/', views.hubspot_search, name='hubspot_search'),
     path('hubspot/company/<str:hubspot_id>/', views.hubspot_company_detail, name='hubspot_company_detail'),
