@@ -1,0 +1,66 @@
+/* Activity Timeline Styling */
+.activity-timeline {
+    position: relative;
+}
+
+.timeline-item {
+    position: relative;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+    border-left-width: 4px !important;
+    border-left-style: solid;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: 1.5rem;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid;
+}
+
+.timeline-item.border-success::before {
+    border-color: #198754;
+}
+
+.timeline-item.border-warning::before {
+    border-color: #ffc107;
+}
+
+.timeline-item.border-danger::before {
+    border-color: #dc3545;
+}
+
+.timeline-item.border-info::before {
+    border-color: #0dcaf0;
+}
+
+/* Border colors */
+.timeline-item.border-success {
+    border-left-color: #198754;
+}
+
+.timeline-item.border-warning {
+    border-left-color: #ffc107;
+}
+
+.timeline-item.border-danger {
+    border-left-color: #dc3545;
+}
+
+.timeline-item.border-info {
+    border-left-color: #0dcaf0;
+}
+
+/* White-space preserving for activity descriptions */
+.timeline-item p.mb-0 {
+    white-space: pre-line;
+} 

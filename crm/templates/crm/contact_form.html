@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Add Contact{% endblock %}
+{% block title %}{{ title|default:"Add Contact" }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -9,7 +9,7 @@
         <div class="col-md-8 offset-md-2">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="mb-0">Add Contact</h4>
+                    <h4 class="mb-0">{{ title|default:"Add Contact" }}</h4>
                 </div>
                 <div class="card-body">
                     <form method="post">
@@ -125,8 +125,14 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="{% url 'crm:company_list' %}" class="btn btn-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary">Create Contact</button>
+                            {% if object %}
+                                <a href="{% url 'crm:contact_detail' object.pk %}" class="btn btn-secondary">Cancel</a>
+                            {% elif company %}
+                                <a href="{% url 'crm:company_detail' company.pk %}" class="btn btn-secondary">Cancel</a>
+                            {% else %}
+                                <a href="{% url 'crm:company_list' %}" class="btn btn-secondary">Cancel</a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">{{ submit_text|default:"Create Contact" }}</button>
                         </div>
                     </form>
                 </div>

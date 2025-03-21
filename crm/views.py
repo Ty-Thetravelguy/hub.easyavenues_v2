@@ -167,18 +167,37 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
             except Company.DoesNotExist:
                 messages.error(self.request, "Company not found. Please create the company first.")
                 return redirect('crm:company_list')
+                
+        # Save the form to create the contact
+        response = super().form_valid(form)
+        
+        # Create an activity record for the contact creation
+        Activity.objects.create(
+            company=form.instance.company,
+            contact=form.instance,
+            activity_type='status_change',
+            description=f"Contact {form.instance.first_name} {form.instance.last_name} was created",
+            performed_by=self.request.user
+        )
+        
         messages.success(self.request, "Contact created successfully.")
-        return super().form_valid(form)
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         company_id = self.kwargs.get('company_id')
         if company_id:
             try:
-                context['company'] = Company.objects.get(id=company_id)
+                company = Company.objects.get(id=company_id)
+                context['company'] = company
+                context['title'] = f"Add Contact to {company.company_name}"
             except Company.DoesNotExist:
                 messages.error(self.request, "Company not found. Please create the company first.")
                 return redirect('crm:company_list')
+        else:
+            context['title'] = "Add Contact"
+            
+        context['submit_text'] = "Create Contact"
         return context
 
 class CompanyTypeForm(forms.Form):
@@ -757,8 +776,55 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
         return kwargs
 
     def form_valid(self, form):
+        # Get the original contact data before saving
+        original_contact = Contact.objects.get(pk=self.object.pk)
+        original_data = {
+            'first_name': original_contact.first_name,
+            'last_name': original_contact.last_name,
+            'job_role': original_contact.job_role,
+            'email': original_contact.email,
+            'landline': original_contact.landline,
+            'mobile': original_contact.mobile,
+            'date_of_birth': original_contact.date_of_birth,
+            'hospitality': original_contact.hospitality,
+            'tag_list': original_contact.tag_list
+        }
+        
+        # Save the form to update the contact
+        response = super().form_valid(form)
+        
+        # Compare original data with updated data
+        updated_contact = self.object
+        changed_fields = []
+        
+        for field, original_value in original_data.items():
+            updated_value = getattr(updated_contact, field)
+            
+            # Check for date field (date_of_birth)
+            if field == 'date_of_birth' and original_value != updated_value:
+                orig_str = str(original_value) if original_value else "Not set"
+                updated_str = str(updated_value) if updated_value else "Not set"
+                changed_fields.append(f"{field.replace('_', ' ').title()}: {orig_str} → {updated_str}")
+            # Handle other fields
+            elif original_value != updated_value:
+                orig_str = str(original_value) if original_value else "Not set"
+                updated_str = str(updated_value) if updated_value else "Not set"
+                changed_fields.append(f"{field.replace('_', ' ').title()}: {orig_str} → {updated_str}")
+        
+        # Create activity record if fields were changed
+        if changed_fields:
+            description = f"Contact {updated_contact.first_name} {updated_contact.last_name} was updated:\n• " + "\n• ".join(changed_fields)
+            
+            Activity.objects.create(
+                company=updated_contact.company,
+                contact=updated_contact,
+                activity_type='status_change',
+                description=description,
+                performed_by=self.request.user
+            )
+        
         messages.success(self.request, f"Contact {self.object.first_name} {self.object.last_name} has been updated successfully.")
-        return super().form_valid(form)
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -772,11 +838,22 @@ def contact_add_note(request, pk):
     if request.method == 'POST':
         content = request.POST.get('content')
         if content:
-            ContactNote.objects.create(
+            # Create the note
+            note = ContactNote.objects.create(
                 contact=contact,
                 content=content,
                 created_by=request.user
             )
+            
+            # Create an activity record for the note
+            Activity.objects.create(
+                company=contact.company,
+                contact=contact,
+                activity_type='note',
+                description=f"Note added to contact {contact.first_name} {contact.last_name}: {content[:100]}{'...' if len(content) > 100 else ''}",
+                performed_by=request.user
+            )
+            
             messages.success(request, 'Note added successfully.')
         else:
             messages.error(request, 'Note content cannot be empty.')
@@ -1045,4 +1122,27 @@ def travel_policy_delete(request, policy_id):
     
     # If not POST, redirect to the policy detail page
     return redirect('crm:travel_policy_detail', policy_id=policy.id)
+
+@login_required
+def contact_delete(request, pk):
+    contact = get_object_or_404(Contact, pk=pk)
+    company = contact.company
+    contact_name = f"{contact.first_name} {contact.last_name}"
+    
+    if request.method == 'POST':
+        # Create an activity record for the deletion before deleting the contact
+        Activity.objects.create(
+            company=company,
+            contact=None,  # Contact will be deleted, so set to None
+            activity_type='status_change',
+            description=f"Contact {contact_name} was deleted",
+            performed_by=request.user
+        )
+        
+        # Delete the contact
+        contact.delete()
+        messages.success(request, f"Contact {contact_name} has been deleted successfully.")
+        return redirect('crm:company_detail', pk=company.pk)
+    
+    return render(request, 'crm/contact_confirm_delete.html', {'contact': contact})
 

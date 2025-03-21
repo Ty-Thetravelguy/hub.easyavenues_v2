@@ -13,6 +13,7 @@ urlpatterns = [
     path('contacts/<int:pk>/', views.ContactDetailView.as_view(), name='contact_detail'),
     path('contacts/<int:pk>/update/', views.ContactUpdateView.as_view(), name='contact_update'),
     path('contacts/<int:pk>/add-note/', views.contact_add_note, name='contact_add_note'),
+    path('contacts/<int:pk>/delete/', views.contact_delete, name='contact_delete'),
     path('contacts/create/<int:company_id>/', views.ContactCreateView.as_view(), name='contact_create'),
     path('company/<int:company_id>/update-invoice-references/', views.update_invoice_references, name='update_invoice_references'),
     path('company/<int:company_id>/relationships/', views.manage_company_relationships, name='manage_company_relationships'),

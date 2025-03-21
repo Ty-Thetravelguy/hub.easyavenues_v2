@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crm_tags %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
@@ -48,11 +49,6 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" id="activities-tab" data-bs-toggle="tab" href="#activities" role="tab">
-                <i class="fas fa-chart-line me-2"></i>Activities
-            </a>
-        </li>
-        <li class="nav-item">
             <a class="nav-link" id="documents-tab" data-bs-toggle="tab" href="#documents" role="tab">
                 <i class="fas fa-file-alt me-2"></i>Documents
             </a>
@@ -64,6 +60,11 @@
             </a>
         </li>
         {% endif %}
+        <li class="nav-item">
+            <a class="nav-link" id="activities-tab" data-bs-toggle="tab" href="#activities" role="tab">
+                <i class="fas fa-chart-line me-2"></i>Activities
+            </a>
+        </li>
     </ul>
 
     <!-- Tabs Content -->
@@ -493,30 +494,6 @@
             </div>
         </div>
 
-        <!-- Activities Tab -->
-        <div class="tab-pane fade" id="activities" role="tabpanel">
-            <div class="card">
-                <div class="card-body">
-                    <div class="activity-timeline">
-                        {% for activity in activities %}
-                        <div class="timeline-item">
-                            <h6 class="mb-1">{{ activity.title }}</h6>
-                            <p class="text-muted small mb-2">
-                                {{ activity.performed_at|date:"d M Y, H:i" }} by {{ activity.performed_by.get_full_name }}
-                            </p>
-                            <p class="mb-0">{{ activity.description }}</p>
-                        </div>
-                        {% empty %}
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-chart-line fa-3x mb-3"></i>
-                            <p>No activities recorded yet.</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Documents Tab -->
         <div class="tab-pane fade" id="documents" role="tabpanel">
             <div class="card">
@@ -695,6 +672,66 @@
             </div>
         </div>
         {% endif %}
+
+        <!-- Activities Tab -->
+        <div class="tab-pane fade" id="activities" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <div class="activity-timeline">
+                        {% for activity in activities %}
+                        <div class="timeline-item {% if 'created' in activity.description|lower %}border-success{% elif 'updated' in activity.description|lower %}border-warning{% elif 'deleted' in activity.description|lower %}border-danger{% else %}border-info{% endif %} ps-3 mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">
+                                    {% if activity.activity_type == 'status_change' %}
+                                        <i class="fas fa-exchange-alt text-warning me-2"></i>
+                                    {% elif 'created' in activity.description|lower %}
+                                        <i class="fas fa-plus-circle text-success me-2"></i>
+                                    {% elif 'updated' in activity.description|lower %}
+                                        <i class="fas fa-edit text-warning me-2"></i>
+                                    {% elif 'deleted' in activity.description|lower %}
+                                        <i class="fas fa-trash text-danger me-2"></i>
+                                    {% elif activity.activity_type == 'note' %}
+                                        <i class="fas fa-sticky-note text-info me-2"></i>
+                                    {% elif activity.activity_type == 'email' %}
+                                        <i class="fas fa-envelope text-primary me-2"></i>
+                                    {% elif activity.activity_type == 'call' %}
+                                        <i class="fas fa-phone text-success me-2"></i>
+                                    {% elif activity.activity_type == 'meeting' %}
+                                        <i class="fas fa-handshake text-primary me-2"></i>
+                                    {% elif activity.activity_type == 'policy_update' %}
+                                        <i class="fas fa-clipboard-check text-info me-2"></i>
+                                    {% else %}
+                                        <i class="fas fa-clipboard-list text-secondary me-2"></i>
+                                    {% endif %}
+                                    {{ activity.activity_type|title }}
+                                </h6>
+                                <span class="badge bg-light text-dark rounded-pill">
+                                    {{ activity.performed_at|date:"d M Y, H:i" }}
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-2">
+                                <i class="fas fa-user me-1"></i> {{ activity.performed_by.get_full_name }}
+                            </p>
+                            <p class="mb-0">{{ activity.description }}</p>
+                            {% if activity.activity_type == 'status_change' and activity.outcome %}
+                            <div class="mt-2">
+                                <span class="badge bg-secondary me-2">From</span> {{ activity.outcome|split:"|"|first }}
+                                <i class="fas fa-arrow-right mx-2"></i>
+                                <span class="badge bg-primary me-2">To</span> {{ activity.outcome|split:"|"|last }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-chart-line fa-3x mb-3"></i>
+                            <p>No activities recorded yet.</p>
+                            <span class="text-secondary small">Activities will appear here when changes are made to this company.</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
