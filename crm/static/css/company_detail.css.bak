@@ -213,3 +213,54 @@
     margin-bottom: 0;
     background-color: #fff;
 }
+
+.activity-type-card .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+}
+
+.activity-type-card *, 
+.activity-type-card .card-body * {
+    cursor: pointer;
+}
+
+/* Activity Type Cards - New Styling */
+#activity-cards-container .activity-type-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid #dee2e6;
+    margin-bottom: 0;
+    background-color: #fff;
+}
+
+#activity-cards-container .activity-type-card:hover {
+    transform: translateY(-12px) !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important;
+    background-color: #f8f9fa;
+    z-index: 10 !important;
+}
+
+#activity-cards-container .activity-type-card.active {
+    border: 2px solid #4e73df;
+    background-color: #eef2ff;
+    box-shadow: 0 0 0 0.15rem rgba(78,115,223,0.25);
+}
+
+#activity-cards-container .activity-type-card .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+}
+
+#activity-cards-container .activity-type-card * {
+    cursor: pointer;
+}
+
+#activity-cards-container .activity-type-card .fa-lg {
+    font-size: 1.25rem;
+} 
