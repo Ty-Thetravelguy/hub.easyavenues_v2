@@ -3,522 +3,1041 @@
 {% load crm_tags %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="{% static 'css/company_detail.css' %}" />
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css"
+/>
 <style>
-    /* Simple hover effect for activity type cards */
-    .activity-type-card {
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        margin-bottom: 0;
-        border: 1px solid #dee2e6;
-        transform: translateY(0);
-    }
-    .activity-type-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        background-color: #f8f9fa;
-    }
-    .activity-type-card.active {
-        border: 2px solid #4e73df;
-        background-color: #eef2ff;
-    }
+  /* Simple hover effect for activity type cards */
+  .activity-type-card {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    margin-bottom: 0;
+    border: 1px solid #dee2e6;
+    transform: translateY(0);
+  }
+  .activity-type-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background-color: #f8f9fa;
+  }
+  .activity-type-card.active {
+    border: 2px solid #4e73df;
+    background-color: #eef2ff;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Company Profile Header -->
 <div class="profile-header bg-gradient-blue-purple-left text-white py-4 mb-4">
-    <div class="container-fluid">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="mb-2">{{ company.company_name }}</h1>
-                <p class="mb-0">
-                    <i class="fas fa-building me-2"></i>{{ company.industry }}
-                    <span class="mx-2">|</span>
-                    <i class="fas fa-map-marker-alt me-2"></i>{{ company.city }}, {{ company.country }}
-                </p>
-            </div>
-            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <a href="{% url 'crm:company_list' %}" class="btn btn-light me-2">
-                    <i class="fas fa-arrow-left"></i> Back
-                </a>
-                <a href="{% url 'crm:company_update' company.pk %}" class="btn btn-light me-2">
-                    <i class="fas fa-edit"></i> Edit
-                </a>
-                <a href="{% url 'crm:contact_create' company_id=company.pk %}" class="btn btn-light">
-                    <i class="fas fa-user-plus"></i> Add Contact
-                </a>
-            </div>
-        </div>
+  <div class="container-fluid">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <h1 class="mb-2">{{ company.company_name }}</h1>
+        <p class="mb-0">
+          <i class="fas fa-building me-2"></i>{{ company.industry }}
+          <span class="mx-2">|</span>
+          <i class="fas fa-map-marker-alt me-2"></i>{{ company.city }}, {{ company.country }}
+        </p>
+      </div>
+      <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{% url 'crm:company_list' %}" class="btn btn-light me-2">
+          <i class="fas fa-arrow-left"></i> Back
+        </a>
+        <a
+          href="{% url 'crm:company_update' company.pk %}"
+          class="btn btn-light me-2"
+        >
+          <i class="fas fa-edit"></i> Edit
+        </a>
+        <a
+          href="{% url 'crm:contact_create' company_id=company.pk %}"
+          class="btn btn-light"
+        >
+          <i class="fas fa-user-plus"></i> Add Contact
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 
 <div class="container-fluid mb-5">
-    <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-4" id="companyTabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="overview-tab" data-bs-toggle="tab" href="#overview" role="tab">
-                <i class="fas fa-info-circle me-2"></i>Overview
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="contacts-tab" data-bs-toggle="tab" href="#contacts" role="tab">
-                <i class="fas fa-users me-2"></i>Contacts
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="documents-tab" data-bs-toggle="tab" href="#documents" role="tab">
-                <i class="fas fa-file-alt me-2"></i>Documents
-            </a>
-        </li>
-        {% if company.company_type == 'Client' %}
-        <li class="nav-item">
-            <a class="nav-link" id="travel-policies-tab" data-bs-toggle="tab" href="#travel-policies" role="tab">
-                <i class="fas fa-plane me-2"></i>Travel Policies
-            </a>
-        </li>
-        {% endif %}
-        <li class="nav-item">
-            <a class="nav-link" id="activities-tab" data-bs-toggle="tab" href="#activities" role="tab">
-                <i class="fas fa-chart-line me-2"></i>Activities
-            </a>
-        </li>
-    </ul>
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs mb-4" id="companyTabs" role="tablist">
+    <li class="nav-item">
+      <a
+        class="nav-link active"
+        id="overview-tab"
+        data-bs-toggle="tab"
+        href="#overview"
+        role="tab"
+      >
+        <i class="fas fa-info-circle me-2"></i>Overview
+      </a>
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link"
+        id="contacts-tab"
+        data-bs-toggle="tab"
+        href="#contacts"
+        role="tab"
+      >
+        <i class="fas fa-users me-2"></i>Contacts
+      </a>
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link"
+        id="documents-tab"
+        data-bs-toggle="tab"
+        href="#documents"
+        role="tab"
+      >
+        <i class="fas fa-file-alt me-2"></i>Documents
+      </a>
+    </li>
+    {% if company.company_type == 'Client' %}
+    <li class="nav-item">
+      <a
+        class="nav-link"
+        id="travel-policies-tab"
+        data-bs-toggle="tab"
+        href="#travel-policies"
+        role="tab"
+      >
+        <i class="fas fa-plane me-2"></i>Travel Policies
+      </a>
+    </li>
+    {% endif %}
+    <li class="nav-item">
+      <a
+        class="nav-link"
+        id="activities-tab"
+        data-bs-toggle="tab"
+        href="#activities"
+        role="tab"
+      >
+        <i class="fas fa-chart-line me-2"></i>Activities
+      </a>
+    </li>
+  </ul>
 
-    <!-- Tabs Content -->
-    <div class="tab-content" id="companyTabsContent">
-        <!-- Overview Tab -->
-        <div class="tab-pane fade show active" id="overview" role="tabpanel">
-            <div class="row">
-                <!-- Left Column -->
-                <div class="col-md-4">
-                    <!-- Basic Information -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">Basic Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-sm-5 text-muted">Company Type</div>
-                                <div class="col-sm-7">{{ company.company_type }}</div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-5 text-muted">Industry</div>
-                                <div class="col-sm-7">{{ company.industry }}</div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-5 text-muted">Email</div>
-                                <div class="col-sm-7">
-                                    <a href="mailto:{{ company.email }}">{{ company.email }}</a>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-sm-5 text-muted">Phone</div>
-                                <div class="col-sm-7">
-                                    <a href="tel:{{ company.phone_number }}">{{ company.phone_number }}</a>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-5 text-muted">LinkedIn</div>
-                                <div class="col-sm-7">
-                                    {% if company.linkedin_social_page %}
-                                    <a href="{{ company.linkedin_social_page }}" target="_blank">
-                                        <i class="fab fa-linkedin"></i> View Profile
-                                    </a>
-                                    {% else %}
-                                    <span class="text-muted">Not provided</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Address Information -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">Address Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <address class="mb-0">
-                                {{ company.street_address }}<br>
-                                {{ company.city }}, {{ company.state_province }} {{ company.postal_code }}<br>
-                                {{ company.country }}
-                            </address>
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">Description</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="mb-0">{{ company.description|default:"No description provided." }}</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Linked Companies -->
-                    {% if company.company_type == 'Client' or company.company_type == 'Supplier' %}
-                    <div class="card mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Linked Companies</h5>
-                            <a href="{% url 'crm:manage_company_relationships' company.id %}" class="btn btn-primary btn-sm">
-                                <i class="fas fa-link"></i> Manage
-                            </a>
-                        </div>
-                        <div class="card-body">
-                            {% with from_relationships=company.from_relationships.filter to_relationships=company.to_relationships.filter %}
-                                {% if from_relationships.exists or to_relationships.exists %}
-                                    <div class="list-group list-group-flush">
-                                        {% for rel in from_relationships %}
-                                            {% if rel.is_active %}
-                                            <div class="list-group-item px-0">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <a href="{% url 'crm:company_detail' rel.to_company.id %}">
-                                                            {{ rel.to_company.company_name }}
-                                                        </a>
-                                                        <span class="badge bg-info ms-2">{{ rel.get_relationship_type_display }}</span>
-                                                    </div>
-                                                    <span class="badge bg-secondary">Outgoing</span>
-                                                </div>
-                                                {% if rel.description %}
-                                                <small class="text-muted">{{ rel.description }}</small>
-                                                {% endif %}
-                                            </div>
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% for rel in to_relationships %}
-                                            {% if rel.is_active %}
-                                            <div class="list-group-item px-0">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <a href="{% url 'crm:company_detail' rel.from_company.id %}">
-                                                            {{ rel.from_company.company_name }}
-                                                        </a>
-                                                        <span class="badge bg-info ms-2">{{ rel.get_relationship_type_display }}</span>
-                                                    </div>
-                                                    <span class="badge bg-secondary">Incoming</span>
-                                                </div>
-                                                {% if rel.description %}
-                                                <small class="text-muted">{{ rel.description }}</small>
-                                                {% endif %}
-                                            </div>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">No linked companies found. Use the "Manage" button to link this company to others.</p>
-                                {% endif %}
-                            {% endwith %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Right Column - Client/Supplier Profile -->
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header text-white card-header-primary">
-                            <h5 class="mb-0">{% if company.company_type == 'Client' %}Client{% else %}Supplier{% endif %} Profile</h5>
-                        </div>
-                        <div class="card-body">
-                            <!-- Basic Information -->
-                            <div class="profile-section mb-4">
-                                <h6 class="border-bottom pb-2 mb-3">Basic Information</h6>
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">{% if company.company_type == 'Client' %}Client{% else %}Supplier{% endif %} Type</label>
-                                            <span class="fs-6">{% if company.company_type == 'Client' %}{{ company.client_profile.client_type }}{% else %}{{ company.supplier_profile.supplier_type }}{% endif %}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Status</label>
-                                            <span class="badge bg-primary">{% if company.company_type == 'Client' %}{{ company.client_profile.client_status }}{% else %}{{ company.supplier_profile.supplier_status }}{% endif %}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">{% if company.company_type == 'Client' %}Operations Team{% else %}Department{% endif %}</label>
-                                            <span class="fs-6">{% if company.company_type == 'Client' %}{{ company.client_profile.client_ops_team|default:"Not assigned" }}{% else %}{{ company.supplier_profile.supplier_for_department }}{% endif %}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">{% if company.company_type == 'Client' %}Account Manager{% else %}Owner{% endif %}</label>
-                                            <span class="fs-6">
-                                                {% if company.company_type == 'Client' %}
-                                                    {% if company.client_profile.client_account_manager %}
-                                                        {{ company.client_profile.client_account_manager.get_full_name }}
-                                                    {% else %}
-                                                        Not assigned
-                                                    {% endif %}
-                                                {% else %}
-                                                    {% if company.supplier_profile.supplier_owner %}
-                                                        {{ company.supplier_profile.supplier_owner.get_full_name }}
-                                                    {% else %}
-                                                        Not assigned
-                                                    {% endif %}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Finance/Invoice Information -->
-                            <div class="profile-section mb-4">
-                                <h6 class="border-bottom pb-2 mb-3">Finance/Invoice Information</h6>
-                                <div class="row">
-                                    {% if company.company_type == 'Client' %}
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Sage Name</label>
-                                            <span class="fs-6">{{ company.client_profile.sage_name|default:"Not set" }}</span>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Midoco CRM Number</label>
-                                            <span class="fs-6">{{ company.client_profile.midoco_crm_number|default:"Not set" }}</span>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Invoice References</label>
-                                            {% if company.client_profile.invoice_reference_options.exists %}
-                                            <div class="mt-2">
-                                                {% for reference in company.client_profile.invoice_reference_options.all %}
-                                                <div class="badge bg-primary me-1 mb-1">
-                                                    {{ reference.name }}
-                                                    {% with client_refs=reference.clientinvoicereference_set.all %}
-                                                        {% for client_ref in client_refs %}
-                                                            {% if client_ref.client_profile == company.client_profile %}
-                                                                <span class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-1">
-                                                                    {% if client_ref.is_mandatory %}Mandatory{% else %}Optional{% endif %}
-                                                                </span>
-                                                            {% endif %}
-                                                        {% endfor %}
-                                                    {% endwith %}
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-                                            {% else %}
-                                            <span class="text-muted">No references set</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                    <div class="col-md-{% if company.company_type == 'Client' %}6{% else %}4{% endif %}">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Invoicing Type</label>
-                                            <span class="fs-6">{% if company.company_type == 'Client' %}{{ company.client_profile.invoicing_type|default:"Not set" }}{% else %}{{ company.supplier_profile.invoicing_type|default:"Not set" }}{% endif %}</span>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Invoicing Frequency</label>
-                                            <span class="fs-6">{% if company.company_type == 'Client' %}{{ company.client_profile.invoicing_frequency|default:"Not set" }}{% else %}{{ company.supplier_profile.invoicing_frequency|default:"Not set" }}{% endif %}</span>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Payment Terms</label>
-                                            <span class="fs-6">{% if company.company_type == 'Client' %}{{ company.client_profile.payment_terms|default:"Not set" }}{% else %}{{ company.supplier_profile.payment_terms|default:"Not set" }}{% endif %}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {% if company.company_type == 'Client' %}
-                            <!-- Corporate Benefits -->
-                            <div class="profile-section mb-4">
-                                <h6 class="border-bottom pb-2 mb-3">Corporate Benefits</h6>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Hotel Rates</label>
-                                            <span class="fs-6">{{ company.client_profile.corporate_hotel_rates|default:"Not set" }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Airline Fares</label>
-                                            <span class="fs-6">{{ company.client_profile.corporate_airline_fares|default:"Not set" }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label class="text-muted d-block">Memberships</label>
-                                            <span class="fs-6">{{ company.client_profile.company_memberships|default:"Not set" }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-
-                            <!-- Service Status -->
-                            <div class="profile-section">
-                                <h6 class="border-bottom pb-2 mb-3">Service Status</h6>
-                                <div class="row">
-                                    {% if company.company_type == 'Client' %}
-                                    <div class="col-md-6">
-                                        <ul class="list-unstyled status-list">
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.has_new_contract_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>New Contract Signed</span>
-                                            </li>
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.signed_up_corporate_schemes %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Corporate Schemes</span>
-                                            </li>
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.signed_up_travelogix %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Travelogix</span>
-                                            </li>
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.meetings_events_requirements %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Meetings & Events Requirements</span>
-                                            </li>
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.reporting_standard_bespoke %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Standard/Bespoke Reporting</span>
-                                            </li>
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.access_to_travelogix %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Access to Travelogix</span>
-                                            </li>
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.travel_policy_health_check_offered %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Travel Policy Health Check Offered</span>
-                                            </li>
-                                            <li class="d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.testimonial_requested %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Testimonial Requested</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6 class="border-bottom pb-2 mb-3">Sustainability Information</h6>
-                                        <ul class="list-unstyled status-list">
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.communicated_esg_support %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>ESG Support Communicated</span>
-                                            </li>
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.receive_co2_reporting %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>CO2 Reporting</span>
-                                            </li>
-                                            <li class="d-flex align-items-center">
-                                                <i class="fas {% if company.client_profile.discussed_offsetting %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Offsetting Discussed</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    {% else %}
-                                    <div class="col-12">
-                                        <ul class="list-unstyled status-list">
-                                            <li class="mb-2 d-flex align-items-center">
-                                                <i class="fas {% if company.supplier_profile.new_supplier_form_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>New Supplier Form Signed</span>
-                                            </li>
-                                            <li class="d-flex align-items-center">
-                                                <i class="fas {% if company.supplier_profile.contract_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"></i>
-                                                <span>Contract Signed</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  <!-- Tabs Content -->
+  <div class="tab-content" id="companyTabsContent">
+    <!-- Overview Tab -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+      <div class="row">
+        <!-- Left Column -->
+        <div class="col-md-4">
+          <!-- Basic Information -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Basic Information</h5>
             </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-sm-5 text-muted">Company Type</div>
+                <div class="col-sm-7">{{ company.company_type }}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-5 text-muted">Industry</div>
+                <div class="col-sm-7">{{ company.industry }}</div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-5 text-muted">Email</div>
+                <div class="col-sm-7">
+                  <a href="mailto:{{ company.email }}">{{ company.email }}</a>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-5 text-muted">Phone</div>
+                <div class="col-sm-7">
+                  <a href="tel:{{ company.phone_number }}"
+                    >{{ company.phone_number }}</a
+                  >
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-sm-5 text-muted">LinkedIn</div>
+                <div class="col-sm-7">
+                  {% if company.linkedin_social_page %}
+                  <a href="{{ company.linkedin_social_page }}" target="_blank">
+                    <i class="fab fa-linkedin"></i> View Profile
+                  </a>
+                  {% else %}
+                  <span class="text-muted">Not provided</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Address Information -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Address Information</h5>
+            </div>
+            <div class="card-body">
+              <address class="mb-0">
+                {{ company.street_address }}<br />
+                {{ company.city }}, {{ company.state_province }} {{
+                company.postal_code }}<br />
+                {{ company.country }}
+              </address>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Description</h5>
+            </div>
+            <div class="card-body">
+              <p class="mb-0">
+                {{ company.description|default:"No description provided." }}
+              </p>
+            </div>
+          </div>
+
+          {% if company.company_type == 'Client' or company.company_type ==
+          'Supplier' %}
+          <div class="card mb-4">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0">Linked Companies</h5>
+              <a
+                href="{% url 'crm:manage_company_relationships' company.id %}"
+                class="btn btn-primary btn-sm"
+              >
+                <i class="fas fa-link"></i> Manage
+              </a>
+            </div>
+            <div class="card-body">
+              {% with from_relationships=company.from_relationships.filter
+              to_relationships=company.to_relationships.filter %} {% if
+              from_relationships.exists or to_relationships.exists %}
+              <div class="list-group list-group-flush">
+                {% for rel in from_relationships %} {% if rel.is_active %}
+                <div class="list-group-item px-0">
+                  <div
+                    class="d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <a
+                        href="{% url 'crm:company_detail' rel.to_company.id %}"
+                      >
+                        {{ rel.to_company.company_name }}
+                      </a>
+                      <span class="badge bg-info ms-2"
+                        >{{ rel.get_relationship_type_display }}</span
+                      >
+                    </div>
+                    <span class="badge bg-secondary">Outgoing</span>
+                  </div>
+                  {% if rel.description %}
+                  <small class="text-muted">{{ rel.description }}</small>
+                  {% endif %}
+                </div>
+                {% endif %} {% endfor %} {% for rel in to_relationships %} {% if
+                rel.is_active %}
+                <div class="list-group-item px-0">
+                  <div
+                    class="d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <a
+                        href="{% url 'crm:company_detail' rel.from_company.id %}"
+                      >
+                        {{ rel.from_company.company_name }}
+                      </a>
+                      <span class="badge bg-info ms-2"
+                        >{{ rel.get_relationship_type_display }}</span
+                      >
+                    </div>
+                    <span class="badge bg-secondary">Incoming</span>
+                  </div>
+                  {% if rel.description %}
+                  <small class="text-muted">{{ rel.description }}</small>
+                  {% endif %}
+                </div>
+                {% endif %} {% endfor %}
+              </div>
+              {% else %}
+              <p class="text-muted">
+                No linked companies found. Use the "Manage" button to link this
+                company to others.
+              </p>
+              {% endif %} {% endwith %}
+            </div>
+          </div>
+          {% endif %}
         </div>
 
-        <!-- Contacts Tab -->
-        <div class="tab-pane fade" id="contacts" role="tabpanel">
-            <div class="card">
+        <!-- Right Column - Client/Supplier Profile -->
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header text-white card-header-primary">
+              <h5 class="mb-0">
+                {% if company.company_type == 'Client' %}Client{% else
+                %}Supplier{% endif %} Profile
+              </h5>
+            </div>
+            <div class="card-body">
+              <!-- Basic Information -->
+              <div class="profile-section mb-4">
+                <h6 class="border-bottom pb-2 mb-3">Basic Information</h6>
+                <div class="row">
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label class="text-muted d-block"
+                        >{% if company.company_type == 'Client' %}Client{% else
+                        %}Supplier{% endif %} Type</label
+                      >
+                      <span class="fs-6"
+                        >{% if company.company_type == 'Client' %}{{
+                        company.client_profile.client_type }}{% else %}{{
+                        company.supplier_profile.supplier_type }}{% endif
+                        %}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label class="text-muted d-block">Status</label>
+                      <span class="badge bg-primary"
+                        >{% if company.company_type == 'Client' %}{{
+                        company.client_profile.client_status }}{% else %}{{
+                        company.supplier_profile.supplier_status }}{% endif
+                        %}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label class="text-muted d-block"
+                        >{% if company.company_type == 'Client' %}Operations
+                        Team{% else %}Department{% endif %}</label
+                      >
+                      <span class="fs-6"
+                        >{% if company.company_type == 'Client' %}{{
+                        company.client_profile.client_ops_team|default:"Not
+                        assigned" }}{% else %}{{
+                        company.supplier_profile.supplier_for_department }}{%
+                        endif %}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label class="text-muted d-block"
+                        >{% if company.company_type == 'Client' %}Account
+                        Manager{% else %}Owner{% endif %}</label
+                      >
+                      <span class="fs-6">
+                        {% if company.company_type == 'Client' %} {% if
+                        company.client_profile.client_account_manager %} {{
+                        company.client_profile.client_account_manager.get_full_name
+                        }} {% else %} Not assigned {% endif %} {% else %} {% if
+                        company.supplier_profile.supplier_owner %} {{
+                        company.supplier_profile.supplier_owner.get_full_name }}
+                        {% else %} Not assigned {% endif %} {% endif %}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Finance/Invoice Information -->
+              <div class="profile-section mb-4">
+                <h6 class="border-bottom pb-2 mb-3">
+                  Finance/Invoice Information
+                </h6>
+                <div class="row">
+                  {% if company.company_type == 'Client' %}
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="text-muted d-block">Sage Name</label>
+                      <span class="fs-6"
+                        >{{ company.client_profile.sage_name|default:"Not set"
+                        }}</span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <label class="text-muted d-block"
+                        >Midoco CRM Number</label
+                      >
+                      <span class="fs-6"
+                        >{{
+                        company.client_profile.midoco_crm_number|default:"Not
+                        set" }}</span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <label class="text-muted d-block"
+                        >Invoice References</label
+                      >
+                      {% if
+                      company.client_profile.invoice_reference_options.exists %}
+                      <div class="mt-2">
+                        {% for reference in
+                        company.client_profile.invoice_reference_options.all %}
+                        <div class="badge bg-primary me-1 mb-1">
+                          {{ reference.name }} {% with
+                          client_refs=reference.clientinvoicereference_set.all
+                          %} {% for client_ref in client_refs %} {% if
+                          client_ref.client_profile == company.client_profile %}
+                          <span
+                            class="badge {% if client_ref.is_mandatory %}bg-danger{% else %}bg-secondary{% endif %} ms-1"
+                          >
+                            {% if client_ref.is_mandatory %}Mandatory{% else
+                            %}Optional{% endif %}
+                          </span>
+                          {% endif %} {% endfor %} {% endwith %}
+                        </div>
+                        {% endfor %}
+                      </div>
+                      {% else %}
+                      <span class="text-muted">No references set</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% endif %}
+                  <div
+                    class="col-md-{% if company.company_type == 'Client' %}6{% else %}4{% endif %}"
+                  >
+                    <div class="mb-3">
+                      <label class="text-muted d-block">Invoicing Type</label>
+                      <span class="fs-6"
+                        >{% if company.company_type == 'Client' %}{{
+                        company.client_profile.invoicing_type|default:"Not set"
+                        }}{% else %}{{
+                        company.supplier_profile.invoicing_type|default:"Not
+                        set" }}{% endif %}</span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <label class="text-muted d-block"
+                        >Invoicing Frequency</label
+                      >
+                      <span class="fs-6"
+                        >{% if company.company_type == 'Client' %}{{
+                        company.client_profile.invoicing_frequency|default:"Not
+                        set" }}{% else %}{{
+                        company.supplier_profile.invoicing_frequency|default:"Not
+                        set" }}{% endif %}</span
+                      >
+                    </div>
+                    <div class="mb-3">
+                      <label class="text-muted d-block">Payment Terms</label>
+                      <span class="fs-6"
+                        >{% if company.company_type == 'Client' %}{{
+                        company.client_profile.payment_terms|default:"Not set"
+                        }}{% else %}{{
+                        company.supplier_profile.payment_terms|default:"Not set"
+                        }}{% endif %}</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {% if company.company_type == 'Client' %}
+              <!-- Corporate Benefits -->
+              <div class="profile-section mb-4">
+                <h6 class="border-bottom pb-2 mb-3">Corporate Benefits</h6>
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="text-muted d-block">Hotel Rates</label>
+                      <span class="fs-6"
+                        >{{
+                        company.client_profile.corporate_hotel_rates|default:"Not
+                        set" }}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="text-muted d-block">Airline Fares</label>
+                      <span class="fs-6"
+                        >{{
+                        company.client_profile.corporate_airline_fares|default:"Not
+                        set" }}</span
+                      >
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="text-muted d-block">Memberships</label>
+                      <span class="fs-6"
+                        >{{
+                        company.client_profile.company_memberships|default:"Not
+                        set" }}</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Service Status -->
+              <div class="profile-section">
+                <h6 class="border-bottom pb-2 mb-3">Service Status</h6>
+                <div class="row">
+                  {% if company.company_type == 'Client' %}
+                  <div class="col-md-6">
+                    <ul class="list-unstyled status-list">
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.has_new_contract_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>New Contract Signed</span>
+                      </li>
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.signed_up_corporate_schemes %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Corporate Schemes</span>
+                      </li>
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.signed_up_travelogix %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Travelogix</span>
+                      </li>
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.meetings_events_requirements %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Meetings & Events Requirements</span>
+                      </li>
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.reporting_standard_bespoke %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Standard/Bespoke Reporting</span>
+                      </li>
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.access_to_travelogix %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Access to Travelogix</span>
+                      </li>
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.travel_policy_health_check_offered %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Travel Policy Health Check Offered</span>
+                      </li>
+                      <li class="d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.testimonial_requested %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Testimonial Requested</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="col-md-6">
+                    <h6 class="border-bottom pb-2 mb-3">
+                      Sustainability Information
+                    </h6>
+                    <ul class="list-unstyled status-list">
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.communicated_esg_support %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>ESG Support Communicated</span>
+                      </li>
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.receive_co2_reporting %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>CO2 Reporting</span>
+                      </li>
+                      <li class="d-flex align-items-center">
+                        <i
+                          class="fas {% if company.client_profile.discussed_offsetting %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Offsetting Discussed</span>
+                      </li>
+                    </ul>
+                  </div>
+                  {% else %}
+                  <div class="col-12">
+                    <ul class="list-unstyled status-list">
+                      <li class="mb-2 d-flex align-items-center">
+                        <i
+                          class="fas {% if company.supplier_profile.new_supplier_form_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>New Supplier Form Signed</span>
+                      </li>
+                      <li class="d-flex align-items-center">
+                        <i
+                          class="fas {% if company.supplier_profile.contract_signed %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %} me-2"
+                        ></i>
+                        <span>Contract Signed</span>
+                      </li>
+                    </ul>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contacts Tab -->
+    <div class="tab-pane fade" id="contacts" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <table id="company-contacts-table" class="table table-striped">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Job Role</th>
+                <th>Tags</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for contact in contacts %}
+              <tr>
+                <td>
+                  <a
+                    href="{% url 'crm:contact_detail' contact.pk %}"
+                    class="fw-bold link-color"
+                  >
+                    {{ contact.first_name }} {{ contact.last_name }}
+                  </a>
+                </td>
+                <td>{{ contact.job_role }}</td>
+                <td>
+                  {% for tag in contact.tag_list %}
+                  <span
+                    class="badge me-1 {% if tag == 'primary' %}bg-primary {% elif tag == 'key_personnel' %}bg-success {% elif tag == 'booker' %}bg-warning text-dark {% elif tag == 'vip_traveller' %}bg-warning {% elif tag == 'traveller' %}bg-info {% else %}bg-secondary {% endif %}"
+                  >
+                    {% if tag == 'primary' %}Primary Contact {% elif tag ==
+                    'key_personnel' %}Key Personnel {% elif tag == 'booker'
+                    %}Booker {% elif tag == 'vip_traveller' %}VIP Traveller {%
+                    elif tag == 'traveller' %}Traveller {% else %}{{ tag }} {%
+                    endif %}
+                  </span>
+                  {% endfor %}
+                </td>
+                <td>
+                  <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                </td>
+                <td>
+                  {% if contact.mobile %}
+                  <a href="tel:{{ contact.mobile }}">{{ contact.mobile }}</a>
+                  {% else %} {{ contact.landline|default:"-" }} {% endif %}
+                </td>
+                <td>{{ contact.created_at|date:"d M Y" }}</td>
+                <td>
+                  <div class="d-flex gap-2">
+                    <a
+                      href="{% url 'crm:contact_detail' contact.pk %}"
+                      class="btn btn-sm action-btn-purple text-white"
+                      title="View"
+                    >
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a
+                      href="{% url 'crm:contact_update' contact.pk %}"
+                      class="btn btn-sm btn-secondary-ea"
+                      title="Edit"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="text-center">
+                  <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>No contacts found for
+                    this company.
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documents Tab -->
+    <div class="tab-pane fade" id="documents" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <table id="company-documents-table" class="table table-striped">
+            <thead>
+              <tr>
+                <th>Document Name</th>
+                <th>Document Type</th>
+                <th>Uploaded By</th>
+                <th>Uploaded Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for document in documents %}
+              <tr>
+                <td>
+                  <a
+                    href="{% url 'crm:document_detail' document.pk %}"
+                    class="fw-bold link-color"
+                  >
+                    {{ document.document_name }}
+                  </a>
+                </td>
+                <td>{{ document.document_type }}</td>
+                <td>{{ document.uploaded_by.get_full_name }}</td>
+                <td>{{ document.uploaded_at|date:"d M Y" }}</td>
+                <td>
+                  <div class="d-flex gap-2">
+                    <a
+                      href="{% url 'crm:document_detail' document.pk %}"
+                      class="btn btn-sm action-btn-purple text-white"
+                      title="View"
+                    >
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a
+                      href="{% url 'crm:document_update' document.pk %}"
+                      class="btn btn-sm btn-secondary-ea"
+                      title="Edit"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <a
+                      href="{% url 'crm:document_delete' document.pk %}"
+                      class="btn btn-sm btn-danger"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center">
+                  <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>No documents found for
+                    this company.
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% if company.company_type == 'Client' %}
+    <!-- Travel Policies Tab -->
+    <div class="tab-pane fade" id="travel-policies" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <table id="company-travel-policies-table" class="table table-striped">
+            <thead>
+              <tr>
+                <th>Policy Name</th>
+                <th>Policy Type</th>
+                <th>Uploaded By</th>
+                <th>Uploaded Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for policy in travel_policies %}
+              <tr>
+                <td>
+                  <a
+                    href="{% url 'crm:travel_policy_detail' policy.pk %}"
+                    class="fw-bold link-color"
+                  >
+                    {{ policy.policy_name }}
+                  </a>
+                </td>
+                <td>{{ policy.policy_type }}</td>
+                <td>{{ policy.uploaded_by.get_full_name }}</td>
+                <td>{{ policy.uploaded_at|date:"d M Y" }}</td>
+                <td>
+                  <div class="d-flex gap-2">
+                    <a
+                      href="{% url 'crm:travel_policy_detail' policy.pk %}"
+                      class="btn btn-sm action-btn-purple text-white"
+                      title="View"
+                    >
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a
+                      href="{% url 'crm:travel_policy_update' policy.pk %}"
+                      class="btn btn-sm btn-secondary-ea"
+                      title="Edit"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <a
+                      href="{% url 'crm:travel_policy_delete' policy.pk %}"
+                      class="btn btn-sm btn-danger"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center">
+                  <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>No travel policies found for
+                    this company.
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Activities Tab -->
+    <div class="tab-pane fade" id="activities" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="card mb-4">
+                <div class="card-header">
+                  <h5 class="mb-0">Activity History</h5>
+                </div>
                 <div class="card-body">
-                    <table id="company-contacts-table" class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Job Role</th>
-                                <th>Tags</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for contact in contacts %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'crm:contact_detail' contact.pk %}" class="fw-bold link-color">
-                                        {{ contact.first_name }} {{ contact.last_name }}
-                                    </a>
-                                </td>
-                                <td>{{ contact.job_role }}</td>
-                                <td>
-                                    {% for tag in contact.tag_list %}
-                                        <span class="badge me-1 {% if tag == 'primary' %}bg-primary
-                                            {% elif tag == 'key_personnel' %}bg-success
-                                            {% elif tag == 'booker' %}bg-warning text-dark
-                                            {% elif tag == 'vip_traveller' %}bg-warning
-                                            {% elif tag == 'traveller' %}bg-info
-                                            {% else %}bg-secondary
-                                            {% endif %}">
-                                            {% if tag == 'primary' %}Primary Contact
-                                            {% elif tag == 'key_personnel' %}Key Personnel
-                                            {% elif tag == 'booker' %}Booker
-                                            {% elif tag == 'vip_traveller' %}VIP Traveller
-                                            {% elif tag == 'traveller' %}Traveller
-                                            {% else %}{{ tag }}
-                                            {% endif %}
-                                        </span>
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
-                                </td>
-                                <td>
-                                    {% if contact.mobile %}
-                                    <a href="tel:{{ contact.mobile }}">{{ contact.mobile }}</a>
-                                    {% else %}
-                                    {{ contact.landline|default:"-" }}
-                                    {% endif %}
-                                </td>
-                                <td>{{ contact.created_at|date:"d M Y" }}</td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <a href="{% url 'crm:contact_detail' contact.pk %}" class="btn btn-sm action-btn-purple text-white" title="View">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{% url 'crm:contact_update' contact.pk %}" class="btn btn-sm btn-secondary-ea" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center">
-                                    <div class="alert alert-info mb-0">
-                                        <i class="fas fa-info-circle me-2"></i>No contacts found for this company.
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                  <div class="row mb-3">
+                    <div class="col-md-4">
+                      <div class="input-group">
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="activity-search"
+                          placeholder="Search activities..."
+                        />
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          id="activity-search-btn"
+                        >
+                          <i class="fas fa-search"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="input-group">
+                        <input
+                          type="date"
+                          class="form-control"
+                          id="activity-from-date"
+                          placeholder="From Date"
+                        />
+                        <input
+                          type="date"
+                          class="form-control"
+                          id="activity-to-date"
+                          placeholder="To Date"
+                        />
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          id="activity-clear-date-btn"
+                        >
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <select
+                        class="form-select"
+                        id="activity-type-filter"
+                      >
+                        <option value="all">All Activities</option>
+                        <option value="system">System Changes</option>
+                        <option value="email">Emails</option>
+                        <option value="call">Calls</option>
+                        <option value="note">Notes</option>
+                        <option value="exception">Exceptions</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="timeline">
+                    {% for activity in activities %}
+                    <div
+                      class="timeline-item border-{% if activity.activity_type == 'created' %}success{% elif activity.activity_type == 'updated' %}warning{% elif activity.activity_type == 'deleted' %}danger{% elif activity.activity_type == 'email' %}info{% elif activity.activity_type == 'call' %}primary{% elif activity.activity_type == 'note' %}warning{% elif activity.activity_type == 'exception' %}danger{% else %}info{% endif %}"
+                      data-activity-type="{{ activity.activity_type }}"
+                      data-activity-description="{{ activity.description }}"
+                    >
+                      <div class="timeline-icon">
+                        {% if activity.activity_type == 'created' %}
+                        <i class="fas fa-plus-circle"></i>
+                        {% elif activity.activity_type == 'updated' %}
+                        <i class="fas fa-exchange-alt"></i>
+                        {% elif activity.activity_type == 'deleted' %}
+                        <i class="fas fa-trash"></i>
+                        {% elif activity.activity_type == 'email' %}
+                        <i class="fas fa-envelope"></i>
+                        {% elif activity.activity_type == 'call' %}
+                        <i class="fas fa-phone"></i>
+                        {% elif activity.activity_type == 'note' %}
+                        <i class="fas fa-sticky-note"></i>
+                        {% elif activity.activity_type == 'exception' %}
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {% else %}
+                        <i class="fas fa-clipboard"></i>
+                        {% endif %}
+                      </div>
+                      <div class="timeline-content">
+                        <div class="timeline-header">
+                          <span class="badge bg-secondary">{{ activity.created_at|date:"d M Y" }}</span>
+                          <span class="user-icon">
+                            <i class="fas fa-user"></i>
+                            {{ activity.performed_by.get_full_name }}
+                          </span>
+                        </div>
+                        <div class="timeline-body">
+                          <div class="activity-card">
+                            <div class="card-body">
+                              <h5 class="card-title">
+                                {% if activity.activity_type == 'created' %}
+                                <i class="fas fa-plus-circle"></i> Created
+                                {% elif activity.activity_type == 'updated' %}
+                                <i class="fas fa-exchange-alt"></i> Updated
+                                {% elif activity.activity_type == 'deleted' %}
+                                <i class="fas fa-trash"></i> Deleted
+                                {% elif activity.activity_type == 'email' %}
+                                <i class="fas fa-envelope"></i> Email
+                                {% elif activity.activity_type == 'call' %}
+                                <i class="fas fa-phone"></i> Call
+                                {% elif activity.activity_type == 'note' %}
+                                <i class="fas fa-sticky-note"></i> Note
+                                {% elif activity.activity_type == 'exception' %}
+                                <i class="fas fa-exclamation-triangle"></i> Exception
+                                {% else %}
+                                <i class="fas fa-clipboard"></i> {{ activity.activity_type|capfirst }}
+                                {% endif %}
+                              </h5>
+                              <p class="card-text">
+                                {% if activity.activity_type == 'created' or activity.activity_type == 'updated' or activity.activity_type == 'deleted' %}
+                                {{ activity.description }}
+                                {% elif activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
+                                <button
+                                  type="button"
+                                  class="btn btn-link p-0"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#activity-details-modal"
+                                  data-activity-type="{{ activity.activity_type }}"
+                                  data-activity-description="{{ activity.description }}"
+                                  data-activity-data="{{ activity.data }}"
+                                >
+                                  {% if activity.activity_type == 'email' %}
+                                  <i class="fas fa-envelope"></i> View Email
+                                  {% elif activity.activity_type == 'call' %}
+                                  <i class="fas fa-phone"></i> View Call Details
+                                  {% elif activity.activity_type == 'note' %}
+                                  <i class="fas fa-sticky-note"></i> View Note
+                                  {% elif activity.activity_type == 'exception' %}
+                                  <i class="fas fa-exclamation-triangle"></i> View Exception Details
+                                  {% endif %}
+                                </button>
+                                {% else %}
+                                {{ activity.description }}
+                                {% endif %}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {% empty %}
+                    <div class="alert alert-info mb-0">
+                      <i class="fas fa-info-circle me-2"></i>No activities found for
+                      this company.
+                    </div>
+                    {% endfor %}
+                  </div>
                 </div>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Details Modal -->
+<div
+  class="modal fade"
+  id="activity-details-modal"
+  tabindex="-1"
+  aria-labelledby="activity-details-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="activity-details-modal-label"></h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div id="activity-details-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-bs-dismiss="modal"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
 
         <!-- Documents Tab -->
         <div class="tab-pane fade" id="documents" role="tabpanel">
             <div class="card">
                 <div class="card-body">
-                    {% if user.role == 'superuser' or user.role == 'admin' or user.role == 'marketing' %}
+          {% if user.role == 'superuser' or user.role == 'admin' or user.role ==
+          'marketing' %}
                     <div class="d-flex justify-content-end mb-3">
-                        <a href="{% url 'crm:document_upload' company.id %}" class="btn btn-primary">
+            <a
+              href="{% url 'crm:document_upload' company.id %}"
+              class="btn btn-primary"
+            >
                             <i class="fas fa-upload me-2"></i>Upload Document
                         </a>
                     </div>
@@ -536,8 +1055,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for document in documents %}
-                                    {% if user.role == 'agent' and document.document_type == 'contract' or user.role == 'agent' and document.document_type == 'agreement' %}
+                {% for document in documents %} {% if user.role == 'agent' and
+                document.document_type == 'contract' or user.role == 'agent' and
+                document.document_type == 'agreement' %}
                                         <!-- Skip contracts and agreements for agents -->
                                     {% else %}
                                     <tr>
@@ -546,7 +1066,9 @@
                                         <td>{{ document.uploaded_at|date:"d M Y" }}</td>
                                         <td>
                                             {% if document.expiry_date %}
-                                            <span class="{% if document.is_expired %}text-danger{% endif %}">
+                    <span
+                      class="{% if document.is_expired %}text-danger{% endif %}"
+                    >
                                                 {{ document.expiry_date|date:"d M Y" }}
                                             </span>
                                             {% else %}
@@ -555,31 +1077,74 @@
                                         </td>
                                         <td>
                                             <div class="btn-group">
-                                                <a href="{{ document.file.url }}" class="btn btn-sm btn-primary" target="_blank">
+                      <a
+                        href="{{ document.file.url }}"
+                        class="btn btn-sm btn-primary"
+                        target="_blank"
+                      >
                                                     <i class="fas fa-download"></i>
                                                 </a>
-                                                {% if user.role == 'superuser' or user.role == 'admin' or user.role == 'marketing' %}
-                                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal{{ document.id }}">
+                      {% if user.role == 'superuser' or user.role == 'admin' or
+                      user.role == 'marketing' %}
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-danger"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteDocumentModal{{ document.id }}"
+                      >
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                                 
                                                 <!-- Delete Confirmation Modal -->
-                                                <div class="modal fade" id="deleteDocumentModal{{ document.id }}" tabindex="-1" aria-labelledby="deleteDocumentModalLabel{{ document.id }}" aria-hidden="true">
+                      <div
+                        class="modal fade"
+                        id="deleteDocumentModal{{ document.id }}"
+                        tabindex="-1"
+                        aria-labelledby="deleteDocumentModalLabel{{ document.id }}"
+                        aria-hidden="true"
+                      >
                                                     <div class="modal-dialog">
                                                         <div class="modal-content">
                                                             <div class="modal-header">
-                                                                <h5 class="modal-title" id="deleteDocumentModalLabel{{ document.id }}">Confirm Document Deletion</h5>
-                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                              <h5
+                                class="modal-title"
+                                id="deleteDocumentModalLabel{{ document.id }}"
+                              >
+                                Confirm Document Deletion
+                              </h5>
+                              <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                              ></button>
                                                             </div>
                                                             <div class="modal-body">
-                                                                <p>Are you sure you want to delete the document "<strong>{{ document.title }}</strong>"?</p>
-                                                                <p class="text-danger">This action cannot be undone.</p>
+                              <p>
+                                Are you sure you want to delete the document
+                                "<strong>{{ document.title }}</strong>"?
+                              </p>
+                              <p class="text-danger">
+                                This action cannot be undone.
+                              </p>
                                                             </div>
                                                             <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                <form method="POST" action="{% url 'crm:document_delete' document.id %}" style="display: inline;">
+                              <button
+                                type="button"
+                                class="btn btn-secondary"
+                                data-bs-dismiss="modal"
+                              >
+                                Cancel
+                              </button>
+                              <form
+                                method="POST"
+                                action="{% url 'crm:document_delete' document.id %}"
+                                style="display: inline"
+                              >
                                                                     {% csrf_token %}
-                                                                    <button type="submit" class="btn btn-danger">Delete Document</button>
+                                <button type="submit" class="btn btn-danger">
+                                  Delete Document
+                                </button>
                                                                 </form>
                                                             </div>
                                                         </div>
@@ -589,8 +1154,7 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {% endif %}
-                                {% empty %}
+                {% endif %} {% empty %}
                                 <tr>
                                     <td colspan="5" class="text-center text-muted py-4">
                                         <i class="fas fa-file-alt fa-3x mb-3"></i>
@@ -611,7 +1175,10 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-end mb-3">
-                        <a href="{% url 'crm:travel_policy_create' company_id=company.pk %}" class="btn btn-primary">
+            <a
+              href="{% url 'crm:travel_policy_create' company_id=company.pk %}"
+              class="btn btn-primary"
+            >
                             <i class="fas fa-plus me-2"></i>Create Travel Policy
                         </a>
                     </div>
@@ -633,40 +1200,88 @@
                                     <td>{{ policy.policy_name }}</td>
                                     <td>{{ policy.effective_date|date:"d M Y" }}</td>
                                     <td>
-                                        <span class="badge {% if policy.is_active %}bg-success{% else %}bg-secondary{% endif %}">
-                                            {% if policy.is_active %}Active{% else %}Inactive{% endif %}
+                    <span
+                      class="badge {% if policy.is_active %}bg-success{% else %}bg-secondary{% endif %}"
+                    >
+                      {% if policy.is_active %}Active{% else %}Inactive{% endif
+                      %}
                                         </span>
                                     </td>
                                     <td>{{ policy.last_updated|date:"d M Y, H:i" }}</td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{% url 'crm:travel_policy_detail' policy.id %}" class="btn btn-sm btn-primary">
+                      <a
+                        href="{% url 'crm:travel_policy_detail' policy.id %}"
+                        class="btn btn-sm btn-primary"
+                      >
                                                 <i class="fas fa-eye"></i> View
                                             </a>
-                                            <a href="{% url 'crm:travel_policy_update' policy.id %}" class="btn btn-sm btn-warning">
+                      <a
+                        href="{% url 'crm:travel_policy_update' policy.id %}"
+                        class="btn btn-sm btn-warning"
+                      >
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deletePolicyModal{{ policy.id }}">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-danger"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deletePolicyModal{{ policy.id }}"
+                      >
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                             
                                             <!-- Delete Confirmation Modal -->
-                                            <div class="modal fade" id="deletePolicyModal{{ policy.id }}" tabindex="-1" aria-labelledby="deletePolicyModalLabel{{ policy.id }}" aria-hidden="true">
+                      <div
+                        class="modal fade"
+                        id="deletePolicyModal{{ policy.id }}"
+                        tabindex="-1"
+                        aria-labelledby="deletePolicyModalLabel{{ policy.id }}"
+                        aria-hidden="true"
+                      >
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
                                                         <div class="modal-header">
-                                                            <h5 class="modal-title" id="deletePolicyModalLabel{{ policy.id }}">Confirm Policy Deletion</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                              <h5
+                                class="modal-title"
+                                id="deletePolicyModalLabel{{ policy.id }}"
+                              >
+                                Confirm Policy Deletion
+                              </h5>
+                              <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                              ></button>
                                                         </div>
                                                         <div class="modal-body">
-                                                            <p>Are you sure you want to delete the travel policy "<strong>{{ policy.policy_name }}</strong>"?</p>
-                                                            <p class="text-danger">This action cannot be undone.</p>
+                              <p>
+                                Are you sure you want to delete the travel
+                                policy "<strong>{{ policy.policy_name }}</strong
+                                >"?
+                              </p>
+                              <p class="text-danger">
+                                This action cannot be undone.
+                              </p>
                                                         </div>
                                                         <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                            <form method="POST" action="{% url 'crm:travel_policy_delete' policy.id %}" style="display: inline;">
+                              <button
+                                type="button"
+                                class="btn btn-secondary"
+                                data-bs-dismiss="modal"
+                              >
+                                Cancel
+                              </button>
+                              <form
+                                method="POST"
+                                action="{% url 'crm:travel_policy_delete' policy.id %}"
+                                style="display: inline"
+                              >
                                                                 {% csrf_token %}
-                                                                <button type="submit" class="btn btn-danger">Delete Policy</button>
+                                <button type="submit" class="btn btn-danger">
+                                  Delete Policy
+                                </button>
                                                             </form>
                                                         </div>
                                                     </div>
@@ -679,7 +1294,10 @@
                                 <tr>
                                     <td colspan="5" class="text-center text-muted py-4">
                                         <i class="fas fa-plane fa-3x mb-3"></i>
-                                        <p>No travel policies defined yet. Click the "Create Travel Policy" button to add one.</p>
+                    <p>
+                      No travel policies defined yet. Click the "Create Travel
+                      Policy" button to add one.
+                    </p>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -691,663 +1309,868 @@
         </div>
         {% endif %}
 
-        <!-- Activities Tab -->
-        <div class="tab-pane fade" id="activities" role="tabpanel">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Log New Activity</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Activity Type Selector - Compact Card Style -->
-                    <div class="activity-type-container mb-3" id="activity-cards-container">
-                        <div class="row row-cols-2 row-cols-md-4 g-2">
-                            <div class="col">
-                                <div class="card activity-type-card active" data-activity-type="email">
-                                    <div class="card-body text-center py-2 px-2">
-                                        <i class="fas fa-envelope fa-lg me-2 text-primary"></i>
-                                        <span class="card-title small fw-bold">Email</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card activity-type-card" data-activity-type="call">
-                                    <div class="card-body text-center py-2 px-2">
-                                        <i class="fas fa-phone fa-lg me-2 text-success"></i>
-                                        <span class="card-title small fw-bold">Call</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card activity-type-card" data-activity-type="note">
-                                    <div class="card-body text-center py-2 px-2">
-                                        <i class="fas fa-sticky-note fa-lg me-2 text-warning"></i>
-                                        <span class="card-title small fw-bold">Note</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="card activity-type-card" data-activity-type="exception">
-                                    <div class="card-body text-center py-2 px-2">
-                                        <i class="fas fa-star fa-lg me-2 text-danger"></i>
-                                        <span class="card-title small fw-bold">Exception</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Activity Form Container -->
-                    <div id="activity-form-container">
-                        <!-- Email Form -->
-                        <form id="email-form" class="activity-form" method="post" action="{% url 'crm:log_activity' company.id 'email' %}">
-                            {% csrf_token %}
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Subject</label>
-                                    <input type="text" class="form-control" name="subject" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Recipients</label>
-                                    <select class="form-select" name="recipients" multiple>
-                                        {% for contact in contacts %}
-                                        <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Content</label>
-                                <textarea class="form-control" name="content" rows="3" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Log Email</button>
-                        </form>
-                        
-                        <!-- Call Form -->
-                        <form id="call-form" class="activity-form d-none" method="post" action="{% url 'crm:log_activity' company.id 'call' %}">
-                            {% csrf_token %}
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Contact</label>
-                                    <select class="form-select" name="contact" required>
-                                        <option value="">Select a contact</option>
-                                        {% for contact in contacts %}
-                                        <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Duration (minutes)</label>
-                                    <input type="number" class="form-control" name="duration" min="1">
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Summary</label>
-                                <textarea class="form-control" name="summary" rows="3" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Log Call</button>
-                        </form>
-                        
-                        <!-- Note Form -->
-                        <form id="note-form" class="activity-form d-none" method="post" action="{% url 'crm:log_activity' company.id 'note' %}">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label class="form-label">Note Content</label>
-                                <textarea class="form-control" name="content" rows="4" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Add Note</button>
-                        </form>
-                        
-                        <!-- Exception Form (Combined Waiver & Favor) -->
-                        <form id="exception-form" class="activity-form d-none" method="post" action="{% url 'crm:log_activity' company.id 'exception' %}">
-                            {% csrf_token %}
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Exception Type</label>
-                                    <select class="form-select" name="exception_type" required id="exception-type-select">
-                                        <option value="">Select type</option>
-                                        <optgroup label="Waivers">
-                                            <option value="fee_waiver">Fee Waiver</option>
-                                            <option value="cancellation_waiver">Cancellation Waiver</option>
-                                            <option value="amendment_waiver">Amendment Waiver</option>
-                                        </optgroup>
-                                        <optgroup label="Favors">
-                                            <option value="client_favor">Client Favor</option>
-                                            <option value="staff_favor">Staff Favor</option>
-                                            <option value="goodwill_gesture">Goodwill Gesture</option>
-                                        </optgroup>
-                                        <option value="other">Other Exception</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Value Amount (if applicable)</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">£</span>
-                                        <input type="number" class="form-control" name="value_amount" step="0.01">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Recipient/Contact</label>
-                                    <select class="form-select" name="contact" required>
-                                        <option value="">Select a contact</option>
-                                        {% for contact in contacts %}
-                                        <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Approval</label>
-                                    <select class="form-select" name="approved_by">
-                                        <option value="">Select who approved</option>
-                                        <option value="manager">Line Manager</option>
-                                        <option value="director">Director</option>
-                                        <option value="none">No Approval Required</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Description/Reason</label>
-                                <textarea class="form-control" name="description" rows="3" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Log Exception</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Activity History</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Search and Filter Controls -->
-                    <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
-                        <div class="input-group" style="max-width: 300px;">
-                            <input type="text" class="form-control" id="activity-search" placeholder="Search activities...">
-                            <button class="btn btn-outline-secondary" type="button" id="activity-search-btn">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="input-group" style="max-width: 180px;">
-                            <select class="form-select" id="activity-type-filter">
-                                <option value="all">All Activities</option>
-                                <option value="system">System Changes</option>
-                                <option value="email">Emails</option>
-                                <option value="call">Calls</option>
-                                <option value="note">Notes</option>
-                                <option value="exception">Exceptions</option>
-                            </select>
-                        </div>
-                        
-                        <div class="d-flex gap-2">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text">From</span>
-                                <input type="date" class="form-control" id="date-from-filter">
-                            </div>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text">To</span>
-                                <input type="date" class="form-control" id="date-to-filter">
-                            </div>
-                            <button class="btn btn-sm btn-outline-secondary" id="clear-date-filter">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="activity-timeline">
-                        {% for activity in activities %}
-                        <div class="timeline-item {% if 'created' in activity.description|lower %}border-success{% elif 'updated' in activity.description|lower %}border-warning{% elif 'deleted' in activity.description|lower %}border-danger{% else %}border-info{% endif %} ps-3 mb-4 activity-item"
-                             data-activity-type="{{ activity.activity_type }}"
-                             data-activity-description="{{ activity.description|lower }}">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0">
-                                    {% if activity.activity_type == 'status_change' %}
-                                        <i class="fas fa-exchange-alt text-warning me-2"></i>
-                                    {% elif 'created' in activity.description|lower %}
-                                        <i class="fas fa-plus-circle text-success me-2"></i>
-                                    {% elif 'updated' in activity.description|lower %}
-                                        <i class="fas fa-edit text-warning me-2"></i>
-                                    {% elif 'deleted' in activity.description|lower %}
-                                        <i class="fas fa-trash text-danger me-2"></i>
-                                    {% elif activity.activity_type == 'note' %}
-                                        <i class="fas fa-sticky-note text-info me-2"></i>
-                                    {% elif activity.activity_type == 'email' %}
-                                        <i class="fas fa-envelope text-primary me-2"></i>
-                                    {% elif activity.activity_type == 'call' %}
-                                        <i class="fas fa-phone text-success me-2"></i>
-                                    {% elif activity.activity_type == 'meeting' %}
-                                        <i class="fas fa-handshake text-primary me-2"></i>
-                                    {% elif activity.activity_type == 'policy_update' %}
-                                        <i class="fas fa-clipboard-check text-info me-2"></i>
-                                    {% else %}
-                                        <i class="fas fa-clipboard-list text-secondary me-2"></i>
-                                    {% endif %}
-                                    {{ activity.activity_type|title }}
-                                </h6>
-                                <span class="badge bg-light text-dark rounded-pill">
-                                    {{ activity.performed_at|date:"d M Y, H:i" }}
-                                </span>
-                            </div>
-                            <p class="text-muted small mb-2">
-                                <i class="fas fa-user me-1"></i> {{ activity.performed_by.get_full_name }}
-                            </p>
-                            
-                            {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
-                                <!-- Compact card-style presentation for logged activities -->
-                                <div class="card activity-content-card {% if activity.activity_type == 'email' %}bg-primary bg-opacity-10{% elif activity.activity_type == 'call' %}bg-success bg-opacity-10{% elif activity.activity_type == 'note' %}bg-warning bg-opacity-10{% elif activity.activity_type == 'exception' %}bg-danger bg-opacity-10{% endif %}">
-                                    <div class="card-body">
-                                        {% if activity.activity_type == 'email' %}
-                                            {% with email_parts=activity.description|split_email_desc:activity %}
-                                                <div class="mb-1"><strong class="small">Subject:</strong> <span class="small">{{ email_parts.subject }}</span></div>
-                                                {% if email_parts.recipients %}
-                                                    <div class="small text-muted mb-1"><small>To: {{ email_parts.recipients }}</small></div>
-                                                {% endif %}
-                                                <div class="content-preview">{{ email_parts.content|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% elif activity.activity_type == 'call' %}
-                                            {% with call_parts=activity.description|split_call_desc:activity %}
-                                                <div class="mb-1">
-                                                    <strong class="small">{{ call_parts.call_type|default:"" }} Call with {{ call_parts.contact }}</strong>
-                                                    {% if call_parts.duration != 'Not specified' %}
-                                                        <span class="small text-muted">({{ call_parts.duration }} mins)</span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="content-preview">{{ call_parts.summary|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% elif activity.activity_type == 'note' %}
-                                            {% with note_parts=activity.description|split_note_desc:activity %}
-                                                {% if note_parts.contact %}
-                                                    <div class="mb-1"><strong class="small">About:</strong> <span class="small">{{ note_parts.contact }}</span></div>
-                                                {% endif %}
-                                                <div class="content-preview">{{ note_parts.content|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% elif activity.activity_type == 'exception' %}
-                                            {% with exception_parts=activity.description|split_exception_desc:activity %}
-                                                <div class="mb-1">
-                                                    <strong class="small">{{ exception_parts.type }}</strong>
-                                                    {% if exception_parts.value != 'Not specified' %}
-                                                        <span class="small text-muted">(£{{ exception_parts.value }})</span>
-                                                    {% endif %}
-                                                    <span class="small">for {{ exception_parts.contact }}</span>
-                                                </div>
-                                                <div class="content-preview">{{ exception_parts.description|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% else %}
-                                            <p class="mb-0">{{ activity.description }}</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% else %}
-                                <p class="mb-0">{{ activity.description }}</p>
-                            {% endif %}
-                            
-                            {% if activity.activity_type == 'status_change' and activity.outcome %}
-                            <div class="mt-2">
-                                <span class="badge bg-secondary me-2">From</span> {{ activity.outcome|split:"|"|first }}
-                                <i class="fas fa-arrow-right mx-2"></i>
-                                <span class="badge bg-primary me-2">To</span> {{ activity.outcome|split:"|"|last }}
-                            </div>
-                            {% endif %}
-                            
-                            {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
-                            <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#activityModal{{ activity.id }}">
-                                    <i class="fas fa-eye me-1"></i> View Details
-                                </button>
-                                
-                                <!-- Activity Details Modal -->
-                                <div class="modal fade" id="activityModal{{ activity.id }}" tabindex="-1" aria-labelledby="activityModalLabel{{ activity.id }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header {% if activity.activity_type == 'email' %}bg-primary text-white{% elif activity.activity_type == 'call' %}bg-success text-white{% elif activity.activity_type == 'note' %}bg-warning{% elif activity.activity_type == 'exception' %}bg-danger text-white{% endif %}">
-                                                <h5 class="modal-title" id="activityModalLabel{{ activity.id }}">
-                                                    {% if activity.activity_type == 'email' %}
-                                                        <i class="fas fa-envelope me-2"></i>
-                                                    {% elif activity.activity_type == 'call' %}
-                                                        <i class="fas fa-phone me-2"></i>
-                                                    {% elif activity.activity_type == 'note' %}
-                                                        <i class="fas fa-sticky-note me-2"></i>
-                                                    {% elif activity.activity_type == 'exception' %}
-                                                        <i class="fas fa-star me-2"></i>
-                                                    {% endif %}
-                                                    {{ activity.activity_type|title }} Details
-                                                </h5>
-                                                <button type="button" class="btn-close {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'exception' %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <h6 class="m-0">Created by</h6>
-                                                        <span class="badge bg-light text-dark">{{ activity.performed_at|date:"d M Y, H:i" }}</span>
-                                                    </div>
-                                                    <p class="mb-0">{{ activity.performed_by.get_full_name }}</p>
-                                                </div>
-                                                
-                                                <hr>
-                                                
-                                                {% if activity.activity_type == 'email' %}
-                                                    {% with email_parts=activity.description|split_email_desc:activity %}
-                                                        <div class="mb-3">
-                                                            <h6>Subject</h6>
-                                                            <p class="mb-0">{{ email_parts.subject }}</p>
-                                                        </div>
-                                                        
-                                                        {% if email_parts.recipients %}
-                                                        <div class="mb-3">
-                                                            <h6>Recipients</h6>
-                                                            <p class="mb-0">{{ email_parts.recipients }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Content</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ email_parts.content|linebreaks }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% elif activity.activity_type == 'call' %}
-                                                    {% with call_parts=activity.description|split_call_desc:activity %}
-                                                        <div class="mb-3">
-                                                            <h6>Call With</h6>
-                                                            <p class="mb-0">{{ call_parts.contact }}</p>
-                                                        </div>
-                                                        
-                                                        {% if call_parts.duration %}
-                                                        <div class="mb-3">
-                                                            <h6>Duration</h6>
-                                                            <p class="mb-0">{{ call_parts.duration }} {% if call_parts.duration != 'Not specified' %}minutes{% endif %}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Summary</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ call_parts.summary|linebreaks }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% elif activity.activity_type == 'note' %}
-                                                    {% with note_parts=activity.description|split_note_desc:activity %}
-                                                        {% if note_parts.contact %}
-                                                        <div class="mb-3">
-                                                            <h6>About</h6>
-                                                            <p class="mb-0">{{ note_parts.contact }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Note Content</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ note_parts.content|linebreaks }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% elif activity.activity_type == 'exception' %}
-                                                    {% with exception_parts=activity.description|split_exception_desc:activity %}
-                                                        <div class="mb-3">
-                                                            <h6>Exception Type</h6>
-                                                            <p class="mb-0">{{ exception_parts.type }}</p>
-                                                        </div>
-                                                        
-                                                        {% if exception_parts.value != 'Not specified' %}
-                                                        <div class="mb-3">
-                                                            <h6>Value</h6>
-                                                            <p class="mb-0">£{{ exception_parts.value }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-3">
-                                                            <h6>For</h6>
-                                                            <p class="mb-0">{{ exception_parts.contact }}</p>
-                                                        </div>
-                                                        
-                                                        {% if exception_parts.approval %}
-                                                        <div class="mb-3">
-                                                            <h6>Approval</h6>
-                                                            <p class="mb-0">{{ exception_parts.approval }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Description/Reason</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ exception_parts.description|linebreaks }}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% endif %}
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% empty %}
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-chart-line fa-3x mb-3"></i>
-                            <p>No activities recorded yet.</p>
-                            <span class="text-secondary small">Activities will appear here when changes are made to this company.</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Activities Tab -->
+    <div class="tab-pane fade" id="activities" role="tabpanel">
+      <div class="card mb-4">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Activity History</h5>
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#logActivityModal"
+          >
+            <i class="fas fa-plus me-2"></i>Log Activity
+          </button>
     </div>
+        <div class="card-body">
+          <!-- Search and Filter Controls -->
+          <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+            <div class="input-group" style="max-width: 300px">
+              <input
+                type="text"
+                class="form-control"
+                id="activity-search"
+                placeholder="Search activities..."
+              />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                id="activity-search-btn"
+              >
+                <i class="fas fa-search"></i>
+              </button>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-{{ block.super }}
+            <div class="input-group" style="max-width: 180px">
+              <select class="form-select" id="activity-type-filter">
+                <option value="all">All Activities</option>
+                <option value="system">System Changes</option>
+                <option value="email">Emails</option>
+                <option value="call">Calls</option>
+                <option value="note">Notes</option>
+                <option value="exception">Exceptions</option>
+              </select>
+            </div>
+
+            <div class="d-flex gap-2">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">From</span>
+                <input type="date" class="form-control" id="date-from-filter" />
+              </div>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">To</span>
+                <input type="date" class="form-control" id="date-to-filter" />
+              </div>
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                id="clear-date-filter"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="activity-timeline">
+            {% for activity in activities %}
+            <div
+              class="timeline-item {% if 'created' in activity.description|lower %}border-success{% elif 'updated' in activity.description|lower %}border-warning{% elif 'deleted' in activity.description|lower %}border-danger{% else %}border-info{% endif %} ps-3 mb-4 activity-item"
+              data-activity-type="{{ activity.activity_type }}"
+              data-activity-description="{{ activity.description|lower }}"
+            >
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <h6 class="mb-0">
+                  {% if activity.activity_type == 'status_change' %}
+                  <i class="fas fa-exchange-alt text-warning me-2"></i>
+                  {% elif 'created' in activity.description|lower %}
+                  <i class="fas fa-plus-circle text-success me-2"></i>
+                  {% elif 'updated' in activity.description|lower %}
+                  <i class="fas fa-edit text-warning me-2"></i>
+                  {% elif 'deleted' in activity.description|lower %}
+                  <i class="fas fa-trash text-danger me-2"></i>
+                  {% elif activity.activity_type == 'note' %}
+                  <i class="fas fa-sticky-note text-info me-2"></i>
+                  {% elif activity.activity_type == 'email' %}
+                  <i class="fas fa-envelope text-primary me-2"></i>
+                  {% elif activity.activity_type == 'call' %}
+                  <i class="fas fa-phone text-success me-2"></i>
+                  {% elif activity.activity_type == 'meeting' %}
+                  <i class="fas fa-handshake text-primary me-2"></i>
+                  {% elif activity.activity_type == 'policy_update' %}
+                  <i class="fas fa-clipboard-check text-info me-2"></i>
+                  {% else %}
+                  <i class="fas fa-clipboard-list text-secondary me-2"></i>
+                  {% endif %} {{ activity.activity_type|title }}
+                </h6>
+                <span class="badge bg-light text-dark rounded-pill">
+                  {{ activity.performed_at|date:"d M Y, H:i" }}
+                </span>
+              </div>
+              <p class="text-muted small mb-2">
+                <i class="fas fa-user me-1"></i> {{
+                activity.performed_by.get_full_name }}
+              </p>
+
+              {% if activity.activity_type == 'email' or activity.activity_type
+              == 'call' or activity.activity_type == 'note' or
+              activity.activity_type == 'exception' %}
+              <!-- Compact card-style presentation for logged activities -->
+              <div
+                class="card activity-content-card {% if activity.activity_type == 'email' %}bg-primary bg-opacity-10{% elif activity.activity_type == 'call' %}bg-success bg-opacity-10{% elif activity.activity_type == 'note' %}bg-warning bg-opacity-10{% elif activity.activity_type == 'exception' %}bg-danger bg-opacity-10{% endif %}"
+              >
+                <div class="card-body">
+                  {% if activity.activity_type == 'email' %} {% with
+                  email_parts=activity.description|split_email_desc:activity %}
+                  <div class="mb-1">
+                    <strong class="small">Subject:</strong>
+                    <span class="small">{{ email_parts.subject }}</span>
+                  </div>
+                  {% if email_parts.recipients %}
+                  <div class="small text-muted mb-1">
+                    <small>To: {{ email_parts.recipients }}</small>
+                  </div>
+                  {% endif %}
+                  <div class="content-preview">
+                    {{ email_parts.content|truncatechars:100 }}
+                  </div>
+                  {% endwith %} {% elif activity.activity_type == 'call' %} {%
+                  with call_parts=activity.description|split_call_desc:activity
+                  %}
+                  <div class="mb-1">
+                    <strong class="small"
+                      >{{ call_parts.call_type|default:"" }} Call with {{
+                      call_parts.contact }}</strong
+                    >
+                    {% if call_parts.duration != 'Not specified' %}
+                    <span class="small text-muted"
+                      >({{ call_parts.duration }} mins)</span
+                    >
+                    {% endif %}
+                  </div>
+                  <div class="content-preview">
+                    {{ call_parts.summary|truncatechars:100 }}
+                  </div>
+                  {% endwith %} {% elif activity.activity_type == 'note' %} {%
+                  with note_parts=activity.description|split_note_desc:activity
+                  %} {% if note_parts.contact %}
+                  <div class="mb-1">
+                    <strong class="small">About:</strong>
+                    <span class="small">{{ note_parts.contact }}</span>
+                  </div>
+                  {% endif %}
+                  <div class="content-preview">
+                    {{ note_parts.content|truncatechars:100 }}
+                  </div>
+                  {% endwith %} {% elif activity.activity_type == 'exception' %}
+                  {% with
+                  exception_parts=activity.description|split_exception_desc:activity
+                  %}
+                  <div class="mb-1">
+                    <strong class="small">{{ exception_parts.type }}</strong>
+                    {% if exception_parts.value != 'Not specified' %}
+                    <span class="small text-muted"
+                      >(£{{ exception_parts.value }})</span
+                    >
+                    {% endif %}
+                    <span class="small">for {{ exception_parts.contact }}</span>
+                  </div>
+                  <div class="content-preview">
+                    {{ exception_parts.description|truncatechars:100 }}
+                  </div>
+                  {% endwith %} {% else %}
+                  <p class="mb-0">{{ activity.description }}</p>
+                  {% endif %}
+                </div>
+              </div>
+              {% else %}
+              <p class="mb-0">{{ activity.description }}</p>
+              {% endif %} {% if activity.activity_type == 'status_change' and
+              activity.outcome %}
+              <div class="mt-2">
+                <span class="badge bg-secondary me-2">From</span> {{
+                activity.outcome|split:"|"|first }}
+                <i class="fas fa-arrow-right mx-2"></i>
+                <span class="badge bg-primary me-2">To</span> {{
+                activity.outcome|split:"|"|last }}
+              </div>
+              {% endif %} {% if activity.activity_type == 'email' or
+              activity.activity_type == 'call' or activity.activity_type ==
+              'note' or activity.activity_type == 'exception' %}
+              <div class="mt-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#activityModal{{ activity.id }}"
+                >
+                  <i class="fas fa-eye me-1"></i> View Details
+                </button>
+
+                <!-- Activity Details Modal -->
+                <div
+                  class="modal fade"
+                  id="activityModal{{ activity.id }}"
+                  tabindex="-1"
+                  aria-labelledby="activityModalLabel{{ activity.id }}"
+                  aria-hidden="true"
+                >
+                  <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                      <div
+                        class="modal-header {% if activity.activity_type == 'email' %}bg-primary text-white{% elif activity.activity_type == 'call' %}bg-success text-white{% elif activity.activity_type == 'note' %}bg-warning{% elif activity.activity_type == 'exception' %}bg-danger text-white{% endif %}"
+                      >
+                        <h5
+                          class="modal-title"
+                          id="activityModalLabel{{ activity.id }}"
+                        >
+                          {% if activity.activity_type == 'email' %}
+                          <i class="fas fa-envelope me-2"></i>
+                          {% elif activity.activity_type == 'call' %}
+                          <i class="fas fa-phone me-2"></i>
+                          {% elif activity.activity_type == 'note' %}
+                          <i class="fas fa-sticky-note me-2"></i>
+                          {% elif activity.activity_type == 'exception' %}
+                          <i class="fas fa-star me-2"></i>
+                          {% endif %} {{ activity.activity_type|title }} Details
+                        </h5>
+                        <button
+                          type="button"
+                          class="btn-close {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'exception' %}btn-close-white{% endif %}"
+                          data-bs-dismiss="modal"
+                          aria-label="Close"
+                        ></button>
+                      </div>
+                      <div class="modal-body">
+                        <div class="mb-3">
+                          <div
+                            class="d-flex justify-content-between align-items-center mb-2"
+                          >
+                            <h6 class="m-0">Created by</h6>
+                            <span class="badge bg-light text-dark"
+                              >{{ activity.performed_at|date:"d M Y, H:i"
+                              }}</span
+                            >
+                          </div>
+                          <p class="mb-0">
+                            {{ activity.performed_by.get_full_name }}
+                          </p>
+                        </div>
+
+                        <hr />
+
+                        {% if activity.activity_type == 'email' %} {% with
+                        email_parts=activity.description|split_email_desc:activity
+                        %}
+                        <div class="mb-3">
+                          <h6>Subject</h6>
+                          <p class="mb-0">{{ email_parts.subject }}</p>
+                        </div>
+
+                        {% if email_parts.recipients %}
+                        <div class="mb-3">
+                          <h6>Recipients</h6>
+                          <p class="mb-0">{{ email_parts.recipients }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-0">
+                          <h6>Content</h6>
+                          <div class="card">
+                            <div class="card-body bg-light">
+                              {{ email_parts.content|linebreaks }}
+                            </div>
+                          </div>
+                        </div>
+                        {% endwith %} {% elif activity.activity_type == 'call'
+                        %} {% with
+                        call_parts=activity.description|split_call_desc:activity
+                        %}
+                        <div class="mb-3">
+                          <h6>Call With</h6>
+                          <p class="mb-0">{{ call_parts.contact }}</p>
+                        </div>
+
+                        {% if call_parts.duration %}
+                        <div class="mb-3">
+                          <h6>Duration</h6>
+                          <p class="mb-0">
+                            {{ call_parts.duration }} {% if call_parts.duration
+                            != 'Not specified' %}minutes{% endif %}
+                          </p>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-0">
+                          <h6>Summary</h6>
+                          <div class="card">
+                            <div class="card-body bg-light">
+                              {{ call_parts.summary|linebreaks }}
+                            </div>
+                          </div>
+                        </div>
+                        {% endwith %} {% elif activity.activity_type == 'note'
+                        %} {% with
+                        note_parts=activity.description|split_note_desc:activity
+                        %} {% if note_parts.contact %}
+                        <div class="mb-3">
+                          <h6>About</h6>
+                          <p class="mb-0">{{ note_parts.contact }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-0">
+                          <h6>Note Content</h6>
+                          <div class="card">
+                            <div class="card-body bg-light">
+                              {{ note_parts.content|linebreaks }}
+                            </div>
+                          </div>
+                        </div>
+                        {% endwith %} {% elif activity.activity_type ==
+                        'exception' %} {% with
+                        exception_parts=activity.description|split_exception_desc:activity
+                        %}
+                        <div class="mb-3">
+                          <h6>Exception Type</h6>
+                          <p class="mb-0">{{ exception_parts.type }}</p>
+                        </div>
+
+                        {% if exception_parts.value != 'Not specified' %}
+                        <div class="mb-3">
+                          <h6>Value</h6>
+                          <p class="mb-0">£{{ exception_parts.value }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                          <h6>For</h6>
+                          <p class="mb-0">{{ exception_parts.contact }}</p>
+                        </div>
+
+                        {% if exception_parts.approval %}
+                        <div class="mb-3">
+                          <h6>Approval</h6>
+                          <p class="mb-0">{{ exception_parts.approval }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-0">
+                          <h6>Description/Reason</h6>
+                          <div class="card">
+                            <div class="card-body bg-light">
+                              {{ exception_parts.description|linebreaks }}
+                            </div>
+                          </div>
+                        </div>
+                        {% endwith %} {% endif %}
+                      </div>
+                      <div class="modal-footer">
+                        <button
+                          type="button"
+                          class="btn btn-secondary"
+                          data-bs-dismiss="modal"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-4">
+              <i class="fas fa-chart-line fa-3x mb-3"></i>
+              <p>No activities recorded yet.</p>
+              <span class="text-secondary small"
+                >Activities will appear here when changes are made to this
+                company.</span
+              >
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Log Activity Modal -->
+<div
+  class="modal fade"
+  id="logActivityModal"
+  tabindex="-1"
+  aria-labelledby="logActivityModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="logActivityModalLabel">Log New Activity</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <!-- Activity Type Selector - Compact Card Style -->
+        <div class="activity-type-container mb-3" id="activity-cards-container">
+          <div class="row row-cols-2 row-cols-md-4 g-2">
+            <div class="col">
+              <div
+                class="card activity-type-card active"
+                data-activity-type="email"
+              >
+                <div class="card-body text-center py-2 px-2">
+                  <i class="fas fa-envelope fa-lg me-2 text-primary"></i>
+                  <span class="card-title small fw-bold">Email</span>
+                </div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="card activity-type-card" data-activity-type="call">
+                <div class="card-body text-center py-2 px-2">
+                  <i class="fas fa-phone fa-lg me-2 text-success"></i>
+                  <span class="card-title small fw-bold">Call</span>
+                </div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="card activity-type-card" data-activity-type="note">
+                <div class="card-body text-center py-2 px-2">
+                  <i class="fas fa-sticky-note fa-lg me-2 text-warning"></i>
+                  <span class="card-title small fw-bold">Note</span>
+                </div>
+              </div>
+            </div>
+            <div class="col">
+              <div
+                class="card activity-type-card"
+                data-activity-type="exception"
+              >
+                <div class="card-body text-center py-2 px-2">
+                  <i class="fas fa-star fa-lg me-2 text-danger"></i>
+                  <span class="card-title small fw-bold">Exception</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Form Container -->
+        <div id="activity-form-container">
+          <!-- Email Form -->
+          <form
+            id="email-form"
+            class="activity-form"
+            method="post"
+            action="{% url 'crm:log_activity' company.id 'email' %}"
+          >
+            {% csrf_token %}
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Subject</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="subject"
+                  required
+                />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Recipients</label>
+                <select class="form-select" name="recipients" multiple>
+                  {% for contact in contacts %}
+                  <option value="{{ contact.id }}">
+                    {{ contact.first_name }} {{ contact.last_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Content</label>
+              <textarea
+                class="form-control"
+                name="content"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Log Email</button>
+          </form>
+
+          <!-- Call Form -->
+          <form
+            id="call-form"
+            class="activity-form d-none"
+            method="post"
+            action="{% url 'crm:log_activity' company.id 'call' %}"
+          >
+            {% csrf_token %}
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Contact</label>
+                <select class="form-select" name="contact" required>
+                  <option value="">Select a contact</option>
+                  {% for contact in contacts %}
+                  <option value="{{ contact.id }}">
+                    {{ contact.first_name }} {{ contact.last_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Duration (minutes)</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  name="duration"
+                  min="1"
+                />
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Summary</label>
+              <textarea
+                class="form-control"
+                name="summary"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Log Call</button>
+          </form>
+
+          <!-- Note Form -->
+          <form
+            id="note-form"
+            class="activity-form d-none"
+            method="post"
+            action="{% url 'crm:log_activity' company.id 'note' %}"
+          >
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label">Note Content</label>
+              <textarea
+                class="form-control"
+                name="content"
+                rows="4"
+                required
+              ></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Note</button>
+          </form>
+
+          <!-- Exception Form (Combined Waiver & Favor) -->
+          <form
+            id="exception-form"
+            class="activity-form d-none"
+            method="post"
+            action="{% url 'crm:log_activity' company.id 'exception' %}"
+          >
+            {% csrf_token %}
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Exception Type</label>
+                <select
+                  class="form-select"
+                  name="exception_type"
+                  required
+                  id="exception-type-select"
+                >
+                  <option value="">Select type</option>
+                  <optgroup label="Waivers">
+                    <option value="fee_waiver">Fee Waiver</option>
+                    <option value="cancellation_waiver">
+                      Cancellation Waiver
+                    </option>
+                    <option value="amendment_waiver">Amendment Waiver</option>
+                  </optgroup>
+                  <optgroup label="Favors">
+                    <option value="client_favor">Client Favor</option>
+                    <option value="staff_favor">Staff Favor</option>
+                    <option value="goodwill_gesture">Goodwill Gesture</option>
+                  </optgroup>
+                  <option value="other">Other Exception</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Value Amount (if applicable)</label>
+                <div class="input-group">
+                  <span class="input-group-text">£</span>
+                  <input
+                    type="number"
+                    class="form-control"
+                    name="value_amount"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Recipient/Contact</label>
+                <select class="form-select" name="contact" required>
+                  <option value="">Select a contact</option>
+                  {% for contact in contacts %}
+                  <option value="{{ contact.id }}">
+                    {{ contact.first_name }} {{ contact.last_name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Approval</label>
+                <select class="form-select" name="approved_by">
+                  <option value="">Select who approved</option>
+                  <option value="manager">Line Manager</option>
+                  <option value="director">Director</option>
+                  <option value="none">No Approval Required</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description/Reason</label>
+              <textarea
+                class="form-control"
+                name="description"
+                rows="3"
+                required
+              ></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Log Exception</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %} {{ block.super }}
 <script src="{% static 'js/company_detail.js' %}"></script>
 <script src="{% static 'js/tab_handler.js' %}"></script>
 
 <script>
-    // Activity form switching
-    document.addEventListener('DOMContentLoaded', function() {
-        const activityCards = document.querySelectorAll('.activity-type-card');
-        const activityForms = document.querySelectorAll('.activity-form');
-        
-        // Log to see if cards are being found
-        console.log('Activity cards found:', activityCards.length);
-        
-        function showSelectedForm(activityType) {
-            // Hide all forms
-            activityForms.forEach(form => {
-                form.classList.add('d-none');
-            });
-            
-            // Show the selected form
-            const selectedForm = document.getElementById(`${activityType}-form`);
-            if (selectedForm) {
-                selectedForm.classList.remove('d-none');
-            }
-            
-            // Update active card styling
-            activityCards.forEach(card => {
-                if (card.dataset.activityType === activityType) {
-                    card.classList.add('active');
-                } else {
-                    card.classList.remove('active');
-                }
-            });
+  // Activity form switching
+  document.addEventListener("DOMContentLoaded", function () {
+    const activityCards = document.querySelectorAll(".activity-type-card");
+    const activityForms = document.querySelectorAll(".activity-form");
+
+    // Log to see if cards are being found
+    console.log("Activity cards found:", activityCards.length);
+
+    function showSelectedForm(activityType) {
+      // Hide all forms
+      activityForms.forEach((form) => {
+        form.classList.add("d-none");
+      });
+
+      // Show the selected form
+      const selectedForm = document.getElementById(`${activityType}-form`);
+      if (selectedForm) {
+        selectedForm.classList.remove("d-none");
+      }
+
+      // Update active card styling
+      activityCards.forEach((card) => {
+        if (card.dataset.activityType === activityType) {
+          card.classList.add("active");
+        } else {
+          card.classList.remove("active");
         }
-        
-        // Add event listeners to cards and their inner elements
-        activityCards.forEach(card => {
-            // Make entire card clickable
-            card.style.cursor = 'pointer';
-            
-            // Add event listener to the card itself
-            card.addEventListener('click', function() {
-                const activityType = this.dataset.activityType;
-                showSelectedForm(activityType);
-            });
-            
-            // Also add event listeners to child elements to ensure bubbling works correctly
-            card.querySelectorAll('*').forEach(element => {
-                element.addEventListener('click', function(e) {
-                    // Get the parent card
-                    const parentCard = this.closest('.activity-type-card');
-                    if (parentCard) {
-                        const activityType = parentCard.dataset.activityType;
-                        showSelectedForm(activityType);
-                    }
-                });
-            });
+      });
+    }
+
+    // Add event listeners to cards and their inner elements
+    activityCards.forEach((card) => {
+      // Make entire card clickable
+      card.style.cursor = "pointer";
+
+      // Add event listener to the card itself
+      card.addEventListener("click", function () {
+        const activityType = this.dataset.activityType;
+        showSelectedForm(activityType);
+      });
+
+      // Also add event listeners to child elements to ensure bubbling works correctly
+      card.querySelectorAll("*").forEach((element) => {
+        element.addEventListener("click", function (e) {
+          // Get the parent card
+          const parentCard = this.closest(".activity-type-card");
+          if (parentCard) {
+            const activityType = parentCard.dataset.activityType;
+            showSelectedForm(activityType);
+          }
         });
-        
-        // Initialize with the default selected form (first card)
-        const defaultActivityType = activityCards[0].dataset.activityType;
-        showSelectedForm(defaultActivityType);
-
-        // Activity History Filtering and Search
-        const searchInput = document.getElementById('activity-search');
-        const searchButton = document.getElementById('activity-search-btn');
-        const typeFilter = document.getElementById('activity-type-filter');
-        const dateFromFilter = document.getElementById('date-from-filter');
-        const dateToFilter = document.getElementById('date-to-filter');
-        const clearDateFilterBtn = document.getElementById('clear-date-filter');
-        const activityItems = document.querySelectorAll('.activity-item');
-        
-        // Function to filter activities
-        function filterActivities() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filterType = typeFilter.value;
-            const dateFrom = dateFromFilter.value ? new Date(dateFromFilter.value) : null;
-            const dateTo = dateToFilter.value ? new Date(dateToFilter.value) : null;
-            
-            if (dateTo) dateTo.setHours(23, 59, 59); // Set end of day for "to" date
-            
-            activityItems.forEach(item => {
-                const activityType = item.dataset.activityType;
-                const activityDesc = item.dataset.activityDescription;
-                let isSystemActivity = false;
-                
-                // Extract the activity date from the badge
-                const dateText = item.querySelector('.badge.bg-light.text-dark').textContent.trim();
-                const dateMatch = dateText.match(/(\d{1,2}\s\w{3}\s\d{4})/);
-                const dateStr = dateMatch ? dateMatch[0] : '';
-                const activityDate = dateStr ? new Date(dateStr) : null;
-                
-                // Check if it's a system activity (created, updated, deleted)
-                if (activityDesc.includes('created') || 
-                    activityDesc.includes('updated') || 
-                    activityDesc.includes('deleted')) {
-                    isSystemActivity = true;
-                }
-                
-                // Filter by type
-                let showByType = false;
-                if (filterType === 'all' || 
-                    (filterType === activityType) || 
-                    (filterType === 'system' && isSystemActivity)) {
-                    showByType = true;
-                }
-                
-                // Filter by search term
-                let showBySearch = true;
-                if (searchTerm) {
-                    showBySearch = activityDesc.includes(searchTerm);
-                }
-                
-                // Filter by date range
-                let showByDate = true;
-                if (activityDate && (dateFrom || dateTo)) {
-                    if (dateFrom && dateTo) {
-                        showByDate = (activityDate >= dateFrom && activityDate <= dateTo);
-                    } else if (dateFrom) {
-                        showByDate = (activityDate >= dateFrom);
-                    } else if (dateTo) {
-                        showByDate = (activityDate <= dateTo);
-                    }
-                }
-                
-                // Show/hide based on filters
-                if (showByType && showBySearch && showByDate) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            
-            // Check if no results and display message
-            checkNoResults();
-        }
-        
-        // Function to check if there are no visible results
-        function checkNoResults() {
-            const visibleItems = document.querySelectorAll('.activity-item[style="display: "]');
-            const noResultsMessage = document.getElementById('no-filter-results');
-            
-            if (visibleItems.length === 0) {
-                // If message doesn't exist yet, create it
-                if (!noResultsMessage) {
-                    const message = document.createElement('div');
-                    message.id = 'no-filter-results';
-                    message.className = 'text-center text-muted py-4';
-                    message.innerHTML = `
-                        <i class="fas fa-filter fa-3x mb-3"></i>
-                        <p>No activities match your filters.</p>
-                        <button class="btn btn-sm btn-outline-secondary" id="clear-filters">
-                            <i class="fas fa-times me-1"></i> Clear Filters
-                        </button>
-                    `;
-                    document.querySelector('.activity-timeline').appendChild(message);
-                    
-                    // Add event listener to the clear filters button
-                    document.getElementById('clear-filters').addEventListener('click', clearFilters);
-                }
-            } else {
-                // If message exists, remove it
-                if (noResultsMessage) {
-                    noResultsMessage.remove();
-                }
-            }
-        }
-        
-        // Function to clear all filters
-        function clearFilters() {
-            searchInput.value = '';
-            typeFilter.value = 'all';
-            dateFromFilter.value = '';
-            dateToFilter.value = '';
-            filterActivities();
-        }
-        
-        // Function to clear just date filters
-        function clearDateFilters() {
-            dateFromFilter.value = '';
-            dateToFilter.value = '';
-            filterActivities();
-        }
-        
-        // Add event listeners
-        searchInput.addEventListener('input', filterActivities);
-        searchButton.addEventListener('click', filterActivities);
-        typeFilter.addEventListener('change', filterActivities);
-        dateFromFilter.addEventListener('change', filterActivities);
-        dateToFilter.addEventListener('change', filterActivities);
-        clearDateFilterBtn.addEventListener('click', clearDateFilters);
+      });
     });
+
+    // Initialize with the default selected form (first card)
+    if (activityCards.length > 0) {
+      const defaultActivityType = activityCards[0].dataset.activityType;
+      showSelectedForm(defaultActivityType);
+    }
+
+    // Show email form by default when modal is opened
+    $("#logActivityModal").on("shown.bs.modal", function () {
+      const emailCard = document.querySelector(
+        '.activity-type-card[data-activity-type="email"]'
+      );
+      if (emailCard) {
+        emailCard.click();
+      }
+    });
+
+    // Activity History Filtering and Search
+    const searchInput = document.getElementById("activity-search");
+    const searchButton = document.getElementById("activity-search-btn");
+    const typeFilter = document.getElementById("activity-type-filter");
+    const dateFromFilter = document.getElementById("date-from-filter");
+    const dateToFilter = document.getElementById("date-to-filter");
+    const clearDateFilterBtn = document.getElementById("clear-date-filter");
+    const activityItems = document.querySelectorAll(".activity-item");
+
+    // Function to filter activities
+    function filterActivities() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const filterType = typeFilter.value;
+      const dateFrom = dateFromFilter.value
+        ? new Date(dateFromFilter.value)
+        : null;
+      const dateTo = dateToFilter.value ? new Date(dateToFilter.value) : null;
+
+      if (dateTo) dateTo.setHours(23, 59, 59); // Set end of day for "to" date
+
+      activityItems.forEach((item) => {
+        const activityType = item.dataset.activityType;
+        const activityDesc = item.dataset.activityDescription;
+        let isSystemActivity = false;
+
+        // Extract the activity date from the badge
+        const dateText = item
+          .querySelector(".badge.bg-light.text-dark")
+          .textContent.trim();
+        const dateMatch = dateText.match(/(\d{1,2}\s\w{3}\s\d{4})/);
+        const dateStr = dateMatch ? dateMatch[0] : "";
+        const activityDate = dateStr ? new Date(dateStr) : null;
+
+        // Check if it's a system activity (created, updated, deleted)
+        if (
+          activityDesc.includes("created") ||
+          activityDesc.includes("updated") ||
+          activityDesc.includes("deleted")
+        ) {
+          isSystemActivity = true;
+        }
+
+        // Filter by type
+        let showByType = false;
+        if (
+          filterType === "all" ||
+          filterType === activityType ||
+          (filterType === "system" && isSystemActivity)
+        ) {
+          showByType = true;
+        }
+
+        // Filter by search term
+        let showBySearch = true;
+        if (searchTerm) {
+          showBySearch = activityDesc.includes(searchTerm);
+        }
+
+        // Filter by date range
+        let showByDate = true;
+        if (activityDate && (dateFrom || dateTo)) {
+          if (dateFrom && dateTo) {
+            showByDate = activityDate >= dateFrom && activityDate <= dateTo;
+          } else if (dateFrom) {
+            showByDate = activityDate >= dateFrom;
+          } else if (dateTo) {
+            showByDate = activityDate <= dateTo;
+          }
+        }
+
+        // Show/hide based on filters
+        if (showByType && showBySearch && showByDate) {
+          item.style.display = "";
+        } else {
+          item.style.display = "none";
+        }
+      });
+
+      // Check if no results and display message
+      checkNoResults();
+    }
+
+    // Function to check if there are no visible results
+    function checkNoResults() {
+      const visibleItems = document.querySelectorAll(
+        '.activity-item[style="display: "]'
+      );
+      const noResultsMessage = document.getElementById("no-filter-results");
+
+      if (visibleItems.length === 0) {
+        // If message doesn't exist yet, create it
+        if (!noResultsMessage) {
+          const message = document.createElement("div");
+          message.id = "no-filter-results";
+          message.className = "text-center text-muted py-4";
+          message.innerHTML = `
+            <i class="fas fa-filter fa-3x mb-3"></i>
+            <p>No activities match your filters.</p>
+            <button class="btn btn-sm btn-outline-secondary" id="clear-filters">
+                <i class="fas fa-times me-1"></i> Clear Filters
+            </button>
+          `;
+          document.querySelector(".activity-timeline").appendChild(message);
+
+          // Add event listener to the clear filters button
+          document
+            .getElementById("clear-filters")
+            .addEventListener("click", clearFilters);
+        }
+      } else {
+        // If message exists, remove it
+        if (noResultsMessage) {
+          noResultsMessage.remove();
+        }
+      }
+    }
+
+    // Function to clear all filters
+    function clearFilters() {
+      searchInput.value = "";
+      typeFilter.value = "all";
+      dateFromFilter.value = "";
+      dateToFilter.value = "";
+      filterActivities();
+    }
+
+    // Function to clear just date filters
+    function clearDateFilters() {
+      dateFromFilter.value = "";
+      dateToFilter.value = "";
+      filterActivities();
+    }
+
+    // Add event listeners
+    if (searchInput) searchInput.addEventListener("input", filterActivities);
+    if (searchButton) searchButton.addEventListener("click", filterActivities);
+    if (typeFilter) typeFilter.addEventListener("change", filterActivities);
+    if (dateFromFilter)
+      dateFromFilter.addEventListener("change", filterActivities);
+    if (dateToFilter) dateToFilter.addEventListener("change", filterActivities);
+    if (clearDateFilterBtn)
+      clearDateFilterBtn.addEventListener("click", clearDateFilters);
+  });
 </script>
-{% endblock %}
-
-{% include 'crm/includes/invoice_remarks_modal.html' %} 
-
-{% block postload_js %}{% endblock %} 
+{% endblock %} {% include 'crm/includes/invoice_remarks_modal.html' %} {% block
+postload_js %}{% endblock %}
