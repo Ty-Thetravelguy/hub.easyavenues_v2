@@ -26,6 +26,7 @@ from django.db import connection
 from django.db.models.functions import Concat
 from django.db.models import Value
 import datetime
+from django.utils import timezone
 
 # Create your views here.
 
@@ -1464,4 +1465,91 @@ def log_contact_activity(request, contact_id, activity_type):
             messages.error(request, f"Error logging activity: {str(e)}")
         
     return redirect('crm:contact_detail', pk=contact_id)
+
+@login_required
+def get_activity_details(request, activity_id):
+    """API endpoint to get activity details as JSON"""
+    try:
+        activity = get_object_or_404(Activity, id=activity_id)
+        
+        # Handle case where activity.data is None
+        activity_data = {}
+        
+        if activity.data is not None:
+            activity_data = activity.data.copy()  # Make a copy to avoid modifying the original
+            
+            # Convert contact IDs to contact names if present
+            if 'contact_id' in activity_data and activity_data['contact_id']:
+                try:
+                    contact = Contact.objects.get(id=activity_data['contact_id'])
+                    activity_data['contact_name'] = f"{contact.first_name} {contact.last_name}"
+                except Contact.DoesNotExist:
+                    activity_data['contact_name'] = "Unknown Contact"
+            
+            # Convert recipient IDs to names if present
+            if 'recipients' in activity_data and isinstance(activity_data['recipients'], list):
+                recipient_names = []
+                for recipient_id in activity_data['recipients']:
+                    try:
+                        contact = Contact.objects.get(id=recipient_id)
+                        recipient_names.append(f"{contact.first_name} {contact.last_name}")
+                    except (Contact.DoesNotExist, ValueError):
+                        recipient_names.append("Unknown Contact")
+                activity_data['recipient_names'] = recipient_names
+        else:
+            # Create a default data structure based on activity type
+            if activity.activity_type == 'email':
+                activity_data = {
+                    'subject': 'No subject available',
+                    'content': 'No content available',
+                    'recipients': [],
+                    'recipient_names': []
+                }
+            elif activity.activity_type == 'call':
+                activity_data = {
+                    'contact_id': None,
+                    'contact_name': 'No contact specified',
+                    'duration': None,
+                    'summary': 'No call summary available'
+                }
+            elif activity.activity_type == 'note':
+                activity_data = {
+                    'content': 'No note content available'
+                }
+            elif activity.activity_type == 'meeting':
+                activity_data = {
+                    'title': 'No title available',
+                    'date': None,
+                    'start_time': None,
+                    'end_time': None,
+                    'location': None,
+                    'notes': 'No meeting notes available',
+                    'attendees': [],
+                    'attendee_names': []
+                }
+            elif activity.activity_type == 'exception':
+                activity_data = {
+                    'exception_type': None,
+                    'value_amount': None,
+                    'approved_by': None,
+                    'description': 'No description available',
+                    'contact_id': None,
+                    'contact_name': 'No contact specified'
+                }
+        
+        # Create a response with activity data
+        data = {
+            'id': activity.id,
+            'type': activity.activity_type,
+            'description': activity.description,
+            'performed_at': activity.performed_at.strftime('%d %b %Y, %H:%M'),
+            'performed_by': activity.performed_by.get_full_name() if activity.performed_by else 'Unknown',
+            'data': activity_data
+        }
+        
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e)
+        }, status=500)
 
