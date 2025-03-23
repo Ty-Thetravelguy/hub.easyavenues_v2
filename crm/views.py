@@ -22,83 +22,92 @@ import re
 import os
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.edit import FormView
+from django.db import connection
+from django.db.models.functions import Concat
+from django.db.models import Value
+import datetime
 
 # Create your views here.
 
 def crm(request):
     return render(request, 'crm/crm.html')
 
-class CompanyListView(LoginRequiredMixin, ListView):
-    model = Company
-    template_name = 'crm/company_list.html'
-    context_object_name = 'companies'
-    paginate_by = 10
+@login_required
+def company_list(request):
+    """
+    View a list of all companies
+    """
+    # Get companies ordered by name
+    companies = Company.objects.all().order_by('company_name')
+    
+    # Handle filtering by company type
+    company_type = request.GET.get('type', None)
+    if company_type:
+        companies = companies.filter(company_type=company_type)
+    
+    # Get company types for filter dropdown
+    company_types = Company.COMPANY_TYPES
+    
+    context = {
+        'companies': companies,
+        'company_types': company_types,
+        'selected_type': company_type,
+    }
+    
+    return render(request, 'crm/company_list.html', context)
 
-    def get_queryset(self):
-        show_contacts = self.request.GET.get('view') == 'contacts'
-        
-        if show_contacts:
-            queryset = Contact.objects.all().select_related('company')
-        else:
-            queryset = Company.objects.all()
-        
-        # Filter by company type (only for companies view)
-        if not show_contacts:
-            company_type = self.request.GET.get('type')
-            if company_type in ['Client', 'Supplier']:
-                queryset = queryset.filter(company_type=company_type)
+@login_required
+def company_detail(request, pk):
+    """
+    View a company's complete profile, including contacts, activities, and notes.
+    """
+    company = get_object_or_404(Company, pk=pk)
+    
+    # Get company contacts, ordered by name
+    contacts = company.contacts.all().annotate(
+        full_name=Concat('first_name', Value(' '), 'last_name')
+    ).order_by('full_name')
+    
+    # Get activities for this company
+    activities = company.activities.all().order_by('-performed_at')[:10]
+    
+    # Get company documents
+    documents = company.documents.all().order_by('-uploaded_at')
+    
+    # Get transaction fees
+    transaction_fees = company.transaction_fees.all()
+    
+    # Notes - check if related manager exists or skip
+    try:
+        notes = company.notes.all().order_by('-created_at')
+    except AttributeError:
+        notes = []
 
-        # Search functionality
-        search_query = self.request.GET.get('search')
-        if search_query:
-            if show_contacts:
-                queryset = queryset.filter(
-                    Q(first_name__icontains=search_query) |
-                    Q(last_name__icontains=search_query) |
-                    Q(email__icontains=search_query) |
-                    Q(job_role__icontains=search_query) |
-                    Q(company__company_name__icontains=search_query)
-                )
-            else:
-                queryset = queryset.filter(
-                    Q(company_name__icontains=search_query) |
-                    Q(industry__icontains=search_query) |
-                    Q(email__icontains=search_query) |
-                    Q(city__icontains=search_query) |
-                    Q(country__icontains=search_query)
-                )
-
-        if show_contacts:
-            return queryset.order_by('-created_at')
-        return queryset.order_by('-create_date')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        show_contacts = self.request.GET.get('view') == 'contacts'
-        
-        if show_contacts:
-            context['contacts'] = self.get_queryset()
-            context['show_contacts'] = True
-        else:
-            context['show_contacts'] = False
-            
-        context['company_type'] = self.request.GET.get('type', '')
-        context['search_query'] = self.request.GET.get('search', '')
-        return context
-
-class CompanyDetailView(LoginRequiredMixin, DetailView):
-    model = Company
-    template_name = 'crm/company_detail.html'
-    context_object_name = 'company'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context.update({
-            'contacts': self.object.contacts.all(),
-            'activities': self.object.activities.all().order_by('-performed_at'),
-            'documents': self.object.documents.all().order_by('-uploaded_at')
-        })
-        return context
+    # Get travel policies if this is a client company
+    travel_policies = ClientTravelPolicy.objects.filter(client=company)
+    
+    # Additional data for the template
+    invoice_references = None
+    profile = None
+    if company.company_type == 'Client':
+        # Get or create client profile
+        profile, created = ClientProfile.objects.get_or_create(company=company)
+        # Get invoice references
+        invoice_references = ClientInvoiceReference.objects.filter(client_profile=profile)
+    
+    context = {
+        'company': company,
+        'contacts': contacts,
+        'activities': activities,
+        'documents': documents,
+        'notes': notes,
+        'transaction_fees': transaction_fees,
+        'travel_policies': travel_policies,
+        'profile': profile,
+        'invoice_references': invoice_references,
+    }
+    
+    return render(request, 'crm/company_detail.html', context)
 
 class CompanyUpdateView(LoginRequiredMixin, UpdateView):
     model = Company
@@ -414,28 +423,6 @@ def update_invoice_references(request, company_id):
             return JsonResponse({'status': 'error', 'message': str(e)})
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
-
-@login_required
-def company_detail(request, company_id):
-    company = get_object_or_404(Company, id=company_id)
-    contacts = company.contacts.all()
-    activities = company.activities.all()
-    documents = company.documents.all()
-    
-    # Prefetch invoice references and their mandatory status for better performance
-    if hasattr(company, 'client_profile'):
-        company.client_profile.invoice_reference_options = company.client_profile.invoice_reference_options.prefetch_related(
-            'clientinvoicereference_set'
-        )
-    
-    context = {
-        'company': company,
-        'contacts': contacts,
-        'activities': activities,
-        'documents': documents,
-    }
-    
-    return render(request, 'crm/company_detail.html', context)
 
 @login_required
 def manage_company_relationships(request, company_id):
@@ -990,27 +977,43 @@ def travel_policy_create(request, company_id):
     
     if request.method == 'POST':
         form = TravelPolicyForm(request.POST)
+        
         if form.is_valid():
-            policy = form.save(commit=False)
-            policy.client = company
-            policy.save()
+            try:
+                # Get form data before saving
+                policy = form.save(commit=False)
+                
+                # Set the client company
+                policy.client = company
+                
+                # Save the policy
+                policy.save()
+                
+                # Handle VIP travelers (multi-select from form)
+                vip_traveler_ids = request.POST.getlist('vip_travelers')
+                
+                if vip_traveler_ids:
+                    policy.vip_travelers.set(vip_traveler_ids)
+                
+                messages.success(request, f"Travel policy '{policy.policy_name}' created successfully.")
+                
+                # Create activity log
+                Activity.objects.create(
+                    activity_type='policy_update',
+                    description=f"Created travel policy '{policy.policy_name}' for {company.company_name}.",
+                    performed_by=request.user,
+                    company=company
+                )
+                
+                return redirect('crm:travel_policy_detail', policy_id=policy.id)
             
-            # Handle VIP travelers (multi-select from form)
-            vip_traveler_ids = request.POST.getlist('vip_travelers')
-            if vip_traveler_ids:
-                policy.vip_travelers.set(vip_traveler_ids)
-            
-            messages.success(request, f"Travel policy '{policy.policy_name}' created successfully.")
-            
-            # Create activity log
-            Activity.objects.create(
-                activity_type='policy_update',
-                description=f"Created travel policy '{policy.policy_name}' for {company.company_name}.",
-                performed_by=request.user,
-                company=company
-            )
-            
-            return redirect('crm:travel_policy_detail', policy_id=policy.id)
+            except Exception as e:
+                messages.error(request, f"Error creating travel policy: {str(e)}")
+        else:
+            # Show form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = TravelPolicyForm()
     
@@ -1120,8 +1123,8 @@ def travel_policy_delete(request, policy_id):
         
         return redirect('crm:company_detail', pk=company_id)
     
-    # If not POST, redirect to the policy detail page
-    return redirect('crm:travel_policy_detail', policy_id=policy.id)
+    # For GET requests, display confirmation page
+    return render(request, 'crm/travel_policy_confirm_delete.html', {'policy': policy})
 
 @login_required
 def contact_delete(request, pk):
@@ -1227,6 +1230,45 @@ def log_activity(request, company_id, activity_type):
                 
                 description = f"Note: {short_content}"
                 activity_icon = 'fa-sticky-note'
+                
+            elif activity_type == 'meeting':
+                title = request.POST.get('title')
+                date = request.POST.get('date')
+                start_time = request.POST.get('start_time')
+                end_time = request.POST.get('end_time')
+                location = request.POST.get('location', '')
+                notes = request.POST.get('notes')
+                attendees = request.POST.getlist('attendees')
+                
+                # Store full content
+                activity_data['title'] = title
+                activity_data['date'] = date
+                activity_data['start_time'] = start_time
+                activity_data['end_time'] = end_time
+                activity_data['location'] = location
+                activity_data['notes'] = notes
+                activity_data['attendees'] = attendees
+                
+                # Format location text
+                location_text = f" at {location}" if location else ""
+                
+                # Format attendee names
+                attendee_names = []
+                if attendees:
+                    for attendee_id in attendees:
+                        try:
+                            contact = Contact.objects.get(id=attendee_id)
+                            attendee_names.append(f"{contact.first_name} {contact.last_name}")
+                        except Contact.DoesNotExist:
+                            pass
+                
+                attendee_text = ""
+                if attendee_names:
+                    attendee_text = f" with {', '.join(attendee_names)}"
+                
+                # Format description
+                description = f"Meeting: {title}{location_text}{attendee_text} on {date} ({start_time}-{end_time})"
+                activity_icon = 'fa-users'
                 
             elif activity_type == 'exception':
                 exception_type = request.POST.get('exception_type')
@@ -1338,6 +1380,45 @@ def log_contact_activity(request, contact_id, activity_type):
                 
                 description = f"Note about {contact.first_name} {contact.last_name}: {short_content}"
                 activity_icon = 'fa-sticky-note'
+                
+            elif activity_type == 'meeting':
+                title = request.POST.get('title')
+                date = request.POST.get('date')
+                start_time = request.POST.get('start_time')
+                end_time = request.POST.get('end_time')
+                location = request.POST.get('location', '')
+                notes = request.POST.get('notes')
+                attendees = request.POST.getlist('attendees')
+                
+                # Store full content
+                activity_data['title'] = title
+                activity_data['date'] = date
+                activity_data['start_time'] = start_time
+                activity_data['end_time'] = end_time
+                activity_data['location'] = location
+                activity_data['notes'] = notes
+                activity_data['attendees'] = attendees
+                
+                # Format location text
+                location_text = f" at {location}" if location else ""
+                
+                # Format attendee names
+                attendee_names = []
+                if attendees:
+                    for attendee_id in attendees:
+                        try:
+                            contact = Contact.objects.get(id=attendee_id)
+                            attendee_names.append(f"{contact.first_name} {contact.last_name}")
+                        except Contact.DoesNotExist:
+                            pass
+                
+                attendee_text = ""
+                if attendee_names:
+                    attendee_text = f" with {', '.join(attendee_names)}"
+                
+                # Format description
+                description = f"Meeting: {title}{location_text}{attendee_text} on {date} ({start_time}-{end_time})"
+                activity_icon = 'fa-users'
                 
             elif activity_type == 'exception':
                 exception_type = request.POST.get('exception_type')

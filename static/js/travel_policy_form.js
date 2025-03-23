@@ -1,15 +1,12 @@
 $(document).ready(function() {
+    // Initialize Select2 with minimal custom options first
     $('.select2').select2({
         placeholder: "🔍 Search and select travelers...",
         allowClear: true,
         width: '100%',
         theme: 'bootstrap4',
-        escapeMarkup: function(markup) {
-            return markup;
-        },
         templateResult: formatContact,
         templateSelection: formatContactSelection,
-        matcher: customMatcher,
         minimumInputLength: 0,  // Start showing options immediately
         language: {
             inputTooShort: function() {
@@ -24,27 +21,15 @@ $(document).ready(function() {
         }
     });
 
-    // Force placeholder to be properly positioned on load
+    // Default Select2 styling adjustments
     setTimeout(function() {
-        // Adjust placeholder position and styling
         $('.select2-search__field').css({
             'margin': '0',
             'padding': '0.5rem',
             'height': '34px',
             'line-height': '34px'
         });
-        
-        // Focus on the placeholder text field so it's immediately visible
-        $('.select2-search__field').focus().blur();
-    }, 200);
-
-    // Focus on the search box when clicking the search hint
-    $('.search-hint').click(function() {
-        $('#vip_travelers').select2('open');
-        setTimeout(function() {
-            $('.select2-search__field').focus();
-        }, 100);
-    });
+    }, 300);
 
     // Select all VIP travelers button
     $('#select-all-vips').click(function(e) {
@@ -73,30 +58,6 @@ $(document).ready(function() {
         }, 1500);
     });
 
-    // Custom matcher to improve search functionality
-    function customMatcher(params, data) {
-        // If there are no search terms, return all of the data
-        if ($.trim(params.term) === '') {
-            return data;
-        }
-        
-        // Search through first name, last name and job role
-        var searchParts = params.term.toLowerCase().split(' ');
-        var text = data.text.toLowerCase();
-        
-        // Check if all search parts are found in the text
-        var allPartsFound = searchParts.every(function(part) {
-            return text.indexOf(part) > -1;
-        });
-        
-        if (allPartsFound) {
-            return data;
-        }
-        
-        // Return null to indicate no match
-        return null;
-    }
-
     // Format dropdown options
     function formatContact(contact) {
         if (!contact.id) {
@@ -106,15 +67,17 @@ $(document).ready(function() {
         var isVip = $(contact.element).data('is-vip');
         var vipLabel = isVip ? '<span class="badge bg-warning ms-2">VIP</span>' : '';
         
+        // Get initials safely
+        var nameParts = contact.text.split('-')[0].trim().split(' ');
+        var firstInitial = nameParts.length > 0 ? nameParts[0].charAt(0) : '';
+        var secondInitial = nameParts.length > 1 ? nameParts[1].charAt(0) : '';
+        
         // Create HTML representation
         var $contact = $(
             '<div class="select2-result-contact d-flex align-items-center p-1 '+ (isVip ? 'select2-vip-contact' : '') +'">' +
                 '<div class="select2-result-contact__avatar me-2">' +
                     '<div class="avatar-circle avatar-circle-sm bg-primary">' +
-                        '<span class="initials">' + 
-                            contact.text.split(' ')[0].charAt(0) + 
-                            (contact.text.split(' ').length > 1 ? contact.text.split(' ')[1].charAt(0) : '') +
-                        '</span>' +
+                        '<span class="initials">' + firstInitial + secondInitial + '</span>' +
                     '</div>' +
                 '</div>' +
                 '<div class="select2-result-contact__info">' +
@@ -139,11 +102,35 @@ $(document).ready(function() {
         return contact.text;
     }
 
-    // Also open the dropdown when clicking on the label
-    $('label:contains("VIP Travelers")').css('cursor', 'pointer').click(function() {
+    // Make the label and icon clickable 
+    $('label[for="vip_travelers"], .fa-search').css('cursor', 'pointer').click(function() {
         $('#vip_travelers').select2('open');
-        setTimeout(function() {
-            $('.select2-search__field').focus();
-        }, 100);
+    });
+    
+    // ESSENTIAL FIX: Override Select2's search to make it work with our data
+    $(document).on('keyup', '.select2-search__field', function() {
+        var searchText = $(this).val().toLowerCase();
+        
+        if (searchText.length > 0) {
+            // Show/hide options based on simple text search
+            $('#vip_travelers option').each(function() {
+                var optionText = $(this).text().toLowerCase();
+                var optionElement = $(this);
+                
+                // Check if the search text appears anywhere in the option
+                if (optionText.indexOf(searchText) > -1) {
+                    // Make this option visible in the dropdown
+                    var optionId = $(this).val();
+                    var matchingDropdownItem = $('.select2-results__option[aria-selected] li').filter(function() {
+                        return $(this).text().toLowerCase().indexOf(optionText) > -1;
+                    });
+                    
+                    if (matchingDropdownItem.length) {
+                        matchingDropdownItem.show();
+                        matchingDropdownItem.closest('.select2-results__option').show();
+                    }
+                }
+            });
+        }
     });
 }); 

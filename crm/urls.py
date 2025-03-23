@@ -4,8 +4,8 @@ from . import views
 app_name = 'crm'
 
 urlpatterns = [
-    path('companies/', views.CompanyListView.as_view(), name='company_list'),
-    path('companies/<int:pk>/', views.CompanyDetailView.as_view(), name='company_detail'),
+    path('companies/', views.company_list, name='company_list'),
+    path('companies/<int:pk>/', views.company_detail, name='company_detail'),
     path('companies/<int:pk>/update/', views.CompanyUpdateView.as_view(), name='company_update'),
     path('companies/create/', views.CompanyCreateWizardView.as_view(), name='company_create'),
     path('companies/<int:company_id>/contacts/create/', views.ContactCreateView.as_view(), name='contact_create'),
