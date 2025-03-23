@@ -1553,3 +1553,190 @@ def get_activity_details(request, activity_id):
             'error': str(e)
         }, status=500)
 
+@login_required
+def edit_activity(request, activity_id):
+    """Edit an existing activity"""
+    activity = get_object_or_404(Activity, id=activity_id)
+    
+    # Check if the user has permission to edit this activity
+    # Typically users can only edit their own activities or if they're admin
+    if not request.user.is_staff and activity.performed_by != request.user:
+        messages.error(request, "You don't have permission to edit this activity.")
+        if activity.company:
+            return redirect('crm:company_detail', pk=activity.company.id)
+        else:
+            return redirect('crm:contact_detail', pk=activity.contact.id)
+    
+    if request.method == 'POST':
+        # Different handling based on activity type
+        activity_type = activity.activity_type
+        
+        if activity_type == 'note':
+            # For notes, update the basic description
+            activity.description = request.POST.get('description', '')
+            if activity.data:
+                activity.data['content'] = request.POST.get('content', '')
+            else:
+                activity.data = {'content': request.POST.get('content', '')}
+                
+        elif activity_type == 'call':
+            # For calls, update description and call details
+            activity.description = request.POST.get('description', '')
+            contact_id = request.POST.get('contact_id')
+            
+            # Update the data field
+            if activity.data:
+                activity.data['summary'] = request.POST.get('summary', '')
+                activity.data['duration'] = request.POST.get('duration', '')
+                activity.data['contact_id'] = contact_id
+            else:
+                activity.data = {
+                    'summary': request.POST.get('summary', ''),
+                    'duration': request.POST.get('duration', ''),
+                    'contact_id': contact_id
+                }
+                
+        elif activity_type == 'email':
+            # For emails, update subject, content, and recipients
+            subject = request.POST.get('subject', '')
+            content = request.POST.get('content', '')
+            recipients = request.POST.getlist('recipients', [])
+            activity.description = f"Email: {subject}"
+            
+            if activity.data:
+                activity.data['subject'] = subject
+                activity.data['content'] = content
+                activity.data['recipients'] = recipients
+            else:
+                activity.data = {
+                    'subject': subject,
+                    'content': content,
+                    'recipients': recipients
+                }
+                
+        elif activity_type == 'meeting':
+            # For meetings, update meeting details
+            title = request.POST.get('title', '')
+            date = request.POST.get('date', '')
+            start_time = request.POST.get('start_time', '')
+            end_time = request.POST.get('end_time', '')
+            location = request.POST.get('location', '')
+            notes = request.POST.get('notes', '')
+            attendees = request.POST.getlist('attendees', [])
+            
+            activity.description = f"Meeting: {title}"
+            
+            if activity.data:
+                activity.data.update({
+                    'title': title,
+                    'date': date,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'location': location,
+                    'notes': notes,
+                    'attendees': attendees
+                })
+            else:
+                activity.data = {
+                    'title': title,
+                    'date': date,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'location': location,
+                    'notes': notes,
+                    'attendees': attendees
+                }
+                
+        elif activity_type == 'exception':
+            # For exceptions, update waiver/favor details
+            exception_type = request.POST.get('exception_type', '')
+            description = request.POST.get('description', '')
+            value_amount = request.POST.get('value_amount', '')
+            approved_by = request.POST.get('approved_by', '')
+            contact_id = request.POST.get('contact_id', '')
+            
+            activity.description = f"Waiver/Favor: {exception_type}"
+            
+            if activity.data:
+                activity.data.update({
+                    'exception_type': exception_type,
+                    'description': description,
+                    'value_amount': value_amount,
+                    'approved_by': approved_by,
+                    'contact_id': contact_id
+                })
+            else:
+                activity.data = {
+                    'exception_type': exception_type,
+                    'description': description,
+                    'value_amount': value_amount,
+                    'approved_by': approved_by,
+                    'contact_id': contact_id
+                }
+        
+        # Save the updated activity
+        activity.save()
+        
+        messages.success(request, "Activity updated successfully.")
+        
+        # Return JSON response for AJAX requests
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success', 'message': 'Activity updated successfully'})
+            
+        # Otherwise redirect to the appropriate detail page
+        if activity.company:
+            return redirect('crm:company_detail', pk=activity.company.id)
+        else:
+            return redirect('crm:contact_detail', pk=activity.contact.id)
+    
+    # If GET request, prepare context for form rendering
+    context = {
+        'activity': activity,
+        'activity_data': activity.data or {},
+    }
+    
+    # Add contacts for dropdown selection if needed
+    if activity.company:
+        context['contacts'] = activity.company.contacts.all()
+    
+    return render(request, 'crm/edit_activity.html', context)
+
+@login_required
+def delete_activity(request, activity_id):
+    """Delete an activity"""
+    activity = get_object_or_404(Activity, id=activity_id)
+    
+    # Check if the user has permission to delete this activity
+    # Typically users can only delete their own activities or if they're admin
+    if not request.user.is_staff and activity.performed_by != request.user:
+        messages.error(request, "You don't have permission to delete this activity.")
+        if activity.company:
+            return redirect('crm:company_detail', pk=activity.company.id)
+        else:
+            return redirect('crm:contact_detail', pk=activity.contact.id)
+    
+    # Store the parent object reference before deleting
+    company = activity.company
+    contact = activity.contact
+    
+    if request.method == 'POST':
+        activity.delete()
+        messages.success(request, "Activity deleted successfully.")
+        
+        # Return JSON response for AJAX requests
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success', 'message': 'Activity deleted successfully'})
+        
+        # Redirect to appropriate detail page
+        if company:
+            return redirect('crm:company_detail', pk=company.id)
+        else:
+            return redirect('crm:contact_detail', pk=contact.id)
+    
+    # If GET request, confirm deletion
+    context = {
+        'activity': activity,
+    }
+    
+    return render(request, 'crm/confirm_delete_activity.html', context)
+

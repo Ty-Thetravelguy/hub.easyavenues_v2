@@ -33,6 +33,8 @@ urlpatterns = [
     path('companies/<int:company_id>/log-activity/<str:activity_type>/', views.log_activity, name='log_activity'),
     path('contacts/<int:contact_id>/log-activity/<str:activity_type>/', views.log_contact_activity, name='log_contact_activity'),
     path('activity/<int:activity_id>/details/', views.get_activity_details, name='activity_details'),
+    path('activity/<int:activity_id>/edit/', views.edit_activity, name='edit_activity'),
+    path('activity/<int:activity_id>/delete/', views.delete_activity, name='delete_activity'),
     
     # HubSpot Integration
     path('hubspot/search/', views.hubspot_search, name='hubspot_search'),
