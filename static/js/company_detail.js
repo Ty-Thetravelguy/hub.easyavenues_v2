@@ -178,33 +178,94 @@ $(document).ready(function() {
     });
 
     // Initialize DataTable for company documents
-    $('#company-documents-table').DataTable({
-        "pageLength": 10,
-        "order": [[0, "desc"]],
-        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        "autoWidth": false,
-        "scrollX": true,
-        "ordering": true,
-        "columnDefs": [
-            {
-                "targets": "_all",
-                "orderable": true
-            },
-            {
-                "targets": -1,
-                "orderable": false,
-                "searchable": false,
-                "width": "100px"
+    var documentsTable = $('#company-documents-table');
+    if (documentsTable.length) {
+        documentsTable.DataTable({
+            "destroy": true, // In case it was already initialized
+            "pageLength": 10,
+            "order": [[0, "desc"]],
+            "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+            "autoWidth": false,
+            "scrollX": true,
+            "ordering": true,
+            "responsive": true,
+            "columnDefs": [
+                {
+                    "targets": "_all",
+                    "orderable": true
+                },
+                {
+                    "targets": -1,
+                    "orderable": false,
+                    "searchable": false,
+                    "width": "100px"
+                },
+                {
+                    "responsivePriority": 1,
+                    "targets": 0
+                },
+                {
+                    "responsivePriority": 2,
+                    "targets": 4
+                }
+            ],
+            "language": {
+                "lengthMenu": "Show _MENU_ documents per page",
+                "info": "Showing _START_ to _END_ of _TOTAL_ documents",
+                "infoEmpty": "No documents available",
+                "infoFiltered": "(filtered from _MAX_ total documents)",
+                "zeroRecords": "No matching documents found",
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search documents..."
             }
-        ],
-        "language": {
-            "lengthMenu": "Show _MENU_ documents per page",
-            "info": "Showing _START_ to _END_ of _TOTAL_ documents",
-            "infoEmpty": "No documents available",
-            "infoFiltered": "(filtered from _MAX_ total documents)",
-            "zeroRecords": "No matching documents found"
-        }
-    });
+        });
+        console.log('✅ Company documents table initialized');
+    }
+    
+    // Initialize DataTable for travel policies
+    var travelPoliciesTable = $('#company-travel-policies-table');
+    if (travelPoliciesTable.length) {
+        travelPoliciesTable.DataTable({
+            "destroy": true, // In case it was already initialized
+            "pageLength": 10,
+            "order": [[0, "desc"]],
+            "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+            "autoWidth": false,
+            "scrollX": true,
+            "ordering": true,
+            "responsive": true,
+            "columnDefs": [
+                {
+                    "targets": "_all",
+                    "orderable": true
+                },
+                {
+                    "targets": -1,
+                    "orderable": false,
+                    "searchable": false,
+                    "width": "100px"
+                },
+                {
+                    "responsivePriority": 1,
+                    "targets": 0
+                },
+                {
+                    "responsivePriority": 2,
+                    "targets": 4
+                }
+            ],
+            "language": {
+                "lengthMenu": "Show _MENU_ policies per page",
+                "info": "Showing _START_ to _END_ of _TOTAL_ policies",
+                "infoEmpty": "No policies available",
+                "infoFiltered": "(filtered from _MAX_ total policies)",
+                "zeroRecords": "No matching policies found",
+                "search": "_INPUT_",
+                "searchPlaceholder": "Search policies..."
+            }
+        });
+        console.log('✅ Company travel policies table initialized');
+    }
     
     // Function to update sort icons based on current sort state
     function updateSortIcons(table) {

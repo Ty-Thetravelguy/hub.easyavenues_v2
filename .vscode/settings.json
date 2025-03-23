@@ -1,6 +1,35 @@
 {
   "files.associations": {
-    "*.html": "html-hubl",
-    "*.css": "css-hubl"
-  }
+    "*.html": "html",
+    "**/*.html": "html",
+    "**/templates/**/*.html": "django-html",
+    "**/*template*/**/*.html": "django-html",
+    "*.django.html": "django-html",
+    "*.css": "css"
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[django-html]": {
+    "editor.defaultFormatter": "batisteo.vscode-django"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "emmet.includeLanguages": {
+    "django-html": "html"
+  },
+  "django.snippets.exclude": ["html"],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  },
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.editor.enablePreview": false,
+  "workbench.iconTheme": "vscode-icons",
+
+  // Force disable potentially conflicting extensions
+  "explorer.autoReveal": true,
+  "extensions.ignoreRecommendations": true
 }
