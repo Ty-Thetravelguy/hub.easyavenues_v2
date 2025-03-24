@@ -3,7 +3,7 @@ from django.db import models
 from .models import (
     Company, Contact, ClientProfile, SupplierProfile, TransactionFee,
     INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote,
-    ClientTravelPolicy, Document
+    ClientTravelPolicy, Document, Email, Call, Meeting, Note, WaiverFavor
 )
 from django.contrib.auth import get_user_model
 import datetime
@@ -433,4 +433,84 @@ class DocumentUploadForm(forms.ModelForm):
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
-        } 
+        }
+
+class EmailActivityForm(forms.ModelForm):
+    class Meta:
+        model = Email
+        fields = ['subject', 'details', 'outcome', 'date', 'time', 'contacts', 'users']
+        widgets = {
+            'subject': forms.TextInput(attrs={'class': 'form-control'}),
+            'details': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'outcome': forms.Select(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'contacts': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'users': forms.SelectMultiple(attrs={'class': 'form-control'}),
+        }
+
+class CallActivityForm(forms.ModelForm):
+    class Meta:
+        model = Call
+        fields = ['subject', 'duration', 'details', 'outcome', 'date', 'time', 'contacts', 'users']
+        widgets = {
+            'subject': forms.TextInput(attrs={'class': 'form-control'}),
+            'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'details': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'outcome': forms.Select(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'contacts': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'users': forms.SelectMultiple(attrs={'class': 'form-control'}),
+        }
+
+class MeetingActivityForm(forms.ModelForm):
+    class Meta:
+        model = Meeting
+        fields = ['subject', 'location', 'date', 'time', 'duration', 'details', 'outcome', 'contacts', 'users']
+        widgets = {
+            'subject': forms.TextInput(attrs={'class': 'form-control'}),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': 15, 'step': 15}),
+            'details': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'outcome': forms.Select(attrs={'class': 'form-control'}),
+            'contacts': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'users': forms.SelectMultiple(attrs={'class': 'form-control'}),
+        }
+
+class NoteActivityForm(forms.ModelForm):
+    class Meta:
+        model = Note
+        fields = ['subject', 'content', 'contacts', 'users']
+        widgets = {
+            'subject': forms.TextInput(attrs={'class': 'form-control'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'contacts': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'users': forms.SelectMultiple(attrs={'class': 'form-control'}),
+        }
+
+class WaiverFavorActivityForm(forms.ModelForm):
+    class Meta:
+        model = WaiverFavor
+        fields = ['subject', 'waiver_type', 'value_amount', 'approved_by', 'details', 'contacts', 'users']
+        widgets = {
+            'subject': forms.TextInput(attrs={'class': 'form-control'}),
+            'waiver_type': forms.Select(attrs={'class': 'form-control'}),
+            'value_amount': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'step': 0.01}),
+            'approved_by': forms.Select(attrs={'class': 'form-control'}),
+            'details': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'contacts': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'users': forms.SelectMultiple(attrs={'class': 'form-control'}),
+        }
+
+class ToDoTaskForm(forms.Form):
+    to_do_task_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    to_do_task_message = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    ) 

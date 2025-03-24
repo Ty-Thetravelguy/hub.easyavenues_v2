@@ -3,18 +3,23 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote, Document, Activity, ClientTravelPolicy
+from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote, Document, Activity, ClientTravelPolicy, Email, Call, Meeting, Note, WaiverFavor
 from accounts.models import InvoiceReference
 from django.urls import reverse_lazy, reverse
 from formtools.wizard.views import SessionWizardView
 from django.shortcuts import redirect
 from django.contrib import messages
 from django import forms
-from .forms import CompanyForm, CompanyRelationshipForm, ContactForm, ContactNoteForm, DocumentUploadForm, ManageRelationshipsForm, ClientInvoiceReferenceFormSet, TravelPolicyForm
+from .forms import (
+    CompanyForm, CompanyRelationshipForm, ContactForm, ContactNoteForm, 
+    DocumentUploadForm, ManageRelationshipsForm, ClientInvoiceReferenceFormSet, 
+    TravelPolicyForm, EmailActivityForm, CallActivityForm, MeetingActivityForm, 
+    NoteActivityForm, WaiverFavorActivityForm, ToDoTaskForm
+)
 from django.contrib.auth import get_user_model
 from accounts.models import Team
 import json
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponseRedirect, Http404
 from .utils import hubspot_api
 from django.conf import settings
 import requests
@@ -47,7 +52,7 @@ def company_list(request):
         companies = companies.filter(company_type=company_type)
     
     # Get company types for filter dropdown
-    company_types = Company.COMPANY_TYPES
+    company_types = COMPANY_TYPE
     
     context = {
         'companies': companies,
@@ -69,8 +74,12 @@ def company_detail(request, pk):
         full_name=Concat('first_name', Value(' '), 'last_name')
     ).order_by('full_name')
     
-    # Get activities for this company
-    activities = company.activities.all().order_by('-performed_at')[:10]
+    # Get activities for this company from all activity types
+    emails = company.emails.all().order_by('-created_at')
+    calls = company.calls.all().order_by('-created_at')
+    meetings = company.meetings.all().order_by('-created_at')
+    notes = company.notes.all().order_by('-created_at')
+    waivers = company.waivers_favors.all().order_by('-created_at')
     
     # Get company documents
     documents = company.documents.all().order_by('-uploaded_at')
@@ -99,9 +108,12 @@ def company_detail(request, pk):
     context = {
         'company': company,
         'contacts': contacts,
-        'activities': activities,
-        'documents': documents,
+        'emails': emails,
+        'calls': calls,
+        'meetings': meetings,
         'notes': notes,
+        'waivers': waivers,
+        'documents': documents,
         'transaction_fees': transaction_fees,
         'travel_policies': travel_policies,
         'profile': profile,
@@ -1150,593 +1162,436 @@ def contact_delete(request, pk):
     
     return render(request, 'crm/contact_confirm_delete.html', {'contact': contact})
 
-"""
-Hubspot Setup Guide View
-"""
-def hubspot_setup_guide(request):
-    return render(request, 'crm/hubspot_setup_guide.html')
-
-
 # Activity Logging Views
 @login_required
-def log_activity(request, company_id, activity_type):
+def log_email(request, company_id):
+    """Log an email activity for a company."""
     company = get_object_or_404(Company, id=company_id)
     
     if request.method == 'POST':
-        try:
-            # Common data for all activity types
-            description = ""
-            activity_data = {}  # Store detailed content in this dict
-            
-            # Process based on activity type
-            if activity_type == 'email':
-                subject = request.POST.get('subject')
-                content = request.POST.get('content')
-                recipients = request.POST.getlist('recipients')
-                
-                # Store full content
-                activity_data['subject'] = subject
-                activity_data['content'] = content
-                activity_data['recipients'] = recipients
-                
-                # Format description (summary)
-                recipient_names = []
-                if recipients:
-                    for recipient_id in recipients:
-                        try:
-                            contact = Contact.objects.get(id=recipient_id)
-                            recipient_names.append(f"{contact.first_name} {contact.last_name}")
-                        except Contact.DoesNotExist:
-                            pass
-                
-                recipient_text = ", ".join(recipient_names) if recipient_names else "No specific recipients"
-                description = f"Email sent: {subject}"
-                activity_icon = 'fa-envelope'
-                
-            elif activity_type == 'call':
-                contact_id = request.POST.get('contact')
-                duration = request.POST.get('duration')
-                summary = request.POST.get('summary')
-                
-                # Store full content
-                activity_data['contact_id'] = contact_id
-                activity_data['duration'] = duration
-                activity_data['summary'] = summary
-                
-                # Get contact name if provided
-                contact_name = "Unknown"
-                if contact_id:
-                    try:
-                        contact = Contact.objects.get(id=contact_id)
-                        contact_name = f"{contact.first_name} {contact.last_name}"
-                    except Contact.DoesNotExist:
-                        pass
-                
-                # Format description
-                duration_text = f" ({duration} mins)" if duration else ""
-                description = f"Call with {contact_name}{duration_text}: {summary}"
-                activity_icon = 'fa-phone'
-                
-            elif activity_type == 'note':
-                content = request.POST.get('content')
-                
-                # Store full content
-                activity_data['content'] = content
-                
-                # Truncate content for the description if it's too long
-                if len(content) > 100:
-                    short_content = content[:97] + "..."
-                else:
-                    short_content = content
-                
-                description = f"Note: {short_content}"
-                activity_icon = 'fa-sticky-note'
-                
-            elif activity_type == 'meeting':
-                title = request.POST.get('title')
-                date = request.POST.get('date')
-                start_time = request.POST.get('start_time')
-                end_time = request.POST.get('end_time')
-                location = request.POST.get('location', '')
-                notes = request.POST.get('notes')
-                attendees = request.POST.getlist('attendees')
-                
-                # Store full content
-                activity_data['title'] = title
-                activity_data['date'] = date
-                activity_data['start_time'] = start_time
-                activity_data['end_time'] = end_time
-                activity_data['location'] = location
-                activity_data['notes'] = notes
-                activity_data['attendees'] = attendees
-                
-                # Format location text
-                location_text = f" at {location}" if location else ""
-                
-                # Format attendee names
-                attendee_names = []
-                if attendees:
-                    for attendee_id in attendees:
-                        try:
-                            contact = Contact.objects.get(id=attendee_id)
-                            attendee_names.append(f"{contact.first_name} {contact.last_name}")
-                        except Contact.DoesNotExist:
-                            pass
-                
-                attendee_text = ""
-                if attendee_names:
-                    attendee_text = f" with {', '.join(attendee_names)}"
-                
-                # Format description
-                description = f"Meeting: {title}{location_text}{attendee_text} on {date} ({start_time}-{end_time})"
-                activity_icon = 'fa-users'
-                
-            elif activity_type == 'exception':
-                exception_type = request.POST.get('exception_type')
-                value_amount = request.POST.get('value_amount')
-                contact_id = request.POST.get('contact')
-                approved_by = request.POST.get('approved_by')
-                description_text = request.POST.get('description')
-                
-                # Store full content
-                activity_data['exception_type'] = exception_type
-                activity_data['value_amount'] = value_amount
-                activity_data['contact_id'] = contact_id
-                activity_data['approved_by'] = approved_by
-                activity_data['description'] = description_text
-                
-                # Get contact name if provided
-                contact_name = "Unknown"
-                if contact_id:
-                    try:
-                        contact = Contact.objects.get(id=contact_id)
-                        contact_name = f"{contact.first_name} {contact.last_name}"
-                    except Contact.DoesNotExist:
-                        pass
-                
-                # Format exception type for display
-                exception_display = exception_type.replace('_', ' ').title()
-                
-                # Format value if provided
-                value_text = f" (£{value_amount})" if value_amount else ""
-                
-                # Format approval info
-                approval_text = ""
-                if approved_by and approved_by != 'none':
-                    approval_text = f", approved by {approved_by.replace('_', ' ').title()}"
-                
-                # Format description
-                description = f"{exception_display}{value_text} for {contact_name}{approval_text}: {description_text}"
-                activity_icon = 'fa-star'
-            
-            # Create activity record
-            Activity.objects.create(
-                company=company,
-                activity_type=activity_type,
-                description=description,
-                performed_by=request.user,
-                data=activity_data  # Save the detailed activity data
-            )
-            
-            messages.success(request, f"{activity_type.title()} activity logged successfully!")
-            
-        except Exception as e:
-            messages.error(request, f"Error logging activity: {str(e)}")
+        form = EmailActivityForm(request.POST)
+        todo_form = ToDoTaskForm(request.POST)
         
-    return redirect('crm:company_detail', pk=company_id)
+        if form.is_valid() and todo_form.is_valid():
+            email = form.save(commit=False)
+            email.company = company
+            email.creator = request.user
+            
+            # Handle contacts and users
+            contacts = form.cleaned_data.get('contacts', [])
+            users = form.cleaned_data.get('users', [])
+            
+            # Save the email
+            email.save()
+            
+            # Add contacts and users
+            email.contacts.set(contacts)
+            email.users.set(users)
+            
+            # Handle to-do task if provided
+            if todo_form.cleaned_data.get('to_do_task_date'):
+                email.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
+                email.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
+                email.save()
+            
+            messages.success(request, 'Email activity logged successfully.')
+            return redirect('crm:company_detail', pk=company_id)
+    else:
+        form = EmailActivityForm()
+        todo_form = ToDoTaskForm()
+    
+    context = {
+        'form': form,
+        'todo_form': todo_form,
+        'company': company,
+        'title': 'Log Email Activity'
+    }
+    return render(request, 'crm/activity_form.html', context)
 
 @login_required
-def log_contact_activity(request, contact_id, activity_type):
-    contact = get_object_or_404(Contact, id=contact_id)
-    company = contact.company
+def log_call(request, company_id):
+    """Log a call activity for a company."""
+    company = get_object_or_404(Company, id=company_id)
     
     if request.method == 'POST':
-        try:
-            # Common data for all activity types
-            description = ""
-            activity_data = {}  # Store detailed content in this dict
-            
-            # Process based on activity type
-            if activity_type == 'email':
-                subject = request.POST.get('subject')
-                content = request.POST.get('content')
-                
-                # Store full content
-                activity_data['subject'] = subject
-                activity_data['content'] = content
-                activity_data['contact_id'] = contact_id
-                
-                # Format description
-                description = f"Email to {contact.first_name} {contact.last_name}: {subject}"
-                activity_icon = 'fa-envelope'
-                
-            elif activity_type == 'call':
-                duration = request.POST.get('duration')
-                call_type = request.POST.get('call_type', 'outgoing')
-                summary = request.POST.get('summary')
-                
-                # Store full content
-                activity_data['duration'] = duration
-                activity_data['call_type'] = call_type
-                activity_data['summary'] = summary
-                activity_data['contact_id'] = contact_id
-                
-                # Format description
-                duration_text = f" ({duration} mins)" if duration else ""
-                description = f"{call_type.title()} call with {contact.first_name} {contact.last_name}{duration_text}: {summary}"
-                activity_icon = 'fa-phone'
-                
-            elif activity_type == 'note':
-                content = request.POST.get('content')
-                
-                # Store full content
-                activity_data['content'] = content
-                activity_data['contact_id'] = contact_id
-                
-                # Truncate content for the description if it's too long
-                if len(content) > 100:
-                    short_content = content[:97] + "..."
-                else:
-                    short_content = content
-                
-                description = f"Note about {contact.first_name} {contact.last_name}: {short_content}"
-                activity_icon = 'fa-sticky-note'
-                
-            elif activity_type == 'meeting':
-                title = request.POST.get('title')
-                date = request.POST.get('date')
-                start_time = request.POST.get('start_time')
-                end_time = request.POST.get('end_time')
-                location = request.POST.get('location', '')
-                notes = request.POST.get('notes')
-                attendees = request.POST.getlist('attendees')
-                
-                # Store full content
-                activity_data['title'] = title
-                activity_data['date'] = date
-                activity_data['start_time'] = start_time
-                activity_data['end_time'] = end_time
-                activity_data['location'] = location
-                activity_data['notes'] = notes
-                activity_data['attendees'] = attendees
-                
-                # Format location text
-                location_text = f" at {location}" if location else ""
-                
-                # Format attendee names
-                attendee_names = []
-                if attendees:
-                    for attendee_id in attendees:
-                        try:
-                            contact = Contact.objects.get(id=attendee_id)
-                            attendee_names.append(f"{contact.first_name} {contact.last_name}")
-                        except Contact.DoesNotExist:
-                            pass
-                
-                attendee_text = ""
-                if attendee_names:
-                    attendee_text = f" with {', '.join(attendee_names)}"
-                
-                # Format description
-                description = f"Meeting: {title}{location_text}{attendee_text} on {date} ({start_time}-{end_time})"
-                activity_icon = 'fa-users'
-                
-            elif activity_type == 'exception':
-                exception_type = request.POST.get('exception_type')
-                value_amount = request.POST.get('value_amount')
-                approved_by = request.POST.get('approved_by')
-                description_text = request.POST.get('description')
-                
-                # Store full content
-                activity_data['exception_type'] = exception_type
-                activity_data['value_amount'] = value_amount
-                activity_data['approved_by'] = approved_by
-                activity_data['description'] = description_text
-                activity_data['contact_id'] = contact_id
-                
-                # Format exception type for display
-                exception_display = exception_type.replace('_', ' ').title()
-                
-                # Format value if provided
-                value_text = f" (£{value_amount})" if value_amount else ""
-                
-                # Format approval info
-                approval_text = ""
-                if approved_by and approved_by != 'none':
-                    approval_text = f", approved by {approved_by.replace('_', ' ').title()}"
-                
-                # Format description
-                description = f"{exception_display}{value_text} for {contact.first_name} {contact.last_name}{approval_text}: {description_text}"
-                activity_icon = 'fa-star'
-            
-            # Create activity record
-            Activity.objects.create(
-                company=company,
-                contact=contact,
-                activity_type=activity_type,
-                description=description,
-                performed_by=request.user,
-                data=activity_data  # Save the detailed activity data
-            )
-            
-            messages.success(request, f"{activity_type.title()} activity logged successfully!")
-            
-        except Exception as e:
-            messages.error(request, f"Error logging activity: {str(e)}")
+        form = CallActivityForm(request.POST)
+        todo_form = ToDoTaskForm(request.POST)
         
-    return redirect('crm:contact_detail', pk=contact_id)
+        if form.is_valid() and todo_form.is_valid():
+            call = form.save(commit=False)
+            call.company = company
+            call.creator = request.user
+            
+            # Handle contacts and users
+            contacts = form.cleaned_data.get('contacts', [])
+            users = form.cleaned_data.get('users', [])
+            
+            # Save the call
+            call.save()
+            
+            # Add contacts and users
+            call.contacts.set(contacts)
+            call.users.set(users)
+            
+            # Handle to-do task if provided
+            if todo_form.cleaned_data.get('to_do_task_date'):
+                call.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
+                call.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
+                call.save()
+            
+            messages.success(request, 'Call activity logged successfully.')
+            return redirect('crm:company_detail', pk=company_id)
+    else:
+        form = CallActivityForm()
+        todo_form = ToDoTaskForm()
+    
+    context = {
+        'form': form,
+        'todo_form': todo_form,
+        'company': company,
+        'title': 'Log Call Activity'
+    }
+    return render(request, 'crm/activity_form.html', context)
+
+@login_required
+def log_meeting(request, company_id):
+    """Log a meeting activity for a company."""
+    company = get_object_or_404(Company, id=company_id)
+    
+    if request.method == 'POST':
+        form = MeetingActivityForm(request.POST)
+        todo_form = ToDoTaskForm(request.POST)
+        
+        if form.is_valid() and todo_form.is_valid():
+            meeting = form.save(commit=False)
+            meeting.company = company
+            meeting.creator = request.user
+            
+            # Handle contacts and users
+            contacts = form.cleaned_data.get('contacts', [])
+            users = form.cleaned_data.get('users', [])
+            
+            # Save the meeting
+            meeting.save()
+            
+            # Add contacts and users
+            meeting.contacts.set(contacts)
+            meeting.users.set(users)
+            
+            # Handle to-do task if provided
+            if todo_form.cleaned_data.get('to_do_task_date'):
+                meeting.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
+                meeting.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
+                meeting.save()
+            
+            messages.success(request, 'Meeting activity logged successfully.')
+            return redirect('crm:company_detail', pk=company_id)
+    else:
+        form = MeetingActivityForm()
+        todo_form = ToDoTaskForm()
+    
+    context = {
+        'form': form,
+        'todo_form': todo_form,
+        'company': company,
+        'title': 'Log Meeting Activity'
+    }
+    return render(request, 'crm/activity_form.html', context)
+
+@login_required
+def log_note(request, company_id):
+    """Log a note activity for a company."""
+    company = get_object_or_404(Company, id=company_id)
+    
+    if request.method == 'POST':
+        form = NoteActivityForm(request.POST)
+        todo_form = ToDoTaskForm(request.POST)
+        
+        if form.is_valid() and todo_form.is_valid():
+            note = form.save(commit=False)
+            note.company = company
+            note.creator = request.user
+            
+            # Handle contacts and users
+            contacts = form.cleaned_data.get('contacts', [])
+            users = form.cleaned_data.get('users', [])
+            
+            # Save the note
+            note.save()
+            
+            # Add contacts and users
+            note.contacts.set(contacts)
+            note.users.set(users)
+            
+            # Handle to-do task if provided
+            if todo_form.cleaned_data.get('to_do_task_date'):
+                note.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
+                note.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
+                note.save()
+            
+            messages.success(request, 'Note activity logged successfully.')
+            return redirect('crm:company_detail', pk=company_id)
+    else:
+        form = NoteActivityForm()
+        todo_form = ToDoTaskForm()
+    
+    context = {
+        'form': form,
+        'todo_form': todo_form,
+        'company': company,
+        'title': 'Log Note Activity'
+    }
+    return render(request, 'crm/activity_form.html', context)
+
+@login_required
+def log_waiver_favor(request, company_id):
+    """Log a waiver/favor activity for a company."""
+    company = get_object_or_404(Company, id=company_id)
+    
+    if request.method == 'POST':
+        form = WaiverFavorActivityForm(request.POST)
+        todo_form = ToDoTaskForm(request.POST)
+        
+        if form.is_valid() and todo_form.is_valid():
+            waiver = form.save(commit=False)
+            waiver.company = company
+            waiver.creator = request.user
+            
+            # Handle contacts and users
+            contacts = form.cleaned_data.get('contacts', [])
+            users = form.cleaned_data.get('users', [])
+            
+            # Save the waiver
+            waiver.save()
+            
+            # Add contacts and users
+            waiver.contacts.set(contacts)
+            waiver.users.set(users)
+            
+            # Handle to-do task if provided
+            if todo_form.cleaned_data.get('to_do_task_date'):
+                waiver.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
+                waiver.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
+                waiver.save()
+            
+            messages.success(request, 'Waiver/Favor activity logged successfully.')
+            return redirect('crm:company_detail', pk=company_id)
+    else:
+        form = WaiverFavorActivityForm()
+        todo_form = ToDoTaskForm()
+    
+    context = {
+        'form': form,
+        'todo_form': todo_form,
+        'company': company,
+        'title': 'Log Waiver/Favor Activity'
+    }
+    return render(request, 'crm/activity_form.html', context)
 
 @login_required
 def get_activity_details(request, activity_id):
     """API endpoint to get activity details as JSON"""
     try:
-        activity = get_object_or_404(Activity, id=activity_id)
-        
-        # Handle case where activity.data is None
-        activity_data = {}
-        
-        if activity.data is not None:
-            activity_data = activity.data.copy()  # Make a copy to avoid modifying the original
-            
-            # Convert contact IDs to contact names if present
-            if 'contact_id' in activity_data and activity_data['contact_id']:
+        # Try to find the activity in each model
+        try:
+            activity = Email.objects.get(id=activity_id)
+            activity_type = 'email'
+        except Email.DoesNotExist:
+            try:
+                activity = Call.objects.get(id=activity_id)
+                activity_type = 'call'
+            except Call.DoesNotExist:
                 try:
-                    contact = Contact.objects.get(id=activity_data['contact_id'])
-                    activity_data['contact_name'] = f"{contact.first_name} {contact.last_name}"
-                except Contact.DoesNotExist:
-                    activity_data['contact_name'] = "Unknown Contact"
-            
-            # Convert recipient IDs to names if present
-            if 'recipients' in activity_data and isinstance(activity_data['recipients'], list):
-                recipient_names = []
-                for recipient_id in activity_data['recipients']:
+                    activity = Meeting.objects.get(id=activity_id)
+                    activity_type = 'meeting'
+                except Meeting.DoesNotExist:
                     try:
-                        contact = Contact.objects.get(id=recipient_id)
-                        recipient_names.append(f"{contact.first_name} {contact.last_name}")
-                    except (Contact.DoesNotExist, ValueError):
-                        recipient_names.append("Unknown Contact")
-                activity_data['recipient_names'] = recipient_names
-        else:
-            # Create a default data structure based on activity type
-            if activity.activity_type == 'email':
-                activity_data = {
-                    'subject': 'No subject available',
-                    'content': 'No content available',
-                    'recipients': [],
-                    'recipient_names': []
-                }
-            elif activity.activity_type == 'call':
-                activity_data = {
-                    'contact_id': None,
-                    'contact_name': 'No contact specified',
-                    'duration': None,
-                    'summary': 'No call summary available'
-                }
-            elif activity.activity_type == 'note':
-                activity_data = {
-                    'content': 'No note content available'
-                }
-            elif activity.activity_type == 'meeting':
-                activity_data = {
-                    'title': 'No title available',
-                    'date': None,
-                    'start_time': None,
-                    'end_time': None,
-                    'location': None,
-                    'notes': 'No meeting notes available',
-                    'attendees': [],
-                    'attendee_names': []
-                }
-            elif activity.activity_type == 'exception':
-                activity_data = {
-                    'exception_type': None,
-                    'value_amount': None,
-                    'approved_by': None,
-                    'description': 'No description available',
-                    'contact_id': None,
-                    'contact_name': 'No contact specified'
-                }
-        
-        # Create a response with activity data
-        data = {
+                        activity = Note.objects.get(id=activity_id)
+                        activity_type = 'note'
+                    except Note.DoesNotExist:
+                        try:
+                            activity = WaiverFavor.objects.get(id=activity_id)
+                            activity_type = 'waiver_favor'
+                        except WaiverFavor.DoesNotExist:
+                            return JsonResponse({
+                                'status': 'error',
+                                'message': 'Activity not found'
+                            }, status=404)
+
+        # Prepare the response data
+        response_data = {
             'id': activity.id,
-            'type': activity.activity_type,
-            'description': activity.description,
-            'performed_at': activity.performed_at.strftime('%d %b %Y, %H:%M'),
-            'performed_by': activity.performed_by.get_full_name() if activity.performed_by else 'Unknown',
-            'data': activity_data
+            'type': activity_type,
+            'subject': activity.subject,
+            'created_at': activity.created_at,
+            'created_by': {
+                'id': activity.creator.id,
+                'name': activity.creator.get_full_name()
+            },
+            'company': {
+                'id': activity.company.id,
+                'name': activity.company.company_name
+            }
         }
-        
-        return JsonResponse(data)
+
+        # Add type-specific data
+        if activity_type == 'email':
+            response_data.update({
+                'outcome': activity.outcome,
+                'date': activity.date,
+                'time': activity.time,
+                'details': activity.details,
+                'recipients': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
+                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
+            })
+        elif activity_type == 'call':
+            response_data.update({
+                'outcome': activity.outcome,
+                'date': activity.date,
+                'time': activity.time,
+                'duration': activity.duration,
+                'details': activity.details,
+                'contacts': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
+                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
+            })
+        elif activity_type == 'meeting':
+            response_data.update({
+                'outcome': activity.outcome,
+                'location': activity.location,
+                'date': activity.date,
+                'time': activity.time,
+                'duration': activity.duration,
+                'details': activity.details,
+                'attendees': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
+                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
+            })
+        elif activity_type == 'note':
+            response_data.update({
+                'content': activity.content,
+                'contacts': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
+                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
+            })
+        elif activity_type == 'waiver_favor':
+            response_data.update({
+                'waiver_type': activity.waiver_type,
+                'value_amount': str(activity.value_amount),
+                'approved_by': activity.approved_by,
+                'details': activity.details,
+                'contacts': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
+                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
+            })
+
+        # Add to-do task data if present
+        if activity.to_do_task_date and activity.to_do_task_message:
+            response_data.update({
+                'to_do_task_date': activity.to_do_task_date,
+                'to_do_task_message': activity.to_do_task_message
+            })
+
+        return JsonResponse(response_data)
+
     except Exception as e:
         return JsonResponse({
-            'error': str(e)
+            'status': 'error',
+            'message': str(e)
         }, status=500)
 
 @login_required
 def edit_activity(request, activity_id):
-    """Edit an existing activity"""
-    activity = get_object_or_404(Activity, id=activity_id)
+    """Edit an existing activity."""
+    # Try to get the activity from each model
+    email = Email.objects.filter(id=activity_id).first()
+    call = Call.objects.filter(id=activity_id).first()
+    meeting = Meeting.objects.filter(id=activity_id).first()
+    note = Note.objects.filter(id=activity_id).first()
+    waiver = WaiverFavor.objects.filter(id=activity_id).first()
     
-    # Check if the user has permission to edit this activity
-    # Typically users can only edit their own activities or if they're admin
-    if not request.user.is_staff and activity.performed_by != request.user:
-        messages.error(request, "You don't have permission to edit this activity.")
-        if activity.company:
-            return redirect('crm:company_detail', pk=activity.company.id)
-        else:
-            return redirect('crm:contact_detail', pk=activity.contact.id)
+    # Determine which activity type we're dealing with
+    if email:
+        activity = email
+        form_class = EmailActivityForm
+    elif call:
+        activity = call
+        form_class = CallActivityForm
+    elif meeting:
+        activity = meeting
+        form_class = MeetingActivityForm
+    elif note:
+        activity = note
+        form_class = NoteActivityForm
+    elif waiver:
+        activity = waiver
+        form_class = WaiverFavorActivityForm
+    else:
+        raise Http404("Activity not found")
     
     if request.method == 'POST':
-        # Different handling based on activity type
-        activity_type = activity.activity_type
+        form = form_class(request.POST, instance=activity)
+        todo_form = ToDoTaskForm(request.POST)
         
-        if activity_type == 'note':
-            # For notes, update the basic description
-            activity.description = request.POST.get('description', '')
-            if activity.data:
-                activity.data['content'] = request.POST.get('content', '')
-            else:
-                activity.data = {'content': request.POST.get('content', '')}
-                
-        elif activity_type == 'call':
-            # For calls, update description and call details
-            activity.description = request.POST.get('description', '')
-            contact_id = request.POST.get('contact_id')
+        if form.is_valid() and todo_form.is_valid():
+            activity = form.save(commit=False)
             
-            # Update the data field
-            if activity.data:
-                activity.data['summary'] = request.POST.get('summary', '')
-                activity.data['duration'] = request.POST.get('duration', '')
-                activity.data['contact_id'] = contact_id
-            else:
-                activity.data = {
-                    'summary': request.POST.get('summary', ''),
-                    'duration': request.POST.get('duration', ''),
-                    'contact_id': contact_id
-                }
-                
-        elif activity_type == 'email':
-            # For emails, update subject, content, and recipients
-            subject = request.POST.get('subject', '')
-            content = request.POST.get('content', '')
-            recipients = request.POST.getlist('recipients', [])
-            activity.description = f"Email: {subject}"
+            # Handle contacts and users
+            contacts = form.cleaned_data.get('contacts', [])
+            users = form.cleaned_data.get('users', [])
             
-            if activity.data:
-                activity.data['subject'] = subject
-                activity.data['content'] = content
-                activity.data['recipients'] = recipients
-            else:
-                activity.data = {
-                    'subject': subject,
-                    'content': content,
-                    'recipients': recipients
-                }
-                
-        elif activity_type == 'meeting':
-            # For meetings, update meeting details
-            title = request.POST.get('title', '')
-            date = request.POST.get('date', '')
-            start_time = request.POST.get('start_time', '')
-            end_time = request.POST.get('end_time', '')
-            location = request.POST.get('location', '')
-            notes = request.POST.get('notes', '')
-            attendees = request.POST.getlist('attendees', [])
+            # Save the activity
+            activity.save()
             
-            activity.description = f"Meeting: {title}"
+            # Update contacts and users
+            activity.contacts.set(contacts)
+            activity.users.set(users)
             
-            if activity.data:
-                activity.data.update({
-                    'title': title,
-                    'date': date,
-                    'start_time': start_time,
-                    'end_time': end_time,
-                    'location': location,
-                    'notes': notes,
-                    'attendees': attendees
-                })
-            else:
-                activity.data = {
-                    'title': title,
-                    'date': date,
-                    'start_time': start_time,
-                    'end_time': end_time,
-                    'location': location,
-                    'notes': notes,
-                    'attendees': attendees
-                }
-                
-        elif activity_type == 'exception':
-            # For exceptions, update waiver/favor details
-            exception_type = request.POST.get('exception_type', '')
-            description = request.POST.get('description', '')
-            value_amount = request.POST.get('value_amount', '')
-            approved_by = request.POST.get('approved_by', '')
-            contact_id = request.POST.get('contact_id', '')
+            # Handle to-do task if provided
+            if todo_form.cleaned_data.get('to_do_task_date'):
+                activity.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
+                activity.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
+                activity.save()
             
-            activity.description = f"Waiver/Favor: {exception_type}"
-            
-            if activity.data:
-                activity.data.update({
-                    'exception_type': exception_type,
-                    'description': description,
-                    'value_amount': value_amount,
-                    'approved_by': approved_by,
-                    'contact_id': contact_id
-                })
-            else:
-                activity.data = {
-                    'exception_type': exception_type,
-                    'description': description,
-                    'value_amount': value_amount,
-                    'approved_by': approved_by,
-                    'contact_id': contact_id
-                }
-        
-        # Save the updated activity
-        activity.save()
-        
-        messages.success(request, "Activity updated successfully.")
-        
-        # Return JSON response for AJAX requests
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({'status': 'success', 'message': 'Activity updated successfully'})
-            
-        # Otherwise redirect to the appropriate detail page
-        if activity.company:
+            messages.success(request, 'Activity updated successfully.')
             return redirect('crm:company_detail', pk=activity.company.id)
-        else:
-            return redirect('crm:contact_detail', pk=activity.contact.id)
+    else:
+        form = form_class(instance=activity)
+        todo_form = ToDoTaskForm(initial={
+            'to_do_task_date': activity.to_do_task_date,
+            'to_do_task_message': activity.to_do_task_message
+        })
     
-    # If GET request, prepare context for form rendering
     context = {
-        'activity': activity,
-        'activity_data': activity.data or {},
+        'form': form,
+        'todo_form': todo_form,
+        'company': activity.company,
+        'title': f'Edit {activity.__class__.__name__} Activity'
     }
-    
-    # Add contacts for dropdown selection if needed
-    if activity.company:
-        context['contacts'] = activity.company.contacts.all()
-    
-    return render(request, 'crm/edit_activity.html', context)
+    return render(request, 'crm/activity_form.html', context)
 
 @login_required
 def delete_activity(request, activity_id):
-    """Delete an activity"""
-    activity = get_object_or_404(Activity, id=activity_id)
+    """Delete an activity."""
+    # Try to get the activity from each model
+    email = Email.objects.filter(id=activity_id).first()
+    call = Call.objects.filter(id=activity_id).first()
+    meeting = Meeting.objects.filter(id=activity_id).first()
+    note = Note.objects.filter(id=activity_id).first()
+    waiver = WaiverFavor.objects.filter(id=activity_id).first()
     
-    # Check if the user has permission to delete this activity
-    # Typically users can only delete their own activities or if they're admin
-    if not request.user.is_staff and activity.performed_by != request.user:
-        messages.error(request, "You don't have permission to delete this activity.")
-        if activity.company:
-            return redirect('crm:company_detail', pk=activity.company.id)
-        else:
-            return redirect('crm:contact_detail', pk=activity.contact.id)
+    # Determine which activity type we're dealing with
+    if email:
+        activity = email
+    elif call:
+        activity = call
+    elif meeting:
+        activity = meeting
+    elif note:
+        activity = note
+    elif waiver:
+        activity = waiver
+    else:
+        raise Http404("Activity not found")
     
-    # Store the parent object reference before deleting
-    company = activity.company
-    contact = activity.contact
-    
-    if request.method == 'POST':
-        activity.delete()
-        messages.success(request, "Activity deleted successfully.")
-        
-        # Return JSON response for AJAX requests
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({'status': 'success', 'message': 'Activity deleted successfully'})
-        
-        # Redirect to appropriate detail page
-        if company:
-            return redirect('crm:company_detail', pk=company.id)
-        else:
-            return redirect('crm:contact_detail', pk=contact.id)
-    
-    # If GET request, confirm deletion
-    context = {
-        'activity': activity,
-    }
-    
-    return render(request, 'crm/confirm_delete_activity.html', context)
+    company_id = activity.company.id
+    activity.delete()
+    messages.success(request, 'Activity deleted successfully.')
+    return redirect('crm:company_detail', pk=company_id)
 

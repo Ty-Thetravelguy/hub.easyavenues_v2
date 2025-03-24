@@ -30,8 +30,11 @@ urlpatterns = [
     path('travel-policy/<int:policy_id>/delete/', views.travel_policy_delete, name='travel_policy_delete'),
     
     # Activity Logging
-    path('companies/<int:company_id>/log-activity/<str:activity_type>/', views.log_activity, name='log_activity'),
-    path('contacts/<int:contact_id>/log-activity/<str:activity_type>/', views.log_contact_activity, name='log_contact_activity'),
+    path('company/<int:company_id>/log/email/', views.log_email, name='log_email'),
+    path('company/<int:company_id>/log/call/', views.log_call, name='log_call'),
+    path('company/<int:company_id>/log/meeting/', views.log_meeting, name='log_meeting'),
+    path('company/<int:company_id>/log/note/', views.log_note, name='log_note'),
+    path('company/<int:company_id>/log/waiver-favor/', views.log_waiver_favor, name='log_waiver_favor'),
     path('activity/<int:activity_id>/details/', views.get_activity_details, name='activity_details'),
     path('activity/<int:activity_id>/edit/', views.edit_activity, name='edit_activity'),
     path('activity/<int:activity_id>/delete/', views.delete_activity, name='delete_activity'),

@@ -264,34 +264,22 @@ $(document).ready(function() {
                 "searchPlaceholder": "Search policies..."
             }
         });
-        console.log('✅ Company travel policies table initialized');
+        console.log('✅ Travel policies table initialized');
     }
-    
-    // Function to update sort icons based on current sort state
-    function updateSortIcons(table) {
-        try {
-            var dataTable = table.DataTable();
-            var order = dataTable.order()[0];
-            var columnIndex = order[0];
-            var direction = order[1];
-            
-            // Reset all sort icons to default
-            table.find('th .sort-icon').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
-            table.find('th .sort-icon').css('color', '#aaa'); // Reset color to gray
-            
-            // Get the header cell being sorted
-            var sortedHeader = table.find('th').eq(columnIndex);
-            
-            // Update the sort icon and its color
-            if (direction === 'asc') {
-                sortedHeader.find('.sort-icon').removeClass('fa-sort').addClass('fa-sort-up');
-                sortedHeader.find('.sort-icon').css('color', '#000'); // Set to black when active
+});
+
+// Helper function to update sort icons
+function updateSortIcons(table) {
+    table.find('thead th').each(function(index) {
+        if (index < 6) {
+            const icon = $(this).find('.sort-icon');
+            if ($(this).hasClass('sorting_asc')) {
+                icon.removeClass('fa-sort fa-sort-down').addClass('fa-sort-up');
+            } else if ($(this).hasClass('sorting_desc')) {
+                icon.removeClass('fa-sort fa-sort-up').addClass('fa-sort-down');
             } else {
-                sortedHeader.find('.sort-icon').removeClass('fa-sort').addClass('fa-sort-down');
-                sortedHeader.find('.sort-icon').css('color', '#000'); // Set to black when active
+                icon.removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
             }
-        } catch (e) {
-            console.error('❌ Error updating sort icons:', e);
         }
-    }
-}); 
+    });
+} 

@@ -1,0 +1,35 @@
+{% if calls %}
+<div class="mb-4">
+    <h6 class="text-muted mb-3">Calls</h6>
+    {% for call in calls %}
+    <div class="activity-item mb-3">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h6 class="mb-1">{{ call.subject }}</h6>
+                <p class="mb-1 text-muted small">
+                    Duration: {{ call.duration }} minutes<br>
+                    {{ call.details|truncatewords:30 }}
+                </p>
+                <div class="d-flex align-items-center text-muted small">
+                    <span class="me-3">By {{ call.creator.get_full_name }}</span>
+                    <span class="me-3">{{ call.created_at|date:"M d, Y" }}</span>
+                    <span class="me-3">Status: {{ call.outcome }}</span>
+                    {% if call.to_do_task_date %}
+                    <span class="badge bg-warning">To-do: {{ call.to_do_task_date|date:"M d, Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-link btn-sm text-muted" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'crm:edit_activity' call.id %}">Edit</a></li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'crm:delete_activity' call.id %}">Delete</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %} 

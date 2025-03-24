@@ -1873,7 +1873,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Create the form HTML based on activity type
     let formHtml = `
-      <form id="log-activity-form" method="post" action="/crm/companies/{{ company.id }}/log-activity/${activityType}/">
+      <form id="log-activity-form" method="post" action="/crm/companies/{{ company.id }}/log-activity/${activityType === 'exception' ? 'waiver_favor' : activityType}/">
         {% csrf_token %}
     `;
     

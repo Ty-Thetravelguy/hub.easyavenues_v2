@@ -1,0 +1,30 @@
+<!-- Activities Section -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Activities</h5>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logEmailModal">
+                Log Email
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logCallModal">
+                Log Call
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logMeetingModal">
+                Log Meeting
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logNoteModal">
+                Log Note
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logWaiverModal">
+                Log Waiver/Favor
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        {% include 'crm/activities/email_list.html' %}
+        {% include 'crm/activities/call_list.html' %}
+        {% include 'crm/activities/meeting_list.html' %}
+        {% include 'crm/activities/note_list.html' %}
+        {% include 'crm/activities/waiver_list.html' %}
+    </div>
+</div> 
