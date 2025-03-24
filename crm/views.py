@@ -81,6 +81,9 @@ def company_detail(request, pk):
     notes = company.notes.all().order_by('-created_at')
     waivers = company.waivers_favors.all().order_by('-created_at')
     
+    # Get system activities
+    system_activities = Activity.objects.filter(company=company).order_by('-performed_at')
+    
     # Get company documents
     documents = company.documents.all().order_by('-uploaded_at')
     
@@ -118,6 +121,7 @@ def company_detail(request, pk):
         'travel_policies': travel_policies,
         'profile': profile,
         'invoice_references': invoice_references,
+        'system_activities': system_activities,  # Add system activities to context
     }
     
     return render(request, 'crm/company_detail.html', context)

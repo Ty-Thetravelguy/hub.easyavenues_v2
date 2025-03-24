@@ -1067,99 +1067,128 @@
     {% endif %}
 
     <!-- Activities Tab -->
-    <div class="tab-pane fade" id="activities" role="tabpanel" aria-labelledby="activities-tab">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Activity History</h5>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#logActivityModal">
-                    <i class="fas fa-plus me-2"></i>Add Activity
-                </button>
-            </div>
-            <div class="card-body">
-                <div class="activity-list">
-                    {% if activities %}
-                        <ul class="list-group list-group-flush">
-                            {% for activity in activities %}
-                                <li class="list-group-item py-3 mb-2">
-                                    {% if activity.activity_type in 'email,call,note,meeting,exception' %}
-                                    <!-- User-added activities with card design -->
-                                    <div class="d-flex">
-                                        <div class="activity-icon me-3">
-                                            <span class="activity-icon-wrapper rounded-circle p-2 
-                                            {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'meeting' %}bg-purple{% elif activity.activity_type == 'exception' %}bg-tertiary-ea{% else %}bg-accent-ea{% endif %} bg-opacity-25">
-                                                <i class="fas 
-                                                {% if activity.activity_type == 'email' %}fa-envelope text-primary-ea
-                                                {% elif activity.activity_type == 'call' %}fa-phone-alt text-secondary-ea
-                                                {% elif activity.activity_type == 'meeting' %}fa-users color-purple
-                                                {% elif activity.activity_type == 'exception' %}fa-exclamation-triangle text-tertiary-ea
-                                                {% else %}fa-sticky-note text-accent-ea
-                                                {% endif %} fa-fw"></i>
-                                            </span>
-                                        </div>
-                                        <div class="activity-content flex-grow-1">
-                                            <div class="card shadow-sm mb-0 
-                                                {% if activity.activity_type == 'email' %}border-top-primary-ea{% elif activity.activity_type == 'call' %}border-top-secondary-ea{% elif activity.activity_type == 'meeting' %}border-top-purple{% elif activity.activity_type == 'exception' %}border-top-tertiary-ea{% else %}border-top-accent-ea{% endif %}">
-                                                <div class="card-body py-3">
-                                                    <p class="mb-1">{{ activity.description }}</p>
-                                                    <small class="text-muted">
-                                                        <i class="far fa-clock me-1"></i>{{ activity.performed_at|date:"d M Y, H:i" }} 
-                                                        <i class="far fa-user me-1 ms-2"></i>{{ activity.performed_by.get_full_name }}
-                                                    </small>
-                                                    
-                                                    <div class="mt-2 text-end">
-                                                        {% if activity.data %}
-                                                        {{ activity.data|json_script:"activity-data-"|add:activity.id|safe }}
-                                                        {% endif %}
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                                                data-bs-toggle="modal" 
-                                                                data-bs-target="#activity-details-modal" 
-                                                                data-activity-type="{{ activity.activity_type }}" 
-                                                                data-activity-description="{{ activity.description }}"
-                                                                data-activity-id="{{ activity.id }}"
-                                                                data-activity-performed-at="{{ activity.performed_at|date:'d M Y, H:i' }}"
-                                                                data-activity-performed-by="{{ activity.performed_by.get_full_name }}">
-                                                            <i class="fas fa-eye"></i> View
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% else %}
-                                    <!-- System updates with simple design -->
-                                    <div class="d-flex">
-                                        <div class="activity-icon me-3">
-                                            <i class="fas 
-                                            {% if activity.activity_type == 'status_change' %}fa-exchange-alt text-info
-                                            {% elif activity.activity_type == 'document' %}fa-file-alt text-secondary
-                                            {% elif activity.activity_type == 'policy_update' %}fa-clipboard-list text-info
-                                            {% else %}fa-history text-secondary
-                                            {% endif %} fa-fw"></i>
-                                        </div>
-                                        <div class="activity-content flex-grow-1">
-                                            <p class="mb-1">{{ activity.description }}</p>
-                                            <small class="text-muted">
-                                                <i class="far fa-clock me-1"></i>{{ activity.performed_at|date:"d M Y, H:i" }} 
-                                                <i class="far fa-user me-1 ms-2"></i>{{ activity.performed_by.get_full_name }}
-                                            </small>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                            <p class="lead text-muted">No activities recorded for this company yet.</p>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logActivityModal">
-                                <i class="fas fa-plus me-2"></i>Log First Activity
-                            </button>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+    <div class="tab-pane fade" id="activities" role="tabpanel">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Activity History</h5>
+          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#logActivityModal">
+            <i class="fas fa-plus me-2"></i>Log Activity
+          </button>
         </div>
+        <div class="card-body">
+          <div class="timeline">
+            {% if not emails and not calls and not meetings and not notes and not waivers and not system_activities %}
+              <div class="text-center py-4">
+                <p class="text-muted mb-0">
+                  <i class="fas fa-history me-2"></i>No activities recorded yet.
+                </p>
+              </div>
+            {% else %}
+              {% for activity in system_activities %}
+                <div class="timeline-item border-secondary">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1">System Update</h6>
+                      <p class="mb-0">{{ activity.description }}</p>
+                    </div>
+                    <small class="text-muted">
+                      {{ activity.performed_at|date:"d M Y H:i" }}
+                      {% if activity.performed_by %}
+                        by {{ activity.performed_by.get_full_name }}
+                      {% endif %}
+                    </small>
+                  </div>
+                </div>
+              {% endfor %}
+
+              {% for email in emails %}
+                <div class="timeline-item border-primary">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1">Email</h6>
+                      <p class="mb-0">{{ email.subject }}</p>
+                    </div>
+                    <div class="text-end">
+                      <button class="btn btn-sm btn-link text-primary" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ email.id }}" data-activity-type="email">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <small class="text-muted d-block">{{ email.created_at|date:"d M Y H:i" }}</small>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+
+              {% for call in calls %}
+                <div class="timeline-item border-success">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1">Call</h6>
+                      <p class="mb-0">{{ call.summary|truncatechars:100 }}</p>
+                    </div>
+                    <div class="text-end">
+                      <button class="btn btn-sm btn-link text-success" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ call.id }}" data-activity-type="call">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <small class="text-muted d-block">{{ call.created_at|date:"d M Y H:i" }}</small>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+
+              {% for meeting in meetings %}
+                <div class="timeline-item border-warning">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1">Meeting</h6>
+                      <p class="mb-0">{{ meeting.title }}</p>
+                    </div>
+                    <div class="text-end">
+                      <button class="btn btn-sm btn-link text-warning" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ meeting.id }}" data-activity-type="meeting">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <small class="text-muted d-block">{{ meeting.created_at|date:"d M Y H:i" }}</small>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+
+              {% for note in notes %}
+                <div class="timeline-item border-info">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1">Note</h6>
+                      <p class="mb-0">{{ note.content|truncatechars:100 }}</p>
+                    </div>
+                    <div class="text-end">
+                      <button class="btn btn-sm btn-link text-info" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ note.id }}" data-activity-type="note">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <small class="text-muted d-block">{{ note.created_at|date:"d M Y H:i" }}</small>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+
+              {% for waiver in waivers %}
+                <div class="timeline-item border-danger">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1">Waiver/Favor</h6>
+                      <p class="mb-0">{{ waiver.description|truncatechars:100 }}</p>
+                    </div>
+                    <div class="text-end">
+                      <button class="btn btn-sm btn-link text-danger" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ waiver.id }}" data-activity-type="exception">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <small class="text-muted d-block">{{ waiver.created_at|date:"d M Y H:i" }}</small>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
