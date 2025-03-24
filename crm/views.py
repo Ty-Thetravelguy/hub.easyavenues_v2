@@ -3,7 +3,13 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote, Document, Activity, ClientTravelPolicy, Email, Call, Meeting, Note, WaiverFavor
+from .models import (
+    Company, Contact, ClientProfile, SupplierProfile, INDUSTRY_CHOICES, 
+    COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, 
+    SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, 
+    ClientInvoiceReference, CompanyRelationship, ContactNote, Document, 
+    Activity, ClientTravelPolicy
+)
 from accounts.models import InvoiceReference
 from django.urls import reverse_lazy, reverse
 from formtools.wizard.views import SessionWizardView
@@ -14,7 +20,8 @@ from .forms import (
     CompanyForm, CompanyRelationshipForm, ContactForm, ContactNoteForm, 
     DocumentUploadForm, ManageRelationshipsForm, ClientInvoiceReferenceFormSet, 
     TravelPolicyForm, EmailActivityForm, CallActivityForm, MeetingActivityForm, 
-    NoteActivityForm, WaiverFavorActivityForm, ToDoTaskForm
+    NoteActivityForm, WaiverFavorActivityForm, ToDoTaskForm, DocumentActivityForm,
+    StatusChangeActivityForm, PolicyUpdateActivityForm
 )
 from django.contrib.auth import get_user_model
 from accounts.models import Team
@@ -32,6 +39,7 @@ from django.db.models.functions import Concat
 from django.db.models import Value
 import datetime
 from django.utils import timezone
+from django.template.loader import render_to_string
 
 # Create your views here.
 
@@ -64,64 +72,44 @@ def company_list(request):
 
 @login_required
 def company_detail(request, pk):
-    """
-    View a company's complete profile, including contacts, activities, and notes.
-    """
-    company = get_object_or_404(Company, pk=pk)
+    """Display company details."""
+    company = get_object_or_404(Company, id=pk)
     
-    # Get company contacts, ordered by name
-    contacts = company.contacts.all().annotate(
-        full_name=Concat('first_name', Value(' '), 'last_name')
-    ).order_by('full_name')
+    # Get all contacts for this company
+    contacts = company.contacts.all().order_by('first_name', 'last_name')
     
-    # Get activities for this company from all activity types
-    emails = company.emails.all().order_by('-created_at')
-    calls = company.calls.all().order_by('-created_at')
-    meetings = company.meetings.all().order_by('-created_at')
-    notes = company.notes.all().order_by('-created_at')
-    waivers = company.waivers_favors.all().order_by('-created_at')
-    
-    # Get system activities
-    system_activities = Activity.objects.filter(company=company).order_by('-performed_at')
-    
-    # Get company documents
+    # Get all documents for this company
     documents = company.documents.all().order_by('-uploaded_at')
     
-    # Get transaction fees
-    transaction_fees = company.transaction_fees.all()
-    
-    # Notes - check if related manager exists or skip
-    try:
-        notes = company.notes.all().order_by('-created_at')
-    except AttributeError:
-        notes = []
-
-    # Get travel policies if this is a client company
-    travel_policies = ClientTravelPolicy.objects.filter(client=company)
-    
-    # Additional data for the template
-    invoice_references = None
-    profile = None
+    # Get travel policies if company is a client
+    travel_policies = None
     if company.company_type == 'Client':
-        # Get or create client profile
-        profile, created = ClientProfile.objects.get_or_create(company=company)
-        # Get invoice references
-        invoice_references = ClientInvoiceReference.objects.filter(client_profile=profile)
+        travel_policies = company.travel_policies.all().order_by('-last_updated')
+    
+    # Get all activities
+    activities = company.activities.all().order_by('-performed_at')
+    
+    # Initialize all activity forms
+    email_form = EmailActivityForm()
+    call_form = CallActivityForm()
+    meeting_form = MeetingActivityForm()
+    note_form = NoteActivityForm()
+    waiver_form = WaiverFavorActivityForm()
+    todo_form = ToDoTaskForm()
     
     context = {
         'company': company,
         'contacts': contacts,
-        'emails': emails,
-        'calls': calls,
-        'meetings': meetings,
-        'notes': notes,
-        'waivers': waivers,
         'documents': documents,
-        'transaction_fees': transaction_fees,
         'travel_policies': travel_policies,
-        'profile': profile,
-        'invoice_references': invoice_references,
-        'system_activities': system_activities,  # Add system activities to context
+        'activities': activities,
+        # Add forms to context
+        'email_form': email_form,
+        'call_form': call_form,
+        'meeting_form': meeting_form,
+        'note_form': note_form,
+        'waiver_form': waiver_form,
+        'todo_form': todo_form,
     }
     
     return render(request, 'crm/company_detail.html', context)
@@ -1166,40 +1154,29 @@ def contact_delete(request, pk):
     
     return render(request, 'crm/contact_confirm_delete.html', {'contact': contact})
 
-# Activity Logging Views
 @login_required
 def log_email(request, company_id):
-    """Log an email activity for a company."""
     company = get_object_or_404(Company, id=company_id)
-    
     if request.method == 'POST':
-        form = EmailActivityForm(request.POST)
+        form = EmailActivityForm(request.POST, request.FILES)
         todo_form = ToDoTaskForm(request.POST)
-        
         if form.is_valid() and todo_form.is_valid():
-            email = form.save(commit=False)
-            email.company = company
-            email.creator = request.user
+            activity = form.save(commit=False)
+            activity.company = company
+            activity.performed_by = request.user
+            activity.save()
+            form.save_m2m()  # Save many-to-many relationships
             
-            # Handle contacts and users
-            contacts = form.cleaned_data.get('contacts', [])
-            users = form.cleaned_data.get('users', [])
-            
-            # Save the email
-            email.save()
-            
-            # Add contacts and users
-            email.contacts.set(contacts)
-            email.users.set(users)
-            
-            # Handle to-do task if provided
+            # Handle follow-up task if provided
             if todo_form.cleaned_data.get('to_do_task_date'):
-                email.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
-                email.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
-                email.save()
+                activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
+                activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
+                activity.save()
             
             messages.success(request, 'Email activity logged successfully.')
             return redirect('crm:company_detail', pk=company_id)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = EmailActivityForm()
         todo_form = ToDoTaskForm()
@@ -1222,26 +1199,21 @@ def log_call(request, company_id):
         todo_form = ToDoTaskForm(request.POST)
         
         if form.is_valid() and todo_form.is_valid():
-            call = form.save(commit=False)
-            call.company = company
-            call.creator = request.user
+            activity = form.save(commit=False)
+            activity.company = company
+            activity.performed_by = request.user
+            activity.activity_type = 'call'
             
-            # Handle contacts and users
-            contacts = form.cleaned_data.get('contacts', [])
-            users = form.cleaned_data.get('users', [])
-            
-            # Save the call
-            call.save()
-            
-            # Add contacts and users
-            call.contacts.set(contacts)
-            call.users.set(users)
+            # Save the activity
+            activity.save()
             
             # Handle to-do task if provided
             if todo_form.cleaned_data.get('to_do_task_date'):
-                call.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
-                call.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
-                call.save()
+                activity.data['todo'] = {
+                    'date': todo_form.cleaned_data['to_do_task_date'].isoformat(),
+                    'message': todo_form.cleaned_data.get('to_do_task_message', '')
+                }
+                activity.save()
             
             messages.success(request, 'Call activity logged successfully.')
             return redirect('crm:company_detail', pk=company_id)
@@ -1259,37 +1231,27 @@ def log_call(request, company_id):
 
 @login_required
 def log_meeting(request, company_id):
-    """Log a meeting activity for a company."""
     company = get_object_or_404(Company, id=company_id)
-    
     if request.method == 'POST':
         form = MeetingActivityForm(request.POST)
         todo_form = ToDoTaskForm(request.POST)
-        
         if form.is_valid() and todo_form.is_valid():
-            meeting = form.save(commit=False)
-            meeting.company = company
-            meeting.creator = request.user
+            activity = form.save(commit=False)
+            activity.company = company
+            activity.performed_by = request.user
+            activity.save()
+            form.save_m2m()  # Save many-to-many relationships
             
-            # Handle contacts and users
-            contacts = form.cleaned_data.get('contacts', [])
-            users = form.cleaned_data.get('users', [])
-            
-            # Save the meeting
-            meeting.save()
-            
-            # Add contacts and users
-            meeting.contacts.set(contacts)
-            meeting.users.set(users)
-            
-            # Handle to-do task if provided
+            # Handle follow-up task if provided
             if todo_form.cleaned_data.get('to_do_task_date'):
-                meeting.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
-                meeting.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
-                meeting.save()
+                activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
+                activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
+                activity.save()
             
             messages.success(request, 'Meeting activity logged successfully.')
             return redirect('crm:company_detail', pk=company_id)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = MeetingActivityForm()
         todo_form = ToDoTaskForm()
@@ -1304,37 +1266,26 @@ def log_meeting(request, company_id):
 
 @login_required
 def log_note(request, company_id):
-    """Log a note activity for a company."""
     company = get_object_or_404(Company, id=company_id)
-    
     if request.method == 'POST':
         form = NoteActivityForm(request.POST)
         todo_form = ToDoTaskForm(request.POST)
-        
         if form.is_valid() and todo_form.is_valid():
-            note = form.save(commit=False)
-            note.company = company
-            note.creator = request.user
+            activity = form.save(commit=False)
+            activity.company = company
+            activity.performed_by = request.user
+            activity.save()
             
-            # Handle contacts and users
-            contacts = form.cleaned_data.get('contacts', [])
-            users = form.cleaned_data.get('users', [])
-            
-            # Save the note
-            note.save()
-            
-            # Add contacts and users
-            note.contacts.set(contacts)
-            note.users.set(users)
-            
-            # Handle to-do task if provided
+            # Handle follow-up task if provided
             if todo_form.cleaned_data.get('to_do_task_date'):
-                note.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
-                note.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
-                note.save()
+                activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
+                activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
+                activity.save()
             
             messages.success(request, 'Note activity logged successfully.')
             return redirect('crm:company_detail', pk=company_id)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = NoteActivityForm()
         todo_form = ToDoTaskForm()
@@ -1357,26 +1308,21 @@ def log_waiver_favor(request, company_id):
         todo_form = ToDoTaskForm(request.POST)
         
         if form.is_valid() and todo_form.is_valid():
-            waiver = form.save(commit=False)
-            waiver.company = company
-            waiver.creator = request.user
+            activity = form.save(commit=False)
+            activity.company = company
+            activity.performed_by = request.user
+            activity.activity_type = 'waiver'
             
-            # Handle contacts and users
-            contacts = form.cleaned_data.get('contacts', [])
-            users = form.cleaned_data.get('users', [])
-            
-            # Save the waiver
-            waiver.save()
-            
-            # Add contacts and users
-            waiver.contacts.set(contacts)
-            waiver.users.set(users)
+            # Save the activity
+            activity.save()
             
             # Handle to-do task if provided
             if todo_form.cleaned_data.get('to_do_task_date'):
-                waiver.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
-                waiver.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
-                waiver.save()
+                activity.data['todo'] = {
+                    'date': todo_form.cleaned_data['to_do_task_date'].isoformat(),
+                    'message': todo_form.cleaned_data.get('to_do_task_message', '')
+                }
+                activity.save()
             
             messages.success(request, 'Waiver/Favor activity logged successfully.')
             return redirect('crm:company_detail', pk=company_id)
@@ -1396,204 +1342,110 @@ def log_waiver_favor(request, company_id):
 def get_activity_details(request, activity_id):
     """API endpoint to get activity details as JSON"""
     try:
-        # Try to find the activity in each model
-        try:
-            activity = Email.objects.get(id=activity_id)
-            activity_type = 'email'
-        except Email.DoesNotExist:
-            try:
-                activity = Call.objects.get(id=activity_id)
-                activity_type = 'call'
-            except Call.DoesNotExist:
-                try:
-                    activity = Meeting.objects.get(id=activity_id)
-                    activity_type = 'meeting'
-                except Meeting.DoesNotExist:
-                    try:
-                        activity = Note.objects.get(id=activity_id)
-                        activity_type = 'note'
-                    except Note.DoesNotExist:
-                        try:
-                            activity = WaiverFavor.objects.get(id=activity_id)
-                            activity_type = 'waiver_favor'
-                        except WaiverFavor.DoesNotExist:
-                            return JsonResponse({
-                                'status': 'error',
-                                'message': 'Activity not found'
-                            }, status=404)
-
+        activity = get_object_or_404(Activity, id=activity_id)
+        
         # Prepare the response data
         response_data = {
             'id': activity.id,
-            'type': activity_type,
-            'subject': activity.subject,
-            'created_at': activity.created_at,
-            'created_by': {
-                'id': activity.creator.id,
-                'name': activity.creator.get_full_name()
+            'type': activity.activity_type,
+            'description': activity.description,
+            'performed_at': activity.performed_at.isoformat(),
+            'performed_by': {
+                'id': activity.performed_by.id if activity.performed_by else None,
+                'name': activity.performed_by.get_full_name() if activity.performed_by else 'System'
             },
             'company': {
                 'id': activity.company.id,
                 'name': activity.company.company_name
             }
         }
-
-        # Add type-specific data
-        if activity_type == 'email':
-            response_data.update({
-                'outcome': activity.outcome,
-                'date': activity.date,
-                'time': activity.time,
-                'details': activity.details,
-                'recipients': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
-                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
-            })
-        elif activity_type == 'call':
-            response_data.update({
-                'outcome': activity.outcome,
-                'date': activity.date,
-                'time': activity.time,
-                'duration': activity.duration,
-                'details': activity.details,
-                'contacts': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
-                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
-            })
-        elif activity_type == 'meeting':
-            response_data.update({
-                'outcome': activity.outcome,
-                'location': activity.location,
-                'date': activity.date,
-                'time': activity.time,
-                'duration': activity.duration,
-                'details': activity.details,
-                'attendees': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
-                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
-            })
-        elif activity_type == 'note':
-            response_data.update({
-                'content': activity.content,
-                'contacts': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
-                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
-            })
-        elif activity_type == 'waiver_favor':
-            response_data.update({
-                'waiver_type': activity.waiver_type,
-                'value_amount': str(activity.value_amount),
-                'approved_by': activity.approved_by,
-                'details': activity.details,
-                'contacts': [{'id': c.id, 'name': f"{c.first_name} {c.last_name}"} for c in activity.contacts.all()],
-                'users': [{'id': u.id, 'name': u.get_full_name()} for u in activity.users.all()]
-            })
-
-        # Add to-do task data if present
-        if activity.to_do_task_date and activity.to_do_task_message:
-            response_data.update({
-                'to_do_task_date': activity.to_do_task_date,
-                'to_do_task_message': activity.to_do_task_message
-            })
-
-        return JsonResponse(response_data)
-
-    except Exception as e:
+        
+        # Add activity-specific data from the data JSONField
+        if activity.data:
+            response_data.update(activity.data)
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': response_data
+        })
+    except Activity.DoesNotExist:
         return JsonResponse({
             'status': 'error',
-            'message': str(e)
-        }, status=500)
+            'message': 'Activity not found'
+        }, status=404)
 
 @login_required
 def edit_activity(request, activity_id):
-    """Edit an existing activity."""
-    # Try to get the activity from each model
-    email = Email.objects.filter(id=activity_id).first()
-    call = Call.objects.filter(id=activity_id).first()
-    meeting = Meeting.objects.filter(id=activity_id).first()
-    note = Note.objects.filter(id=activity_id).first()
-    waiver = WaiverFavor.objects.filter(id=activity_id).first()
+    activity = get_object_or_404(Activity, id=activity_id)
     
-    # Determine which activity type we're dealing with
-    if email:
-        activity = email
+    # Determine the appropriate form class based on activity type
+    if activity.activity_type == 'email':
         form_class = EmailActivityForm
-    elif call:
-        activity = call
+    elif activity.activity_type == 'call':
         form_class = CallActivityForm
-    elif meeting:
-        activity = meeting
+    elif activity.activity_type == 'meeting':
         form_class = MeetingActivityForm
-    elif note:
-        activity = note
+    elif activity.activity_type == 'note':
         form_class = NoteActivityForm
-    elif waiver:
-        activity = waiver
+    elif activity.activity_type == 'document':
+        form_class = DocumentActivityForm
+    elif activity.activity_type == 'status_change':
+        form_class = StatusChangeActivityForm
+    elif activity.activity_type == 'policy_update':
+        form_class = PolicyUpdateActivityForm
+    elif activity.activity_type == 'waiver':
         form_class = WaiverFavorActivityForm
     else:
-        raise Http404("Activity not found")
+        raise Http404("Invalid activity type")
     
     if request.method == 'POST':
-        form = form_class(request.POST, instance=activity)
+        form = form_class(request.POST, request.FILES, instance=activity)
         todo_form = ToDoTaskForm(request.POST)
-        
         if form.is_valid() and todo_form.is_valid():
             activity = form.save(commit=False)
-            
-            # Handle contacts and users
-            contacts = form.cleaned_data.get('contacts', [])
-            users = form.cleaned_data.get('users', [])
-            
-            # Save the activity
+            activity.performed_by = request.user
             activity.save()
+            form.save_m2m()  # Save many-to-many relationships
             
-            # Update contacts and users
-            activity.contacts.set(contacts)
-            activity.users.set(users)
-            
-            # Handle to-do task if provided
+            # Handle follow-up task if provided
             if todo_form.cleaned_data.get('to_do_task_date'):
-                activity.to_do_task_date = todo_form.cleaned_data['to_do_task_date']
-                activity.to_do_task_message = todo_form.cleaned_data.get('to_do_task_message', '')
+                activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
+                activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
                 activity.save()
             
             messages.success(request, 'Activity updated successfully.')
             return redirect('crm:company_detail', pk=activity.company.id)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
-        form = form_class(instance=activity)
-        todo_form = ToDoTaskForm(initial={
-            'to_do_task_date': activity.to_do_task_date,
-            'to_do_task_message': activity.to_do_task_message
-        })
+        # Pre-populate the form with existing data
+        initial_data = {}
+        if hasattr(activity, 'data') and activity.data:
+            initial_data.update(activity.data)
+            if 'todo' in activity.data:
+                todo_form = ToDoTaskForm(initial={
+                    'to_do_task_date': activity.data['todo']['date'],
+                    'to_do_task_message': activity.data['todo'].get('message', '')
+                })
+            else:
+                todo_form = ToDoTaskForm()
+        else:
+            todo_form = ToDoTaskForm()
+        
+        form = form_class(instance=activity, initial=initial_data)
     
     context = {
         'form': form,
         'todo_form': todo_form,
+        'activity': activity,
         'company': activity.company,
-        'title': f'Edit {activity.__class__.__name__} Activity'
+        'title': f'Edit {activity.get_activity_type_display()} Activity'
     }
     return render(request, 'crm/activity_form.html', context)
 
 @login_required
 def delete_activity(request, activity_id):
-    """Delete an activity."""
-    # Try to get the activity from each model
-    email = Email.objects.filter(id=activity_id).first()
-    call = Call.objects.filter(id=activity_id).first()
-    meeting = Meeting.objects.filter(id=activity_id).first()
-    note = Note.objects.filter(id=activity_id).first()
-    waiver = WaiverFavor.objects.filter(id=activity_id).first()
-    
-    # Determine which activity type we're dealing with
-    if email:
-        activity = email
-    elif call:
-        activity = call
-    elif meeting:
-        activity = meeting
-    elif note:
-        activity = note
-    elif waiver:
-        activity = waiver
-    else:
-        raise Http404("Activity not found")
-    
+    activity = get_object_or_404(Activity, id=activity_id)
     company_id = activity.company.id
     activity.delete()
     messages.success(request, 'Activity deleted successfully.')

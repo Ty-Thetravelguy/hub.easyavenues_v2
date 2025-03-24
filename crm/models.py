@@ -443,7 +443,7 @@ class Document(models.Model):
 
 class Activity(models.Model):
     """
-    Tracks all activities and interactions with companies and contacts.
+    Base model for all activities and interactions with companies and contacts.
     """
     ACTIVITY_TYPES = [
         ('meeting', 'Meeting'),
@@ -465,7 +465,6 @@ class Activity(models.Model):
     outcome = models.TextField(blank=True)
     follow_up_date = models.DateField(null=True, blank=True)
     follow_up_notes = models.TextField(blank=True)
-    data = models.JSONField(null=True, blank=True, help_text="Stores detailed activity data in JSON format")
 
     class Meta:
         verbose_name_plural = "Activities"
@@ -474,188 +473,127 @@ class Activity(models.Model):
     def __str__(self):
         return f"{self.activity_type} with {self.company.company_name}"
 
-class Meeting(models.Model):
+class EmailActivity(Activity):
     """
-    Represents a meeting with associated details, including the company, creator, 
-    outcome, location, date, time, duration, and any follow-up tasks.
+    Model for email activities.
     """
-    OUTCOME_CHOICES = [
-        ('Scheduled', 'Scheduled'),
-        ('Completed', 'Completed'),
-        ('Rescheduled', 'Rescheduled'),
-        ('No-show', 'No-show'),
-        ('Cancelled', 'Cancelled'),
-    ]
-
-    LOCATION_CHOICES = [
-        ('Online', 'Online'),
-        ('In-person', 'In-person'),
-    ]
-
-    DURATION_CHOICES = [(i, f"{i} minutes") for i in range(15, 481, 15) if i % 15 == 0]
-
     subject = models.CharField(max_length=255)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='meetings')
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_meetings')
-    outcome = models.CharField(max_length=20, choices=OUTCOME_CHOICES)
-    location = models.CharField(max_length=20, choices=LOCATION_CHOICES)
-    date = models.DateField()
-    time = models.TimeField()
-    duration = models.IntegerField(choices=DURATION_CHOICES)
-    details = models.TextField('Details', default='', blank=True)
-    to_do_task_date = models.DateField(null=True, blank=True)
-    to_do_task_message = models.TextField('To Do Task Message', null=True, blank=True)
-
-    contacts = models.ManyToManyField(Contact, related_name='meeting_attended')
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='meeting_users')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.subject} - {self.date}"
-
-    class Meta:
-        ordering = ['-date', '-time']
-
-
-class Call(models.Model):
-    """
-    Represents a call with associated details, including the company, creator, 
-    outcome, date, time, duration, and any follow-up tasks.
-    """
-    OUTCOME_CHOICES = [
-        ('Connected', 'Connected'),
-        ('Voicemail', 'Left Voicemail'),
-        ('No Answer', 'No Answer'),
-        ('Busy', 'Busy'),
-        ('Disconnected', 'Disconnected'),
-    ]
-    DURATION_CHOICES = [(i, f"{i} minutes") for i in range(1, 61)]
-
-    subject = models.CharField(max_length=255)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='calls')
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_calls')
-    outcome = models.CharField(max_length=20, choices=OUTCOME_CHOICES)
-    date = models.DateField()
-    time = models.TimeField()
-    duration = models.IntegerField(choices=DURATION_CHOICES)
-    details = models.TextField('Details', default='', blank=True)
-    to_do_task_date = models.DateField(null=True, blank=True)
-    to_do_task_message = models.TextField('To Do Task Message', null=True, blank=True)
-    contacts = models.ManyToManyField(Contact, related_name='calls_attended')
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='call_users')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.subject} - {self.date}"
-
-    class Meta:
-        ordering = ['-date', '-time']
-
-
-class Email(models.Model):
-    """
-    Represents an email with associated details, including the company, creator, 
-    outcome, date, time, and any follow-up tasks.
-    """
-    OUTCOME_CHOICES = [
+    body = models.TextField()
+    email_date = models.DateField()
+    email_time = models.TimeField()
+    email_outcome = models.CharField(max_length=50, choices=[
         ('Sent', 'Sent'),
         ('Received', 'Received'),
         ('Bounced', 'Bounced'),
         ('Opened', 'Opened'),
-        ('Clicked', 'Clicked'),
-    ]
+        ('Clicked', 'Clicked')
+    ])
+    attachments = models.FileField(upload_to='email_attachments/', null=True, blank=True)
+    recipients = models.ManyToManyField(Contact, related_name='received_emails')
 
-    subject = models.CharField(max_length=255)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='emails')
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_emails')
-    outcome = models.CharField(max_length=20, choices=OUTCOME_CHOICES)
-    date = models.DateField()
-    time = models.TimeField()
-    details = models.TextField('Details', default='', blank=True)
-    to_do_task_date = models.DateField(null=True, blank=True)
-    to_do_task_message = models.TextField('To Do Task Message', null=True, blank=True)
-    contacts = models.ManyToManyField(Contact, related_name='emails_attended')
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='email_users')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.subject} - {self.date}"
-    
     class Meta:
-        ordering = ['-date', '-time']
+        verbose_name = 'Email Activity'
+        verbose_name_plural = 'Email Activities'
+        ordering = ['-email_date', '-email_time']
 
+class CallActivity(Activity):
+    """
+    Model for phone call activities.
+    """
+    call_type = models.CharField(max_length=50, choices=[
+        ('Inbound', 'Inbound'),
+        ('Outbound', 'Outbound'),
+        ('Missed', 'Missed'),
+        ('Voicemail', 'Voicemail')
+    ])
+    duration = models.IntegerField(help_text='Duration in minutes')
+    summary = models.TextField()
+    call_outcome = models.CharField(max_length=255)
 
-class Note(models.Model):
+    class Meta:
+        verbose_name = 'Call Activity'
+        verbose_name_plural = 'Call Activities'
+        ordering = ['-performed_at']
+
+class MeetingActivity(Activity):
     """
-    Represents a note with associated details, including the company, creator,
-    content, and any follow-up tasks.
+    Model for meeting activities.
     """
-    subject = models.CharField(max_length=255)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='notes')
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_notes')
+    title = models.CharField(max_length=255)
+    location = models.CharField(max_length=255)
+    duration = models.IntegerField(help_text='Duration in minutes')
+    attendees = models.ManyToManyField(Contact, related_name='attended_meetings')
+    agenda = models.TextField()
+    minutes = models.TextField()
+    meeting_outcome = models.CharField(max_length=255)
+
+    class Meta:
+        verbose_name = 'Meeting Activity'
+        verbose_name_plural = 'Meeting Activities'
+        ordering = ['-performed_at']
+
+class NoteActivity(Activity):
+    """
+    Model for note activities.
+    """
     content = models.TextField()
-    to_do_task_date = models.DateField(null=True, blank=True)
-    to_do_task_message = models.TextField('To Do Task Message', null=True, blank=True)
-    contacts = models.ManyToManyField(Contact, related_name='notes_attended')
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='note_users')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.subject} - {self.created_at.strftime('%Y-%m-%d')}"
+    is_private = models.BooleanField(default=False)
+    note_outcome = models.CharField(max_length=255)
 
     class Meta:
-        ordering = ['-created_at']
+        verbose_name = 'Note Activity'
+        verbose_name_plural = 'Note Activities'
+        ordering = ['-performed_at']
 
-
-class WaiverFavor(models.Model):
+class DocumentActivity(Activity):
     """
-    Represents a waiver or favor with associated details, including the company,
-    creator, type, value, and approval details.
+    Model for document-related activities.
     """
-    TYPE_CHOICES = [
-        ('refund_waiver', 'Refund Waiver'),
-        ('fee_waiver', 'Fee Waiver'),
-        ('loyalty_points', 'Loyalty Points'),
-        ('rate_match', 'Rate Match'),
-        ('other', 'Other'),
-    ]
-
-    APPROVER_CHOICES = [
-        ('manager', 'Manager'),
-        ('director', 'Director'),
-        ('operations', 'Operations'),
-        ('account_manager', 'Account Manager'),
-    ]
-
-    subject = models.CharField(max_length=255)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='waivers_favors')
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_waivers_favors')
-    waiver_type = models.CharField(max_length=50, choices=TYPE_CHOICES)
-    value_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    approved_by = models.CharField(max_length=50, choices=APPROVER_CHOICES)
-    details = models.TextField()
-    to_do_task_date = models.DateField(null=True, blank=True)
-    to_do_task_message = models.TextField('To Do Task Message', null=True, blank=True)
-    contacts = models.ManyToManyField(Contact, related_name='waivers_favors_attended')
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='waiver_favor_users')
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.subject} - {self.waiver_type}"
+    document = models.ForeignKey(Document, on_delete=models.CASCADE)
+    action = models.CharField(max_length=50, choices=[
+        ('Uploaded', 'Uploaded'),
+        ('Downloaded', 'Downloaded'),
+        ('Updated', 'Updated'),
+        ('Deleted', 'Deleted')
+    ])
+    document_outcome = models.TextField()
 
     class Meta:
-        ordering = ['-created_at']
+        verbose_name = 'Document Activity'
+        verbose_name_plural = 'Document Activities'
+        ordering = ['-performed_at']
 
+class StatusChangeActivity(Activity):
+    """
+    Model for status change activities.
+    """
+    old_status = models.CharField(max_length=100)
+    new_status = models.CharField(max_length=100)
+    reason = models.TextField()
+    status_outcome = models.TextField()
+
+    class Meta:
+        verbose_name = 'Status Change Activity'
+        verbose_name_plural = 'Status Change Activities'
+        ordering = ['-performed_at']
+
+class PolicyUpdateActivity(Activity):
+    """
+    Model for policy update activities.
+    """
+    policy = models.ForeignKey(ClientTravelPolicy, on_delete=models.CASCADE)
+    action = models.CharField(max_length=50, choices=[
+        ('Created', 'Created'),
+        ('Updated', 'Updated'),
+        ('Deleted', 'Deleted')
+    ])
+    changes = models.TextField()
+    policy_outcome = models.TextField()
+
+    class Meta:
+        verbose_name = 'Policy Update Activity'
+        verbose_name_plural = 'Policy Update Activities'
+        ordering = ['-performed_at']
 
 class StatusHistory(models.Model):
     """

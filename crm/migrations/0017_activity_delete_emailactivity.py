@@ -13,27 +13,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='Activity',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('activity_type', models.CharField(choices=[('meeting', 'Meeting'), ('call', 'Phone Call'), ('email', 'Email'), ('note', 'Note'), ('document', 'Document Upload'), ('status_change', 'Status Change'), ('policy_update', 'Policy Update')], max_length=20)),
-                ('description', models.TextField()),
-                ('performed_at', models.DateTimeField(auto_now_add=True)),
-                ('scheduled_for', models.DateTimeField(blank=True, null=True)),
-                ('outcome', models.TextField(blank=True)),
-                ('follow_up_date', models.DateField(blank=True, null=True)),
-                ('follow_up_notes', models.TextField(blank=True)),
-                ('data', models.JSONField(blank=True, help_text='Stores detailed activity data in JSON format', null=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='activities', to='crm.company')),
-                ('contact', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='activities', to='crm.contact')),
-                ('performed_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'verbose_name_plural': 'Activities',
-                'ordering': ['-performed_at'],
-            },
-        ),
         migrations.DeleteModel(
             name='EmailActivity',
         ),
