@@ -487,7 +487,7 @@ class EmailActivity(Activity):
         ('Bounced', 'Bounced'),
         ('Opened', 'Opened'),
         ('Clicked', 'Clicked')
-    ])
+    ], null=True, blank=True)
     attachments = models.FileField(upload_to='email_attachments/', null=True, blank=True)
     recipients = models.ManyToManyField(Contact, related_name='received_emails')
 
@@ -508,7 +508,7 @@ class CallActivity(Activity):
     ])
     duration = models.IntegerField(help_text='Duration in minutes')
     summary = models.TextField()
-    call_outcome = models.CharField(max_length=255)
+    call_outcome = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Call Activity'
@@ -525,7 +525,7 @@ class MeetingActivity(Activity):
     attendees = models.ManyToManyField(Contact, related_name='attended_meetings')
     agenda = models.TextField()
     minutes = models.TextField()
-    meeting_outcome = models.CharField(max_length=255)
+    meeting_outcome = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Meeting Activity'
@@ -538,7 +538,7 @@ class NoteActivity(Activity):
     """
     content = models.TextField()
     is_private = models.BooleanField(default=False)
-    note_outcome = models.CharField(max_length=255)
+    note_outcome = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Note Activity'
@@ -556,7 +556,7 @@ class DocumentActivity(Activity):
         ('Updated', 'Updated'),
         ('Deleted', 'Deleted')
     ])
-    document_outcome = models.TextField()
+    document_outcome = models.TextField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Document Activity'
@@ -570,7 +570,7 @@ class StatusChangeActivity(Activity):
     old_status = models.CharField(max_length=100)
     new_status = models.CharField(max_length=100)
     reason = models.TextField()
-    status_outcome = models.TextField()
+    status_outcome = models.TextField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Status Change Activity'
@@ -588,7 +588,7 @@ class PolicyUpdateActivity(Activity):
         ('Deleted', 'Deleted')
     ])
     changes = models.TextField()
-    policy_outcome = models.TextField()
+    policy_outcome = models.TextField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Policy Update Activity'

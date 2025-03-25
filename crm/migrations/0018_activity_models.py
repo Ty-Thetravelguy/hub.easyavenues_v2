@@ -13,10 +13,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Remove the data JSONField from Activity model
+        # Remove the data JSONField and outcome field from Activity model
         migrations.RemoveField(
             model_name='activity',
             name='data',
+        ),
+        migrations.RemoveField(
+            model_name='activity',
+            name='outcome',
         ),
         
         # Create EmailActivity model
@@ -28,7 +32,7 @@ class Migration(migrations.Migration):
                 ('body', models.TextField()),
                 ('email_date', models.DateField()),
                 ('email_time', models.TimeField()),
-                ('outcome', models.CharField(choices=[('Sent', 'Sent'), ('Received', 'Received'), ('Bounced', 'Bounced'), ('Opened', 'Opened'), ('Clicked', 'Clicked')], max_length=50)),
+                ('email_outcome', models.CharField(choices=[('Sent', 'Sent'), ('Received', 'Received'), ('Bounced', 'Bounced'), ('Opened', 'Opened'), ('Clicked', 'Clicked')], max_length=50, null=True, blank=True)),
                 ('attachments', models.FileField(blank=True, null=True, upload_to='email_attachments/')),
                 ('recipients', models.ManyToManyField(blank=True, related_name='email_activities_received', to='crm.contact')),
             ],
@@ -45,13 +49,15 @@ class Migration(migrations.Migration):
             name='CallActivity',
             fields=[
                 ('activity_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='crm.activity')),
-                ('call_type', models.CharField(choices=[('incoming', 'Incoming'), ('outgoing', 'Outgoing')], max_length=20)),
+                ('call_type', models.CharField(choices=[('Inbound', 'Inbound'), ('Outbound', 'Outbound'), ('Missed', 'Missed'), ('Voicemail', 'Voicemail')], max_length=20)),
                 ('duration', models.IntegerField(help_text='Duration in minutes')),
                 ('summary', models.TextField()),
+                ('call_outcome', models.CharField(max_length=255, null=True, blank=True)),
             ],
             options={
                 'verbose_name': 'Call Activity',
                 'verbose_name_plural': 'Call Activities',
+                'ordering': ['-performed_at'],
             },
             bases=('crm.activity',),
         ),
@@ -66,11 +72,13 @@ class Migration(migrations.Migration):
                 ('duration', models.IntegerField(help_text='Duration in minutes')),
                 ('agenda', models.TextField(blank=True)),
                 ('minutes', models.TextField(blank=True)),
+                ('meeting_outcome', models.CharField(max_length=255, null=True, blank=True)),
                 ('attendees', models.ManyToManyField(blank=True, related_name='meetings_attended', to='crm.contact')),
             ],
             options={
                 'verbose_name': 'Meeting Activity',
                 'verbose_name_plural': 'Meeting Activities',
+                'ordering': ['-performed_at'],
             },
             bases=('crm.activity',),
         ),
@@ -82,10 +90,12 @@ class Migration(migrations.Migration):
                 ('activity_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='crm.activity')),
                 ('content', models.TextField()),
                 ('is_private', models.BooleanField(default=False)),
+                ('note_outcome', models.CharField(max_length=255, null=True, blank=True)),
             ],
             options={
                 'verbose_name': 'Note Activity',
                 'verbose_name_plural': 'Note Activities',
+                'ordering': ['-performed_at'],
             },
             bases=('crm.activity',),
         ),
@@ -95,12 +105,14 @@ class Migration(migrations.Migration):
             name='DocumentActivity',
             fields=[
                 ('activity_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='crm.activity')),
-                ('action', models.CharField(choices=[('uploaded', 'Uploaded'), ('downloaded', 'Downloaded'), ('updated', 'Updated'), ('deleted', 'Deleted')], max_length=50)),
+                ('action', models.CharField(choices=[('Uploaded', 'Uploaded'), ('Downloaded', 'Downloaded'), ('Updated', 'Updated'), ('Deleted', 'Deleted')], max_length=50)),
+                ('document_outcome', models.TextField(null=True, blank=True)),
                 ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='activities', to='crm.document')),
             ],
             options={
                 'verbose_name': 'Document Activity',
                 'verbose_name_plural': 'Document Activities',
+                'ordering': ['-performed_at'],
             },
             bases=('crm.activity',),
         ),
@@ -113,10 +125,12 @@ class Migration(migrations.Migration):
                 ('old_status', models.CharField(max_length=100)),
                 ('new_status', models.CharField(max_length=100)),
                 ('reason', models.TextField(blank=True)),
+                ('status_outcome', models.TextField(null=True, blank=True)),
             ],
             options={
                 'verbose_name': 'Status Change Activity',
                 'verbose_name_plural': 'Status Change Activities',
+                'ordering': ['-performed_at'],
             },
             bases=('crm.activity',),
         ),
@@ -126,13 +140,15 @@ class Migration(migrations.Migration):
             name='PolicyUpdateActivity',
             fields=[
                 ('activity_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='crm.activity')),
-                ('action', models.CharField(choices=[('created', 'Created'), ('updated', 'Updated'), ('deleted', 'Deleted')], max_length=50)),
+                ('action', models.CharField(choices=[('Created', 'Created'), ('Updated', 'Updated'), ('Deleted', 'Deleted')], max_length=50)),
                 ('changes', models.TextField(blank=True)),
+                ('policy_outcome', models.TextField(null=True, blank=True)),
                 ('policy', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='activities', to='crm.clienttravelpolicy')),
             ],
             options={
                 'verbose_name': 'Policy Update Activity',
                 'verbose_name_plural': 'Policy Update Activities',
+                'ordering': ['-performed_at'],
             },
             bases=('crm.activity',),
         ),
