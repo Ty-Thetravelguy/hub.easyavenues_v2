@@ -40,6 +40,8 @@ from django.db.models import Value
 import datetime
 from django.utils import timezone
 from django.template.loader import render_to_string
+from django.views.decorators.http import require_GET
+import logging
 
 # Create your views here.
 
@@ -90,7 +92,7 @@ def company_detail(request, pk):
     activities = company.activities.all().order_by('-performed_at')
     
     # Initialize all activity forms
-    email_form = EmailActivityForm()
+    email_form = EmailActivityForm(company=company)
     call_form = CallActivityForm()
     meeting_form = MeetingActivityForm()
     note_form = NoteActivityForm()
@@ -1158,7 +1160,7 @@ def contact_delete(request, pk):
 def log_email(request, company_id):
     company = get_object_or_404(Company, id=company_id)
     if request.method == 'POST':
-        form = EmailActivityForm(request.POST, request.FILES)
+        form = EmailActivityForm(request.POST, request.FILES, company=company)
         todo_form = ToDoTaskForm(request.POST)
         if form.is_valid() and todo_form.is_valid():
             activity = form.save(commit=False)
@@ -1178,7 +1180,7 @@ def log_email(request, company_id):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = EmailActivityForm()
+        form = EmailActivityForm(company=company)
         todo_form = ToDoTaskForm()
     
     context = {
@@ -1450,4 +1452,190 @@ def delete_activity(request, activity_id):
     activity.delete()
     messages.success(request, 'Activity deleted successfully.')
     return redirect('crm:company_detail', pk=company_id)
+
+@login_required
+def search_recipients(request):
+    """API endpoint for searching contacts and users."""
+    logger = logging.getLogger(__name__)
+    
+    # Log the full request parameters
+    logger.debug(f"🔍 SEARCH DEBUG - Full request: {request.GET}")
+    logger.debug(f"🔍 SEARCH DEBUG - Headers: {request.headers}")
+    
+    # Get parameters with fallbacks
+    search_term = request.GET.get('term', '').strip().lower()  # Convert to lowercase for case-insensitive search
+    company_id = request.GET.get('company_id', '')
+    
+    logger.debug(f"🔍 SEARCH DEBUG - Term: '{search_term}', Company ID: '{company_id}'")
+    
+    # Initialize results list
+    results = []
+    
+    try:
+        # Check search term length
+        if len(search_term) < 2:
+            logger.debug("🔍 SEARCH DEBUG - Term too short, returning empty results")
+            return JsonResponse({'results': []})
+        
+        # Build more flexible search queries for contacts
+        contact_query = Q(first_name__icontains=search_term) | \
+                       Q(last_name__icontains=search_term)
+        
+        # Check if email exists before adding to search query
+        if hasattr(Contact, 'email'):
+            contact_query |= Q(email__icontains=search_term)
+            logger.debug("🔍 SEARCH DEBUG - Adding email field to contact search query")
+        
+        # Also search for full name matches (for "first last" style searches)
+        name_parts = search_term.split()
+        if len(name_parts) > 1:
+            # For multiple word searches, try matching first and last name combinations
+            for i in range(len(name_parts) - 1):
+                first_part = name_parts[i]
+                last_part = name_parts[i+1]
+                contact_query |= (Q(first_name__icontains=first_part) & Q(last_name__icontains=last_part))
+        
+        logger.debug(f"🔍 SEARCH DEBUG - Contact query: {contact_query}")
+        
+        # CRITICAL - List all contacts for debugging
+        all_contacts = Contact.objects.all()[:5]  # Just get a few for debugging
+        logger.debug(f"🔍 SEARCH DEBUG - Total contacts in database: {Contact.objects.count()}")
+        logger.debug(f"🔍 SEARCH DEBUG - Sample contacts:")
+        for contact in all_contacts:
+            logger.debug(f"🔍 SEARCH DEBUG - Contact: {contact.id} - {contact.first_name} {contact.last_name} - Company ID: {contact.company_id}")
+            
+        # Debug companies
+        from .models import Company
+        all_companies = Company.objects.all()[:5]
+        logger.debug(f"🔍 SEARCH DEBUG - Total companies in database: {Company.objects.count()}")
+        logger.debug(f"🔍 SEARCH DEBUG - Sample companies:")
+        for company in all_companies:
+            logger.debug(f"🔍 SEARCH DEBUG - Company: {company.id} - {company.company_name}")
+        
+        # Search contacts
+        if company_id and company_id.isdigit():
+            # Search within specific company
+            logger.debug(f"🔍 SEARCH DEBUG - Searching contacts for company {company_id}")
+            
+            # Check if this company exists
+            try:
+                from .models import Company
+                company = Company.objects.get(id=company_id)
+                logger.debug(f"🔍 SEARCH DEBUG - Found company: {company.company_name}")
+                
+                # Get all contacts for this company first to confirm they exist
+                all_company_contacts = Contact.objects.filter(company_id=company_id)
+                logger.debug(f"🔍 SEARCH DEBUG - Company has {all_company_contacts.count()} contacts total")
+                for contact in all_company_contacts[:5]:  # List first 5 only
+                    logger.debug(f"🔍 SEARCH DEBUG - Company contact: {contact.id} - {contact.first_name} {contact.last_name}")
+                
+            except Exception as e:
+                logger.debug(f"🔍 SEARCH DEBUG - Company check error: {str(e)}")
+            
+            # Now search for contacts matching the term
+            contacts = Contact.objects.filter(contact_query, company_id=company_id)
+            logger.debug(f"🔍 SEARCH DEBUG - Found {contacts.count()} contacts matching '{search_term}' for company {company_id}")
+            
+            # If no contacts found for this company, search across all companies instead
+            if contacts.count() == 0:
+                logger.debug(f"🔍 SEARCH DEBUG - No contacts found for company {company_id}, searching all companies instead")
+                contacts = Contact.objects.filter(contact_query)
+                logger.debug(f"🔍 SEARCH DEBUG - Found {contacts.count()} contacts matching '{search_term}' across all companies")
+        else:
+            # Search all contacts
+            logger.debug("🔍 SEARCH DEBUG - Searching all contacts (no company specified)")
+            contacts = Contact.objects.filter(contact_query)
+            logger.debug(f"🔍 SEARCH DEBUG - Found {contacts.count()} contacts matching '{search_term}' across all companies")
+        
+        # Debug contacts - log the SQL query being executed
+        from django.db import connection
+        queries = connection.queries
+        last_query = queries[-1] if queries else None
+        if last_query:
+            logger.debug(f"🔍 SEARCH DEBUG - Contact SQL: {last_query['sql']}")
+        
+        # Debug: log all matching contacts with detailed info
+        logger.debug(f"🔍 SEARCH DEBUG - Contact search details:")
+        logger.debug(f"🔍 SEARCH DEBUG - Contact model fields: {[f.name for f in Contact._meta.fields]}")
+        
+        # List all matching contacts
+        logger.debug(f"🔍 SEARCH DEBUG - Matching contacts:")
+        for contact in contacts[:10]:
+            logger.debug(f"🔍 SEARCH DEBUG - Found contact: {contact.id} - {contact.first_name} {contact.last_name} (company {contact.company_id})")
+        
+        # Add contacts to results
+        for contact in contacts[:10]:  # Limit to 10 contacts
+            # Get company name for this contact
+            company_name = None
+            try:
+                if contact.company:
+                    company_name = contact.company.company_name
+            except:
+                pass
+                
+            results.append({
+                'id': f'contact_{contact.id}',
+                'text': f'{contact.first_name} {contact.last_name}',
+                'type': 'contact',
+                'company_id': contact.company_id,
+                'company_name': company_name
+            })
+        
+        # Search users - CustomUser has first_name, last_name, and email fields but NOT username
+        User = get_user_model()
+        logger.debug(f"🔍 SEARCH DEBUG - User model: {User.__name__}")
+        logger.debug(f"🔍 SEARCH DEBUG - User model fields: {[f.name for f in User._meta.fields]}")
+        
+        user_query = Q(first_name__icontains=search_term) | \
+                     Q(last_name__icontains=search_term) | \
+                     Q(email__icontains=search_term)
+        
+        # Also search for full name matches for users
+        if len(name_parts) > 1:
+            for i in range(len(name_parts) - 1):
+                first_part = name_parts[i]
+                last_part = name_parts[i+1]
+                user_query |= (Q(first_name__icontains=first_part) & Q(last_name__icontains=last_part))
+        
+        users = User.objects.filter(user_query, is_active=True)
+        logger.debug(f"🔍 SEARCH DEBUG - Found {users.count()} active users matching '{search_term}'")
+        
+        # Debug user search SQL query
+        queries = connection.queries
+        last_query = queries[-1] if queries else None
+        if last_query:
+            logger.debug(f"🔍 SEARCH DEBUG - User SQL: {last_query['sql']}")
+        
+        # Debug: log all matching users with detailed info
+        for user in users[:5]:
+            logger.debug(f"🔍 SEARCH DEBUG - Found user: {user.id} - {user.get_full_name()} - {user.email}")
+        
+        # Add users to results
+        for user in users[:5]:  # Limit to 5 users
+            results.append({
+                'id': f'user_{user.id}',
+                'text': user.get_full_name() or user.email,
+                'type': 'user'
+            })
+        
+        # Log results
+        logger.debug(f"🔍 SEARCH DEBUG - Returning {len(results)} total results")
+        
+        # Return results with success status for clarity
+        response_data = {
+            'results': results,
+            'pagination': {'more': False},  # No pagination
+            'status': 'success',
+            'count': len(results)
+        }
+        logger.debug(f"🔍 SEARCH DEBUG - Response: {response_data}")
+        return JsonResponse(response_data)
+        
+    except Exception as e:
+        logger.error(f"❌ SEARCH DEBUG ERROR: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error',
+            'results': []
+        }, status=500)
 

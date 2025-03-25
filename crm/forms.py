@@ -9,6 +9,7 @@ from .models import (
 )
 from django.contrib.auth import get_user_model
 import datetime
+import logging
 
 User = get_user_model()
 
@@ -438,34 +439,168 @@ class DocumentUploadForm(forms.ModelForm):
         }
 
 class EmailActivityForm(forms.ModelForm):
+    email_date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+            'placeholder': 'Select date'
+        })
+    )
+    email_time = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
+            'class': 'form-control',
+            'placeholder': 'Select time'
+        })
+    )
+    body = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 5,
+            'placeholder': 'Start typing to log an email...'
+        }),
+        required=True
+    )
+    recipients = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control select2-multiple',
+            'multiple': 'multiple'
+        }),
+        help_text="Search and select contacts or staff members",
+        required=True
+    )
+    
     class Meta:
         model = EmailActivity
-        fields = [
-            'subject', 'body', 'email_date', 'email_time', 'email_outcome',
-            'attachments', 'recipients', 'description', 'scheduled_for',
-            'follow_up_date', 'follow_up_notes'
-        ]
+        fields = ['recipients', 'email_date', 'email_time', 'body', 'email_outcome']
         widgets = {
-            'subject': forms.TextInput(attrs={'class': 'form-control'}),
-            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'email_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'email_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'email_outcome': forms.Select(attrs={'class': 'form-control'}),
-            'attachments': forms.FileInput(attrs={'class': 'form-control'}),
-            'recipients': forms.SelectMultiple(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'scheduled_for': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'email_outcome': forms.Select(
+                attrs={'class': 'form-select'},
+                choices=[
+                    ('Sent', 'Sent'),
+                    ('Received', 'Received'),
+                    ('No Response', 'No Response')
+                ]
+            )
         }
 
+    def __init__(self, *args, **kwargs):
+        self.company = kwargs.pop('company', None)
+        super().__init__(*args, **kwargs)
+        
+        # Set default values for date and time if not provided
+        if not self.fields['email_date'].initial:
+            self.fields['email_date'].initial = datetime.date.today()
+        if not self.fields['email_time'].initial:
+            self.fields['email_time'].initial = datetime.datetime.now().strftime('%H:%M')
+
+    def clean_recipients(self):
+        """Clean recipients data from Select2 AJAX."""
+        logger = logging.getLogger(__name__)
+        
+        recipients = self.cleaned_data.get('recipients', [])
+        logger.debug(f"⚙️ FORM: Cleaning recipients: {recipients!r}")
+        
+        if not recipients:
+            raise forms.ValidationError('Please select at least one recipient.')
+        
+        # Handle both string and list formats
+        recipient_list = []
+        if isinstance(recipients, str):
+            # Split comma-separated string (from Select2 multiple)
+            recipient_list = [r.strip() for r in recipients.split(',') if r.strip()]
+            logger.debug(f"⚙️ FORM: Split recipients into list: {recipient_list}")
+        elif isinstance(recipients, list):
+            recipient_list = recipients
+            logger.debug(f"⚙️ FORM: Recipients already in list format: {recipient_list}")
+        else:
+            logger.warning(f"⚙️ FORM: Unexpected recipients format: {type(recipients)}")
+        
+        cleaned_recipients = []
+        for recipient in recipient_list:
+            if not recipient:
+                continue
+                
+            try:
+                # Handle both 'type_id' format and separate type/id
+                if isinstance(recipient, str) and '_' in recipient:
+                    recipient_type, recipient_id = recipient.split('_')
+                    recipient_id = int(recipient_id)
+                    logger.debug(f"⚙️ FORM: Processing recipient: type={recipient_type}, id={recipient_id}")
+                elif isinstance(recipient, dict) and 'id' in recipient and 'type' in recipient:
+                    # Handle dictionary format from Select2 AJAX
+                    recipient_type = recipient['type']
+                    if '_' in recipient['id']:
+                        # Extract ID from string like 'contact_123'
+                        recipient_id = int(recipient['id'].split('_')[1])
+                    else:
+                        recipient_id = int(recipient['id'])
+                    logger.debug(f"⚙️ FORM: Processing dict recipient: {recipient}")
+                else:
+                    logger.warning(f"⚙️ FORM: Cannot parse recipient: {recipient!r}")
+                    continue
+                
+                if recipient_type == 'contact':
+                    # Fetch contact regardless of company to support contacts from any company
+                    contact = Contact.objects.filter(id=recipient_id).first()
+                    if contact:
+                        logger.debug(f"⚙️ FORM: Found valid contact: {contact}")
+                        cleaned_recipients.append(('contact', contact))
+                    else:
+                        logger.warning(f"⚙️ FORM: Contact not found: id={recipient_id}")
+                        
+                elif recipient_type == 'user':
+                    # Verify user exists and is active
+                    User = get_user_model()
+                    user = User.objects.filter(
+                        id=recipient_id,
+                        is_active=True
+                    ).first()
+                    if user:
+                        logger.debug(f"⚙️ FORM: Found valid user: {user}")
+                        cleaned_recipients.append(('user', user))
+                    else:
+                        logger.warning(f"⚙️ FORM: User not found or not active: id={recipient_id}")
+                        
+            except (ValueError, AttributeError) as e:
+                logger.error(f"⚙️ FORM: Error processing recipient {recipient!r}: {e}")
+                continue
+        
+        if not cleaned_recipients:
+            logger.error("⚙️ FORM: No valid recipients found")
+            raise forms.ValidationError('Please select at least one valid recipient.')
+            
+        logger.debug(f"⚙️ FORM: Final cleaned recipients: {cleaned_recipients}")
+        return cleaned_recipients
+
     def save(self, commit=True):
-        activity = super().save(commit=False)
-        activity.activity_type = 'email'
+        """Save the email activity and associate recipients."""
+        instance = super().save(commit=False)
+        
+        # Set activity type
+        instance.activity_type = 'email'
+        
         if commit:
-            activity.save()
-            self.save_m2m()  # Save many-to-many relationships
-        return activity
+            instance.save()
+            
+            # Get cleaned recipients from clean_recipients method
+            recipients = self.cleaned_data.get('recipients', [])
+            
+            # Clear existing recipients
+            instance.contact_recipients.clear()
+            instance.user_recipients.clear()
+            
+            # Add new recipients
+            for recipient_type, recipient in recipients:
+                if recipient_type == 'contact':
+                    instance.contact_recipients.add(recipient)
+                elif recipient_type == 'user':
+                    instance.user_recipients.add(recipient)
+            
+            # Save many-to-many relationships
+            instance.save()
+        
+        return instance
 
 class CallActivityForm(forms.ModelForm):
     class Meta:

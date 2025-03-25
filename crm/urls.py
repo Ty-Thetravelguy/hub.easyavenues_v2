@@ -45,5 +45,6 @@ urlpatterns = [
     path('hubspot/import/<str:hubspot_id>/', views.import_hubspot_company, name='import_hubspot_company'),
     path('hubspot/api-test/', views.hubspot_api_test, name='hubspot_api_test'),
     path('hubspot/setup-guide/', views.hubspot_setup_guide, name='hubspot_setup_guide'),
+    path('api/search-recipients/', views.search_recipients, name='search_recipients'),
 ]
     

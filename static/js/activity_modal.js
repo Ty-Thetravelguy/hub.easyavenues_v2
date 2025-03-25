@@ -253,10 +253,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             <div class="mb-3">
               <label for="recipients" class="form-label">Recipients</label>
-              <select class="form-select" id="recipients" name="recipients" multiple>
+              <select class="form-select select2-multiple" id="recipients" name="recipients" multiple data-placeholder="Type to search contacts or staff...":
                 <!-- Recipients will be loaded dynamically -->
               </select>
-              <small class="form-text text-muted">Hold Ctrl (or Cmd on Mac) to select multiple contacts</small>
             </div>
             
             <div class="mb-3">
@@ -416,15 +415,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Initialize Select2 for multiple selects if needed
-        if (['email', 'meeting'].includes(currentActivityType)) {
-          setTimeout(function() {
-            if ($.fn.select2) {
-              $('#recipients, #attendees').select2({
-                placeholder: 'Select contacts',
-                width: '100%'
-              });
-            }
-          }, 100);
+        if (window.jQuery && $.fn.select2 && ['email', 'meeting'].includes(currentActivityType)) {
+          // Note: Select2 initialization is now handled in activity_forms.js
+          // This just ensures that the select elements have the proper CSS class
+          $('#recipients, #attendees').addClass('select2-multiple');
         }
         
         // Handle form submission
@@ -581,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <div class="mb-3">
           <label for="recipients" class="form-label">Recipients</label>
-          <select class="form-select" id="recipients" name="recipients" multiple>
+          <select class="form-select select2-multiple" id="recipients" name="recipients" multiple data-placeholder="Type to search contacts or staff...">
             <!-- Will be populated dynamically -->
           </select>
         </div>
@@ -776,16 +770,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     });
-    
-    // Initialize Select2 for multiple selects if needed
-    if (window.jQuery && $.fn.select2 && ['email', 'meeting'].includes(activityType)) {
-      setTimeout(function() {
-        $('#recipients, #attendees').select2({
-          width: '100%',
-          placeholder: 'Select contacts'
-        });
-      }, 100);
-    }
     
     // Store the current activity type
     activityTypeForForm = activityType;

@@ -477,24 +477,32 @@ class EmailActivity(Activity):
     """
     Model for email activities.
     """
-    subject = models.CharField(max_length=255)
     body = models.TextField()
     email_date = models.DateField()
     email_time = models.TimeField()
-    email_outcome = models.CharField(max_length=50, choices=[
-        ('Sent', 'Sent'),
-        ('Received', 'Received'),
-        ('Bounced', 'Bounced'),
-        ('Opened', 'Opened'),
-        ('Clicked', 'Clicked')
-    ], null=True, blank=True)
-    attachments = models.FileField(upload_to='email_attachments/', null=True, blank=True)
-    recipients = models.ManyToManyField(Contact, related_name='received_emails')
+    email_outcome = models.CharField(
+        max_length=50,
+        choices=[
+            ('Sent', 'Sent'),
+            ('Received', 'Received'),
+            ('No Response', 'No Response')
+        ],
+        null=True,
+        blank=True
+    )
+    contact_recipients = models.ManyToManyField(Contact, related_name='received_emails', blank=True)
+    user_recipients = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='received_emails', blank=True)
 
     class Meta:
         verbose_name = 'Email Activity'
         verbose_name_plural = 'Email Activities'
         ordering = ['-email_date', '-email_time']
+
+    def __str__(self):
+        recipients = []
+        recipients.extend(str(r) for r in self.contact_recipients.all())
+        recipients.extend(str(r) for r in self.user_recipients.all())
+        return f"Email to {', '.join(recipients)} on {self.email_date}"
 
 class CallActivity(Activity):
     """

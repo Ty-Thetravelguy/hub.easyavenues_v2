@@ -13,305 +13,11 @@
   type="text/css"
   href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css"
 />
-<style>
-  /* Simple hover effect for activity type cards */
-  .activity-type-card {
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    margin-bottom: 0;
-    border: 1px solid #dee2e6;
-    transform: translateY(0);
-  }
-  .activity-type-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    background-color: #f8f9fa;
-  }
-  .activity-type-card.active {
-    border: 2px solid #4e73df;
-    background-color: #eef2ff;
-  }
-
-  /* Activity Timeline Styling */
-  .timeline {
-    position: relative;
-  }
-  
-  .timeline-item {
-    position: relative;
-    padding: 1rem;
-    background-color: #fff;
-    border-radius: 0.5rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    margin-bottom: 1.5rem;
-    border-left-width: 4px !important;
-    border-left-style: solid;
-  }
-  
-  .timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -2px;
-    top: 1.5rem;
-    transform: translateX(-50%);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #fff;
-    border: 2px solid;
-  }
-  
-  .timeline-item.border-success::before {
-    border-color: #198754;
-  }
-  
-  .timeline-item.border-warning::before {
-    border-color: #ffc107;
-  }
-  
-  .timeline-item.border-danger::before {
-    border-color: #dc3545;
-  }
-  
-  .timeline-item.border-info::before {
-    border-color: #0dcaf0;
-  }
-  
-  .timeline-item.border-primary::before {
-    border-color: #0d6efd;
-  }
-  
-  /* Border colors */
-  .timeline-item.border-success {
-    border-left-color: #198754;
-  }
-  
-  .timeline-item.border-warning {
-    border-left-color: #ffc107;
-  }
-  
-  .timeline-item.border-danger {
-    border-left-color: #dc3545;
-  }
-  
-  .timeline-item.border-info {
-    border-left-color: #0dcaf0;
-  }
-  
-  .timeline-item.border-primary {
-    border-left-color: #0d6efd;
-  }
-  
-  /* White-space preserving for activity descriptions */
-  .timeline-item p.mb-0 {
-    white-space: pre-line;
-  }
-  
-  /* Activity Content Card Styling */
-  .activity-card {
-    transition: all 0.2s ease;
-    border-width: 1px;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .activity-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-  
-  .activity-card .card-body {
-    padding: 0.75rem 1rem;
-  }
-  
-  /* Type-specific styling */
-  .activity-card.bg-primary.bg-opacity-10 {
-    border-color: rgba(13, 110, 253, 0.3);
-  }
-  
-  .activity-card.bg-success.bg-opacity-10 {
-    border-color: rgba(25, 135, 84, 0.3);
-  }
-  
-  .activity-card.bg-warning.bg-opacity-10 {
-    border-color: rgba(255, 193, 7, 0.3);
-  }
-  
-  .activity-card.bg-danger.bg-opacity-10 {
-    border-color: rgba(220, 53, 69, 0.3);
-  }
-  
-  /* Content preview */
-  .content-preview {
-    color: #495057;
-    font-size: 0.85rem;
-    line-height: 1.3;
-    margin-bottom: 0;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  /* Timeline styling */
-  .timeline-icon {
-    position: absolute;
-    left: -40px;
-    top: 20px;
-    width: 30px;
-    height: 30px;
-    background-color: #f8f9fa;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #dee2e6;
-  }
-  
-  .timeline-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  
-  .timeline-body {
-    padding: 10px 0;
-  }
-  
-  .user-icon {
-    font-size: 0.9rem;
-    color: #6c757d;
-  }
-
-  /* Activity card design */
-  .activity-card.bg-opacity-10 {
-    border-width: 1px;
-    border-style: solid;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-  }
-  
-  .activity-card.bg-opacity-10:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Custom border colors based on main.css */
-  .border-primary-ea {
-    border-color: #444a9f !important;
-  }
-  
-  .border-secondary-ea {
-    border-color: #9c85db !important;
-  }
-  
-  .border-purple {
-    border-color: #a44493 !important;
-  }
-  
-  .border-tertiary-ea {
-    border-color: #ff8568 !important;
-  }
-  
-  .border-accent-ea {
-    border-color: #f9f871 !important;
-  }
-  
-  /* Custom background colors with opacity */
-  .bg-primary-ea.bg-opacity-10 {
-    background-color: rgba(68, 74, 159, 0.1) !important;
-    border-color: rgba(68, 74, 159, 0.3) !important;
-  }
-  
-  .bg-secondary-ea.bg-opacity-10 {
-    background-color: rgba(156, 133, 219, 0.1) !important;
-    border-color: rgba(156, 133, 219, 0.3) !important;
-  }
-  
-  .bg-purple.bg-opacity-10 {
-    background-color: rgba(164, 68, 147, 0.1) !important;
-    border-color: rgba(164, 68, 147, 0.3) !important;
-  }
-  
-  .bg-tertiary-ea.bg-opacity-10 {
-    background-color: rgba(255, 133, 104, 0.1) !important;
-    border-color: rgba(255, 133, 104, 0.3) !important;
-  }
-  
-  .bg-accent-ea.bg-opacity-10 {
-    background-color: rgba(249, 248, 113, 0.1) !important;
-    border-color: rgba(249, 248, 113, 0.3) !important; 
-  }
-  
-  /* Text colors */
-  .text-primary-ea {
-    color: #444a9f !important;
-  }
-  
-  .text-secondary-ea {
-    color: #9c85db !important;
-  }
-  
-  .text-tertiary-ea {
-    color: #ff8568 !important;
-  }
-  
-  .text-accent-ea {
-    color: #f9f871 !important;
-  }
-
-  /* Border top colors for activity cards */
-  .border-top-primary-ea {
-    border-top: 3px solid #444a9f !important; 
-    border-radius: 0.375rem !important;
-  }
-  
-  .border-top-secondary-ea {
-    border-top: 3px solid #9c85db !important;
-    border-radius: 0.375rem !important;
-  }
-  
-  .border-top-purple {
-    border-top: 3px solid #a44493 !important;
-    border-radius: 0.375rem !important;
-  }
-  
-  .border-top-tertiary-ea {
-    border-top: 3px solid #ff8568 !important;
-    border-radius: 0.375rem !important;
-  }
-  
-  .border-top-accent-ea {
-    border-top: 3px solid #f9f871 !important;
-    border-radius: 0.375rem !important;
-  }
-  
-  /* Activity icon styling */
-  .activity-icon-wrapper {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  
-  /* Make list items cleaner */
-  .list-group-item {
-    border: none;
-    border-bottom: 1px solid #eee !important;
-  }
-  
-  /* Card shadow enhancements */
-  .card.shadow-sm {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .card.shadow-sm:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
-  }
-</style>
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'css/select2_custom.css' %}" />
+<link rel="stylesheet" href="{% static 'css/activities.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -1308,7 +1014,31 @@
           <!-- Email Form -->
           <form id="email-form" action="{% url 'crm:log_email' company.id %}" method="post" class="activity-form" style="display: none;">
             {% csrf_token %}
-            {{ email_form.as_p }}
+            <input type="hidden" name="company_id" value="{{ company.id }}">
+            
+            <!-- All form fields -->
+            {% for field in email_form %}
+              <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {% if field.name == 'recipients' %}
+                <!-- Fix for select2 field -->
+                <select name="recipients" id="id_recipients" class="form-control select2-multiple" multiple="multiple" data-placeholder="Select recipients...">
+                  <!-- Options will be loaded via AJAX -->
+                </select>
+                {% else %}
+                {{ field }}
+                {% endif %}
+                {% if field.help_text %}
+                <small class="form-text text-muted">{{ field.help_text }}</small>
+                {% endif %}
+                {% if field.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ field.errors }}
+                </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+            
             {{ todo_form.as_p }}
             <div class="mt-3 d-flex justify-content-between">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1370,34 +1100,6 @@
         </div>
         </div>
         
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const activityTypeCards = document.querySelectorAll('.activity-type-card');
-  const activityForms = document.querySelectorAll('.activity-form');
-  const initialMessage = document.getElementById('initial-message');
-  
-  // Add click handlers to activity type cards
-  activityTypeCards.forEach(card => {
-    card.addEventListener('click', function() {
-      // Remove active class from all cards
-      activityTypeCards.forEach(c => c.classList.remove('active'));
-      // Add active class to clicked card
-      this.classList.add('active');
-      
-      // Hide all forms and initial message
-      activityForms.forEach(form => form.style.display = 'none');
-      initialMessage.style.display = 'none';
-      
-      // Show the selected form
-      const formId = this.dataset.formTarget;
-      const selectedForm = document.getElementById(formId);
-      if (selectedForm) {
-        selectedForm.style.display = 'block';
-      }
-    });
-  });
-});
-</script>
 {% endblock content %}
 
 {% block extra_js %}
@@ -1407,6 +1109,11 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+<!-- Select2 plugin -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Activity Forms JS -->
+<script src="{% static 'js/activity_forms.js' %}"></script>
+<!-- Company detail JS -->
 <script src="{% static 'js/company_detail.js' %}"></script>
 <script src="{% static 'js/tab_handler.js' %}"></script>
 {% endblock extra_js %}
