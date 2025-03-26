@@ -361,7 +361,10 @@
                         noResults: function() {
                             return "No contacts or users found";
                         }
-                    }
+                    },
+                    // Add custom CSS classes for styling
+                    containerCssClass: 'custom-select2-container',
+                    dropdownCssClass: 'custom-select2-dropdown'
                 });
                 console.log(`✅ Select2 initialized for ${$element.attr('name')}`);
             } catch (error) {
@@ -869,7 +872,10 @@ function initBasicSelect2() {
                         noResults: function() {
                             return "No contacts or users found";
                         }
-                    }
+                    },
+                    // Add custom CSS classes for styling
+                    containerCssClass: 'custom-select2-container',
+                    dropdownCssClass: 'custom-select2-dropdown'
                 });
                 
                 // Add debug event handlers
