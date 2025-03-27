@@ -4,7 +4,7 @@ $(document).ready(function() {
         placeholder: "🔍 Search and select travelers...",
         allowClear: true,
         width: '100%',
-        theme: 'bootstrap4',
+        theme: 'bootstrap-5',
         templateResult: formatContact,
         templateSelection: formatContactSelection,
         minimumInputLength: 0,  // Start showing options immediately
@@ -20,16 +20,6 @@ $(document).ready(function() {
             }
         }
     });
-
-    // Default Select2 styling adjustments
-    setTimeout(function() {
-        $('.select2-search__field').css({
-            'margin': '0',
-            'padding': '0.5rem',
-            'height': '34px',
-            'line-height': '34px'
-        });
-    }, 300);
 
     // Select all VIP travelers button
     $('#select-all-vips').click(function(e) {
@@ -72,16 +62,16 @@ $(document).ready(function() {
         var firstInitial = nameParts.length > 0 ? nameParts[0].charAt(0) : '';
         var secondInitial = nameParts.length > 1 ? nameParts[1].charAt(0) : '';
         
-        // Create HTML representation
+        // Create HTML representation with Bootstrap classes
         var $contact = $(
-            '<div class="select2-result-contact d-flex align-items-center p-1 '+ (isVip ? 'select2-vip-contact' : '') +'">' +
-                '<div class="select2-result-contact__avatar me-2">' +
-                    '<div class="avatar-circle avatar-circle-sm bg-primary">' +
-                        '<span class="initials">' + firstInitial + secondInitial + '</span>' +
+            '<div class="d-flex align-items-center p-1">' +
+                '<div class="me-2">' +
+                    '<div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width:32px;height:32px;">' +
+                        '<span class="text-white">' + firstInitial + secondInitial + '</span>' +
                     '</div>' +
                 '</div>' +
-                '<div class="select2-result-contact__info">' +
-                    '<div class="select2-result-contact__title">' + contact.text + vipLabel + '</div>' +
+                '<div>' +
+                    '<div>' + contact.text + vipLabel + '</div>' +
                 '</div>' +
             '</div>'
         );
@@ -102,8 +92,8 @@ $(document).ready(function() {
         return contact.text;
     }
 
-    // Make the label and icon clickable 
-    $('label[for="vip_travelers"], .fa-search').css('cursor', 'pointer').click(function() {
+    // Make the label and icon clickable without custom CSS
+    $('label[for="vip_travelers"], .fa-search').addClass('cursor-pointer').click(function() {
         $('#vip_travelers').select2('open');
     });
     

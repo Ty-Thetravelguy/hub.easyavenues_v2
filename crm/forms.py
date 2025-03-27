@@ -453,6 +453,13 @@ class EmailActivityForm(forms.ModelForm):
             'placeholder': 'Select time'
         })
     )
+    subject = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Email subject'
+        }),
+        required=True
+    )
     body = forms.CharField(
         widget=forms.Textarea(attrs={
             'class': 'form-control',
@@ -472,7 +479,7 @@ class EmailActivityForm(forms.ModelForm):
     
     class Meta:
         model = EmailActivity
-        fields = ['recipients', 'email_date', 'email_time', 'body', 'email_outcome']
+        fields = ['recipients', 'email_date', 'email_time', 'subject', 'body', 'email_outcome']
         widgets = {
             'email_outcome': forms.Select(
                 attrs={'class': 'form-select'},

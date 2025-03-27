@@ -480,6 +480,7 @@ class EmailActivity(Activity):
     body = models.TextField()
     email_date = models.DateField()
     email_time = models.TimeField()
+    subject = models.CharField(max_length=255, blank=True, null=True)
     email_outcome = models.CharField(
         max_length=50,
         choices=[

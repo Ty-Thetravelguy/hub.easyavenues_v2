@@ -1,0 +1,12 @@
+<!-- Replace the separate date/time fields with this grid layout -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="email_date" class="form-label">Email date</label>
+        <input type="date" class="form-control" id="email_date" name="email_date" value="{{ email_date|default:'' }}">
+    </div>
+    <div class="col-md-6">
+        <label for="email_time" class="form-label">Email time</label>
+        <input type="time" class="form-control" id="email_time" name="email_time" value="{{ email_time|default:'' }}">
+    </div>
+</div>
+<!-- End of the grid layout --> 

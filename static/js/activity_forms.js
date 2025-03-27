@@ -4,6 +4,39 @@
 // ======================================================
 (function debugAjaxEndpoint() {
     document.addEventListener('DOMContentLoaded', function() {
+        // Add debug code to find who's adding select2-styles
+        console.log('⚠️ TRACKING: Looking for select2-styles element');
+        const element = document.getElementById('select2-styles');
+        if (element) {
+            console.log('⚠️ TRACKING: select2-styles element found!');
+            console.trace('Stack trace for debugging');
+        } else {
+            console.log('⚠️ TRACKING: select2-styles element not found on initial load');
+            
+            // Set up a mutation observer to catch it being added
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes) {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.id === 'select2-styles') {
+                                console.log('⚠️ TRACKING: select2-styles was added to the DOM!');
+                                console.log('Added by:', node.parentNode);
+                                console.trace('Stack trace for debugging');
+                                observer.disconnect();
+                            }
+                        });
+                    }
+                });
+            });
+            
+            observer.observe(document.head, { 
+                childList: true, 
+                subtree: true 
+            });
+            
+            console.log('⚠️ TRACKING: Observer set up to detect select2-styles');
+        }
+        
         // Only run on pages with the email form
         if (!document.getElementById('company_id')) {
             console.log('⚠️ DEBUG: No company_id field found, skipping AJAX test');
@@ -155,9 +188,6 @@
         // Initialize date/time pickers
         initializeDateTimePickers();
         
-        // Setup text leak prevention
-        setupTextLeakPrevention();
-        
         // Handle modal shown event to ensure Select2 is properly initialized
         jQuery('#logActivityModal').on('shown.bs.modal', function () {
             console.log('⚙️ Activity modal shown, initializing Select2');
@@ -175,11 +205,6 @@
                 
                 // Initialize only the ones that need it
                 initializeAllSelect2();
-                
-                // Clean up any leaked text
-                if (typeof setupTextLeakPrevention === 'function') {
-                    setupTextLeakPrevention();
-                }
             }, 100);
         });
     });
@@ -274,39 +299,15 @@
             
             console.log(`⚙️ Initializing Select2 for ${$element.attr('name')} with company_id: ${companyId}`);
             
-            // Most basic configuration that works
-            const config = {
-                ajax: {
-                    url: '/crm/api/search-recipients/',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return {
-                            term: params.term || '',
-                            company_id: companyId || ''
-                        };
-                    },
-                    processResults: function(data) {
-                        console.log("Search results:", data);
-                        return {
-                            results: data
-                        };
-                    }
-                },
-                minimumInputLength: 2,
-                placeholder: 'Type to search...',
-                dropdownParent: modalParent.length ? modalParent : jQuery('body'),
-                multiple: true
-            };
-            
             try {
                 // First destroy if already initialized
                 if ($element.hasClass('select2-hidden-accessible')) {
                     $element.select2('destroy');
                 }
                 
-                // Initialize with minimal configuration
+                // Initialize with Bootstrap classes only
                 $element.select2({
+                    theme: 'bootstrap-5',
                     ajax: {
                         url: '/crm/api/search-recipients/',
                         dataType: 'json',
@@ -329,13 +330,13 @@
                         if (data.loading) return data.text;
                         if (!data.id) return data.text;
                         
-                        // Format the dropdown items
+                        // Format the dropdown items with custom colors
                         const icon = data.type === 'contact' ? 'fa-address-card' : 'fa-user';
-                        const labelClass = data.type === 'contact' ? 'text-primary' : 'text-success'; 
+                        const colorClass = data.type === 'contact' ? 'icon-contact' : 'icon-user';
                         
                         return jQuery(
                             `<div class="d-flex align-items-center p-1">
-                                <i class="fas ${icon} ${labelClass} me-2"></i>
+                                <i class="fas ${icon} ${colorClass} me-2"></i>
                                 <div>
                                     <span class="d-block">${data.text}</span>
                                     <small class="text-muted">${data.type === 'contact' ? 'Contact' : 'User'}</small>
@@ -346,26 +347,29 @@
                     templateSelection: function(data) {
                         if (!data.id) return data.text;
                         
-                        // Format selected items
+                        // Format selected items with custom colored icons and more explicit structure
                         const icon = data.type === 'contact' ? 'fa-address-card' : 'fa-user';
+                        const colorClass = data.type === 'contact' ? 'icon-contact' : 'icon-user';
+                        
                         return jQuery(
-                            `<span><i class="fas ${icon} me-1"></i> ${data.text}</span>`
+                            `<span class="d-inline-flex align-items-center select2-selection-item">
+                                <i class="fas ${icon} ${colorClass} me-1" style="color: ${data.type === 'contact' ? '#444a9f' : '#9c85db'} !important;"></i>
+                                <span>${data.text}</span>
+                            </span>`
                         );
                     },
                     tags: false,
                     tokenSeparators: [','],
                     minimumInputLength: 2,
                     width: '100%',
-                    // Add debugging for selection events
+                    dropdownParent: modalParent.length ? modalParent : jQuery('body'),
                     language: {
                         noResults: function() {
                             return "No contacts or users found";
                         }
-                    },
-                    // Add custom CSS classes for styling
-                    containerCssClass: 'custom-select2-container',
-                    dropdownCssClass: 'custom-select2-dropdown'
+                    }
                 });
+                
                 console.log(`✅ Select2 initialized for ${$element.attr('name')}`);
             } catch (error) {
                 console.error(`❌ Error initializing Select2:`, error);
@@ -480,11 +484,6 @@
                             // Initialize only if needed
                             initializeAllSelect2();
                         }
-                        
-                        // Clean up any leaked text
-                        if (typeof setupTextLeakPrevention === 'function') {
-                            setupTextLeakPrevention();
-                        }
                     }, 100);
                 } else {
                     console.error(`❌ Could not find form with ID: ${formId}`);
@@ -561,10 +560,6 @@ function init() {
     // Initialize any to-do toggles
     initializeToDoToggles();
     
-    // Setup text leak prevention
-    setupTextLeakPrevention();
-    
-    // More initialization as needed...
     console.log('⚙️ ACTIVITY FORMS - Initialization complete');
 }
 
@@ -589,64 +584,9 @@ function initializeActivityButtons() {
     setupActivityCardHandlers();
 }
 
-// Function to prevent text leaking outside the Select2 dropdown
-function setupTextLeakPrevention() {
-    try {
-        // Don't add any CSS that might hide content
-        console.log('✅ Text leak prevention disabled to avoid breaking the page');
-    } catch (error) {
-        console.error('❌ Error setting up text leak prevention:', error);
-    }
-}
-
-// Global function to clean up any orphaned text nodes
-function cleanupOrphanedText() {
-    // No need for this function anymore
-}
-
 // Document ready function
 jQuery(document).ready(function() {
     console.log('Activity forms JS loaded');
-    
-    // Add necessary Select2 styles if they don't exist
-    if (!jQuery('#select2-styles').length) {
-        const styles = `
-            <style id="select2-styles">
-                /* Make selected items clearly visible */
-                .select2-container--default .select2-selection--multiple .select2-selection__choice {
-                    background-color: #e4e4e4;
-                    border: 1px solid #aaa;
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    margin: 4px 4px 0 0;
-                    font-size: 0.9em;
-                }
-                
-                /* Make the icons in selection visible */
-                .select2-container--default .select2-selection--multiple .select2-selection__choice i {
-                    margin-right: 5px;
-                    color: #3498db;
-                }
-                
-                /* Fix dropdown positioning */
-                .select2-container--open .select2-dropdown {
-                    z-index: 9999;
-                }
-                
-                /* Ensure multiple select is tall enough */
-                .select2-container--default .select2-selection--multiple {
-                    min-height: 38px;
-                }
-                
-                /* Fix placeholder */
-                .select2-container--default .select2-selection--multiple .select2-search__field {
-                    width: 100% !important;
-                    margin-top: 5px;
-                }
-            </style>
-        `;
-        jQuery('head').append(styles);
-    }
     
     // Debug: Check form elements on document ready
     console.log('================== DOCUMENT READY DEBUG ==================');
@@ -816,8 +756,9 @@ function initBasicSelect2() {
                 const $element = jQuery(this);
                 const modalParent = $element.closest('.modal');
                 
-                // Initialize with minimal configuration
+                // Initialize with Bootstrap theme
                 $element.select2({
+                    theme: 'bootstrap-5',
                     ajax: {
                         url: '/crm/api/search-recipients/',
                         dataType: 'json',
@@ -840,13 +781,13 @@ function initBasicSelect2() {
                         if (data.loading) return data.text;
                         if (!data.id) return data.text;
                         
-                        // Format the dropdown items
+                        // Format the dropdown items with custom colors
                         const icon = data.type === 'contact' ? 'fa-address-card' : 'fa-user';
-                        const labelClass = data.type === 'contact' ? 'text-primary' : 'text-success'; 
+                        const colorClass = data.type === 'contact' ? 'icon-contact' : 'icon-user';
                         
                         return jQuery(
                             `<div class="d-flex align-items-center p-1">
-                                <i class="fas ${icon} ${labelClass} me-2"></i>
+                                <i class="fas ${icon} ${colorClass} me-2"></i>
                                 <div>
                                     <span class="d-block">${data.text}</span>
                                     <small class="text-muted">${data.type === 'contact' ? 'Contact' : 'User'}</small>
@@ -857,10 +798,15 @@ function initBasicSelect2() {
                     templateSelection: function(data) {
                         if (!data.id) return data.text;
                         
-                        // Format selected items
+                        // Format selected items with custom colored icons and more explicit structure
                         const icon = data.type === 'contact' ? 'fa-address-card' : 'fa-user';
+                        const colorClass = data.type === 'contact' ? 'icon-contact' : 'icon-user';
+                        
                         return jQuery(
-                            `<span><i class="fas ${icon} me-1"></i> ${data.text}</span>`
+                            `<span class="d-inline-flex align-items-center select2-selection-item">
+                                <i class="fas ${icon} ${colorClass} me-1" style="color: ${data.type === 'contact' ? '#444a9f' : '#9c85db'} !important;"></i>
+                                <span>${data.text}</span>
+                            </span>`
                         );
                     },
                     tags: false,
@@ -872,10 +818,7 @@ function initBasicSelect2() {
                         noResults: function() {
                             return "No contacts or users found";
                         }
-                    },
-                    // Add custom CSS classes for styling
-                    containerCssClass: 'custom-select2-container',
-                    dropdownCssClass: 'custom-select2-dropdown'
+                    }
                 });
                 
                 // Add debug event handlers
