@@ -957,6 +957,93 @@ def document_delete(request, document_id):
     return redirect('crm:company_detail', pk=company_id)
 
 @login_required
+def document_detail(request, document_id):
+    """
+    View detailed information about a document
+    """
+    document = get_object_or_404(Document, id=document_id)
+    company = document.company
+    
+    # Check if user has permission
+    if request.user.role not in ['superuser', 'admin', 'marketing', 'operations']:
+        messages.error(request, "You don't have permission to view document details.")
+        return redirect('crm:company_detail', pk=company.id)
+    
+    # Create activity record for document view (optional)
+    Activity.objects.create(
+        company=company,
+        activity_type='document',
+        description=f"Viewed document: {document.title}",
+        performed_by=request.user
+    )
+    
+    context = {
+        'document': document,
+        'company': company,
+    }
+    return render(request, 'crm/document_detail.html', context)
+
+@login_required
+def document_update(request, document_id):
+    """
+    Update document details
+    """
+    document = get_object_or_404(Document, id=document_id)
+    company = document.company
+    
+    # Check if user has permission
+    if request.user.role not in ['superuser', 'admin', 'marketing']:
+        messages.error(request, "You don't have permission to update documents.")
+        return redirect('crm:company_detail', pk=company.id)
+    
+    if request.method == 'POST':
+        form = DocumentUploadForm(request.POST, request.FILES, instance=document)
+        if form.is_valid():
+            updated_document = form.save(commit=False)
+            
+            # If a new file is uploaded, handle it
+            if 'file' in request.FILES:
+                file = request.FILES['file']
+                
+                # Size validation
+                if file.size > 10 * 1024 * 1024:  # 10MB in bytes
+                    messages.error(request, "File size exceeds the 10MB limit. Please upload a smaller file.")
+                    return redirect('crm:document_update', document_id=document_id)
+                
+                # File type validation
+                ext = os.path.splitext(file.name)[1].lower()
+                allowed_extensions = [
+                    '.pdf', '.doc', '.docx', '.xls', '.xlsx', 
+                    '.ppt', '.pptx', '.txt', '.csv', '.rtf', '.odt', '.ods'
+                ]
+                
+                if ext not in allowed_extensions:
+                    messages.error(request, f"Unsupported file type. Allowed file types: {', '.join(allowed_extensions)}")
+                    return redirect('crm:document_update', document_id=document_id)
+            
+            updated_document.save()
+            
+            # Create activity record for document update
+            Activity.objects.create(
+                company=company,
+                activity_type='document',
+                description=f"Updated document: {document.title}",
+                performed_by=request.user
+            )
+            
+            messages.success(request, f"Document '{document.title}' updated successfully.")
+            return redirect('crm:document_detail', document_id=document.id)
+    else:
+        form = DocumentUploadForm(instance=document)
+    
+    context = {
+        'form': form,
+        'document': document,
+        'company': company,
+    }
+    return render(request, 'crm/document_update.html', context)
+
+@login_required
 def travel_policy_create(request, company_id):
     """Create a new travel policy for a company."""
     company = get_object_or_404(Company, id=company_id)

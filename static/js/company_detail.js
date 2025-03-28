@@ -27,8 +27,9 @@ $(document).ready(function() {
     var documentsTable = $('#company-documents-table');
     if (documentsTable.length) {
         try {
-            console.log('📊 Company documents table found');
-            initializeDocumentsTable(documentsTable);
+            console.log('📊 Company documents table found - skipping initialization (using Django rendering)');
+            // Removed DataTables initialization to rely on Django template rendering
+            // initializeDocumentsTable(documentsTable);
         } catch (e) {
             console.error('❌ Error initializing documents table:', e);
         }
@@ -388,4 +389,47 @@ function initializeActivityDetailsModal() {
     });
     
     console.log('✅ Activity details modal initialized');
-} 
+}
+
+// Initialize simple document search functionality
+$(document).ready(function() {
+    // Simple document search
+    $('#document-search').on('keyup', function() {
+        var searchText = $(this).val().toLowerCase();
+        $('.table-responsive table tbody tr').each(function() {
+            var rowText = $(this).text().toLowerCase();
+            $(this).toggle(rowText.indexOf(searchText) > -1);
+        });
+        
+        // Show/hide "no results" message
+        if ($('.table-responsive table tbody tr:visible').length === 0) {
+            if ($('.table-responsive table tbody .no-results').length === 0) {
+                $('.table-responsive table tbody').append(
+                    '<tr class="no-results"><td colspan="5" class="text-center py-3">' +
+                    '<i class="fas fa-search me-2"></i>No documents match your search.' +
+                    '</td></tr>'
+                );
+            }
+        } else {
+            $('.no-results').remove();
+        }
+    });
+    
+    // Documents per page selector
+    $('#documents-per-page').on('change', function() {
+        var perPage = parseInt($(this).val());
+        var rows = $('.table-responsive table tbody tr:not(.no-results)');
+        
+        rows.each(function(index) {
+            $(this).toggle(index < perPage);
+        });
+        
+        // Update pagination info
+        var totalRows = rows.length;
+        var visibleRows = $('.table-responsive table tbody tr:visible').length;
+        
+        if (totalRows > 0) {
+            $('.col-md-6 .text-muted').text('Showing 1 to ' + visibleRows + ' of ' + totalRows + ' documents');
+        }
+    });
+}); 

@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_detail' company.id %}">{{ company.company_name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:document_detail' document.id %}">{{ document.title }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Edit</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-blue-purple-left text-white py-3">
+                    <h5 class="mb-0">Edit Document: {{ document.title }}</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{% url 'crm:document_update' document.id %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_title" class="form-label">Document Title*</label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.title.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_document_type" class="form-label">Document Type*</label>
+                                {{ form.document_type }}
+                                {% if form.document_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.document_type.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="id_file" class="form-label">File (Current: {{ document.file.name|slice:"19:" }})</label>
+                                {{ form.file }}
+                                <div class="form-text">
+                                    Leave blank to keep the current file, or upload a new one to replace it.
+                                    <br />
+                                    Upload PDF, Word, Excel, PowerPoint, or other document files. Maximum file size: 10MB.<br>
+                                    Allowed formats: PDF, Word (doc/docx), Excel (xls/xlsx), PowerPoint (ppt/pptx), 
+                                    Text (txt/rtf), CSV, OpenDocument (odt/ods).
+                                </div>
+                                {% if form.file.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.file.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_expiry_date" class="form-label">Expiry Date (Optional)</label>
+                                {{ form.expiry_date }}
+                                {% if form.expiry_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.expiry_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_version" class="form-label">Version (Optional)</label>
+                                {{ form.version }}
+                                {% if form.version.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.version.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_description" class="form-label">Description (Optional)</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="id_is_active">
+                                    Active
+                                </label>
+                            </div>
+                            {% if form.is_active.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.is_active.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'crm:document_detail' document.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

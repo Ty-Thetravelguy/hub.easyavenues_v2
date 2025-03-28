@@ -22,6 +22,8 @@ urlpatterns = [
     # Document Management
     path('company/<int:company_id>/documents/upload/', views.document_upload, name='document_upload'),
     path('documents/<int:document_id>/delete/', views.document_delete, name='document_delete'),
+    path('documents/<int:document_id>/', views.document_detail, name='document_detail'),
+    path('documents/<int:document_id>/update/', views.document_update, name='document_update'),
     
     # Travel Policy Management
     path('company/<int:company_id>/travel-policy/create/', views.travel_policy_create, name='travel_policy_create'),
