@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
       contentHtml = `
         <div class="mb-3">
           <strong>Note:</strong>
-          <div class="p-3 bg-light rounded">${data.data.content || 'No content'}</div>
+          <div class="p-3 bg-light rounded">${data.content || 'No content'}</div>
         </div>
       `;
     } else if (activityType === 'meeting') {

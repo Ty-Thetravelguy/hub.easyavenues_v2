@@ -8,7 +8,7 @@ from .models import (
     COMPANY_TYPE, CLIENT_TYPE_CHOICES, CLIENT_STATUS_CHOICES, 
     SUPPLIER_TYPE_CHOICES, SUPPLIER_STATUS_CHOICES, SUPPLIER_FOR_DEPARTMENT_CHOICES, 
     ClientInvoiceReference, CompanyRelationship, ContactNote, Document, 
-    Activity, ClientTravelPolicy
+    Activity, ClientTravelPolicy, NoteActivity
 )
 from accounts.models import InvoiceReference
 from django.urls import reverse_lazy, reverse
@@ -193,7 +193,8 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
             contact=form.instance,
             activity_type='status_change',
             description=f"Contact {form.instance.first_name} {form.instance.last_name} was created",
-            performed_by=self.request.user
+            performed_by=self.request.user,
+            is_system_activity=True
         )
         
         messages.success(self.request, "Contact created successfully.")
@@ -814,7 +815,8 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
                 contact=updated_contact,
                 activity_type='status_change',
                 description=description,
-                performed_by=self.request.user
+                performed_by=self.request.user,
+                is_system_activity=True
             )
         
         messages.success(self.request, f"Contact {self.object.first_name} {self.object.last_name} has been updated successfully.")
@@ -839,13 +841,15 @@ def contact_add_note(request, pk):
                 created_by=request.user
             )
             
-            # Create an activity record for the note
-            Activity.objects.create(
+            # Create a note activity record
+            note_activity = NoteActivity.objects.create(
                 company=contact.company,
                 contact=contact,
                 activity_type='note',
                 description=f"Note added to contact {contact.first_name} {contact.last_name}: {content[:100]}{'...' if len(content) > 100 else ''}",
-                performed_by=request.user
+                performed_by=request.user,
+                is_system_activity=True,
+                content=content
             )
             
             messages.success(request, 'Note added successfully.')
@@ -909,7 +913,8 @@ def document_upload(request, company_id):
             company=company,
             activity_type='document',
             description=f"Uploaded document: {document.title}",
-            performed_by=request.user
+            performed_by=request.user,
+            is_system_activity=True
         )
         
         messages.success(request, f"Document '{document.title}' uploaded successfully.")
@@ -950,7 +955,8 @@ def document_delete(request, document_id):
         company=document.company,
         activity_type='document',
         description=f"Deleted document: {document_title}",
-        performed_by=request.user
+        performed_by=request.user,
+        is_system_activity=True
     )
     
     messages.success(request, f"Document '{document_title}' deleted successfully.")
@@ -968,14 +974,6 @@ def document_detail(request, document_id):
     if request.user.role not in ['superuser', 'admin', 'marketing', 'operations']:
         messages.error(request, "You don't have permission to view document details.")
         return redirect('crm:company_detail', pk=company.id)
-    
-    # Create activity record for document view (optional)
-    Activity.objects.create(
-        company=company,
-        activity_type='document',
-        description=f"Viewed document: {document.title}",
-        performed_by=request.user
-    )
     
     context = {
         'document': document,
@@ -1028,7 +1026,8 @@ def document_update(request, document_id):
                 company=company,
                 activity_type='document',
                 description=f"Updated document: {document.title}",
-                performed_by=request.user
+                performed_by=request.user,
+                is_system_activity=True
             )
             
             messages.success(request, f"Document '{document.title}' updated successfully.")
@@ -1096,7 +1095,8 @@ def travel_policy_create(request, company_id):
                     activity_type='policy_update',
                     description=f"Created travel policy '{policy.policy_name}' for {company.company_name}.",
                     performed_by=request.user,
-                    company=company
+                    company=company,
+                    is_system_activity=True
                 )
                 
                 return redirect('crm:travel_policy_detail', policy_id=policy.id)
@@ -1174,7 +1174,8 @@ def travel_policy_update(request, policy_id):
                 activity_type='policy_update',
                 description=f"Updated travel policy '{policy.policy_name}' for {company.company_name}.",
                 performed_by=request.user,
-                company=company
+                company=company,
+                is_system_activity=True
             )
             
             return redirect('crm:travel_policy_detail', policy_id=policy.id)
@@ -1209,7 +1210,8 @@ def travel_policy_delete(request, policy_id):
             activity_type='policy_update',
             description=f"Deleted travel policy '{policy_name}' from {company.company_name}.",
             performed_by=request.user,
-            company=company
+            company=company,
+            is_system_activity=True
         )
         
         policy.delete()
@@ -1233,7 +1235,8 @@ def contact_delete(request, pk):
             contact=None,  # Contact will be deleted, so set to None
             activity_type='status_change',
             description=f"Contact {contact_name} was deleted",
-            performed_by=request.user
+            performed_by=request.user,
+            is_system_activity=True
         )
         
         # Delete the contact
@@ -1725,4 +1728,27 @@ def search_recipients(request):
             'status': 'error',
             'results': []
         }, status=500)
+
+@login_required
+def activity_details(request, activity_id):
+    """View for displaying activity details"""
+    activity = get_object_or_404(Activity, id=activity_id)
+    
+    # Get the specific activity type instance
+    activity_details = None
+    if activity.activity_type == 'email':
+        activity_details = activity.emailactivity
+    elif activity.activity_type == 'call':
+        activity_details = activity.callactivity
+    elif activity.activity_type == 'meeting':
+        activity_details = activity.meetingactivity
+    elif activity.activity_type == 'note':
+        activity_details = activity.noteactivity
+    
+    context = {
+        'activity': activity,
+        'activity_details': activity_details,
+    }
+    
+    return render(request, 'crm/activity_details.html', context)
 

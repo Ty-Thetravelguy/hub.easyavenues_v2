@@ -838,76 +838,87 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Activity History</h5>
-          <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#logActivityModal">
-            <i class="fas fa-plus me-2"></i>Log Activity
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#logActivityModal">
+                    <i class="fas fa-plus me-2"></i>Log Activity
                 </button>
             </div>
             <div class="card-body">
-          <div class="row mb-3">
-            <div class="col-md-4">
-              <div class="input-group">
-                <input type="text" class="form-control" id="activity-search" placeholder="Search activities..." />
-                <button class="btn btn-outline-secondary" type="button" id="activity-search-btn">
-                  <i class="fas fa-search"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="timeline">
-                            {% for activity in activities %}
-            <div class="timeline-item border-{% if activity.activity_type == 'email' %}info{% elif activity.activity_type == 'call' %}primary{% elif activity.activity_type == 'meeting' %}success{% elif activity.activity_type == 'note' %}warning{% elif activity.activity_type == 'document' %}secondary{% elif activity.activity_type == 'status_change' %}info{% elif activity.activity_type == 'policy_update' %}success{% else %}secondary{% endif %}">
-              <div class="timeline-icon">
-                {% if activity.activity_type == 'email' %}
-                <i class="fas fa-envelope"></i>
-                {% elif activity.activity_type == 'call' %}
-                <i class="fas fa-phone"></i>
-                {% elif activity.activity_type == 'meeting' %}
-                <i class="fas fa-handshake"></i>
-                {% elif activity.activity_type == 'note' %}
-                <i class="fas fa-sticky-note"></i>
-                {% elif activity.activity_type == 'document' %}
-                <i class="fas fa-file-alt"></i>
-                {% elif activity.activity_type == 'status_change' %}
-                <i class="fas fa-exchange-alt"></i>
-                {% elif activity.activity_type == 'policy_update' %}
-                <i class="fas fa-file-contract"></i>
-                {% else %}
-                <i class="fas fa-clipboard-list"></i>
-                {% endif %}
-                                        </div>
-              <div class="timeline-content">
-                <div class="card shadow-sm">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                      <div>
-                        <h6 class="mb-1">{{ activity.activity_type|title }}</h6>
-                        <p class="card-text mb-0">{{ activity.description }}</p>
-                                                        {% if activity.data %}
-                          {% if activity.activity_type == 'email' and activity.data.subject %}
-                            <p class="text-muted mb-0">Subject: {{ activity.data.subject }}</p>
-                          {% elif activity.activity_type == 'call' and activity.data.duration %}
-                            <p class="text-muted mb-0">Duration: {{ activity.data.duration }} minutes</p>
-                          {% elif activity.activity_type == 'meeting' and activity.data.location %}
-                            <p class="text-muted mb-0">Location: {{ activity.data.location }}</p>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="activity-search" placeholder="Search activities..." />
+                            <button class="btn btn-outline-secondary" type="button" id="activity-search-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="timeline">
+                    {% for activity in activities %}
+                        {% if activity.is_system_activity or activity.activity_type == 'document' %}
+                            <!-- System Activity -->
+                            <div class="system-activity-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="text-muted">{{ activity.description }}</span>
+                                        <small class="text-muted ms-2">
+                                            <i class="fas fa-user me-1"></i>
+                                            {{ activity.performed_by.get_full_name }}
+                                        </small>
+                                    </div>
+                                    <small class="text-muted">{{ activity.performed_at|date:"d M Y H:i" }}</small>
+                                </div>
+                            </div>
+                        {% else %}
+                            <!-- User Logged Activity -->
+                            <div class="timeline-item user-activity">
+                                <div class="timeline-icon">
+                                    {% if activity.activity_type == 'email' %}
+                                        <i class="fas fa-envelope"></i>
+                                    {% elif activity.activity_type == 'call' %}
+                                        <i class="fas fa-phone"></i>
+                                    {% elif activity.activity_type == 'meeting' %}
+                                        <i class="fas fa-handshake"></i>
+                                    {% elif activity.activity_type == 'note' %}
+                                        <i class="fas fa-sticky-note"></i>
+                                    {% else %}
+                                        <i class="fas fa-clipboard-list"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="card shadow-sm">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1">{{ activity.activity_type|title }}</h6>
+                                                    <p class="card-text mb-0">{{ activity.description }}</p>
+                                                    {% if activity.data %}
+                                                        {% if activity.activity_type == 'email' and activity.data.subject %}
+                                                            <p class="text-muted mb-0">Subject: {{ activity.data.subject }}</p>
+                                                        {% elif activity.activity_type == 'call' and activity.data.duration %}
+                                                            <p class="text-muted mb-0">Duration: {{ activity.data.duration }} minutes</p>
+                                                        {% elif activity.activity_type == 'meeting' and activity.data.location %}
+                                                            <p class="text-muted mb-0">Location: {{ activity.data.location }}</p>
                                                         {% endif %}
-                        {% endif %}
-                      </div>
-                      <div class="text-end">
-                        <button type="button" class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ activity.id }}" data-activity-type="{{ activity.activity_type }}">
-                          <i class="fas fa-eye"></i>
-                                                        </button>
-                        <small class="text-muted d-block">{{ activity.performed_at|date:"d M Y H:i" }}</small>
-                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ activity.id }}" data-activity-type="{{ activity.activity_type }}">
+                                                        <i class="fas fa-eye me-1"></i>View
+                                                    </button>
+                                                    <small class="text-muted d-block">{{ activity.performed_at|date:"d M Y H:i" }}</small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                        </div>
-            {% empty %}
-            <div class="alert alert-info mb-0">
-              <i class="fas fa-info-circle me-2"></i>No activities found for this company.
-                                        </div>
-                            {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% empty %}
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>No activities found for this company.
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -916,199 +927,188 @@
 </div>
 
 <!-- Activity Details Modal -->
-<div
-  class="modal fade"
-  id="activity-details-modal"
-  tabindex="-1"
-  aria-labelledby="activity-details-modal-label"
-  aria-hidden="true"
->
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="activity-details-modal-label">Activity Details</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Close"
-        ></button>
-      </div>
-      <div class="modal-body" id="activity-details-container">
-        <!-- Default message when no activity is selected -->
-        <div id="no-activity-selected">
-          <p class="text-center text-muted">Select an activity to view details.</p>
-        </div>
-        
-        <!-- Activity detail sections will be generated here -->
-        {% for activity in activities %}
-        <div id="activity-{{ activity.id }}-details" class="activity-detail-section" style="display: none;">
-          <div class="card mb-3">
-            <div class="card-header bg-light">
-              <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">{{ activity.activity_type|title }} Activity</h6>
-                <span class="badge bg-{% if activity.activity_type == 'email' %}info{% elif activity.activity_type == 'call' %}primary{% elif activity.activity_type == 'meeting' %}success{% elif activity.activity_type == 'note' %}warning{% else %}secondary{% endif %}">{{ activity.activity_type|title }}</span>
-              </div>
+<div class="modal fade" id="activity-details-modal" tabindex="-1" aria-labelledby="activity-details-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activity-details-modal-label">Activity Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="card-body">
-              <dl class="row">
-                <dt class="col-sm-3">Description</dt>
-                <dd class="col-sm-9">{{ activity.description }}</dd>
+            <div class="modal-body" id="activity-details-container">
+                <!-- Default message when no activity is selected -->
+                <div id="no-activity-selected">
+                    <p class="text-center text-muted">Select an activity to view details.</p>
+                </div>
                 
-                <dt class="col-sm-3">Performed At</dt>
-                <dd class="col-sm-9">{{ activity.performed_at|date:"d M Y H:i" }}</dd>
-                
-                <dt class="col-sm-3">Performed By</dt>
-                <dd class="col-sm-9">{{ activity.performed_by.get_full_name }}</dd>
-                
-                {% if activity.activity_type == 'email' %}
-                  <!-- Email activity specific fields -->
-                  {% with email=activity|get_activity_details:'emailactivity' %}
-                    {% if email %}
-                      {% if email.subject %}
-                      <dt class="col-sm-3">Subject</dt>
-                      <dd class="col-sm-9">{{ email.subject }}</dd>
-                      {% endif %}
-                      
-                      {% if email.contact_recipients.exists or email.user_recipients.exists %}
-                      <dt class="col-sm-3">Recipients</dt>
-                      <dd class="col-sm-9">
-                        <ul class="list-unstyled mb-0">
-                          {% for recipient in email.contact_recipients.all %}
-                            <li>{{ recipient.first_name }} {{ recipient.last_name }} ({{ recipient.email }})</li>
-                          {% endfor %}
-                          {% for recipient in email.user_recipients.all %}
-                            <li>{{ recipient.get_full_name }} ({{ recipient.email }})</li>
-                          {% endfor %}
-                        </ul>
-                      </dd>
-                      {% endif %}
-                      
-                      {% if email.body %}
-                      <dt class="col-sm-3">Email Body</dt>
-                      <dd class="col-sm-9">
-                        <div class="border p-3 bg-light rounded">
-                          {{ email.body|linebreaks }}
+                <!-- Activity detail sections will be generated here -->
+                {% for activity in activities %}
+                {% if not activity.is_system_activity and activity.activity_type != 'document' %}
+                <div id="activity-{{ activity.id }}-details" class="activity-detail-section" style="display: none;">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">{{ activity.activity_type|title }} Activity</h6>
+                            <span class="badge bg-{% if activity.activity_type == 'email' %}info{% elif activity.activity_type == 'call' %}primary{% elif activity.activity_type == 'meeting' %}success{% elif activity.activity_type == 'note' %}warning{% else %}secondary{% endif %}">{{ activity.activity_type|title }}</span>
                         </div>
-                      </dd>
-                      {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-3">Description</dt>
+                            <dd class="col-sm-9">{{ activity.description }}</dd>
+                            
+                            <dt class="col-sm-3">Performed At</dt>
+                            <dd class="col-sm-9">{{ activity.performed_at|date:"d M Y H:i" }}</dd>
+                            
+                            <dt class="col-sm-3">Performed By</dt>
+                            <dd class="col-sm-9">{{ activity.performed_by.get_full_name }}</dd>
+                            
+                            {% if activity.activity_type == 'email' %}
+                                <!-- Email activity specific fields -->
+                                {% with email=activity|get_activity_details:'emailactivity' %}
+                                    {% if email %}
+                                        {% if email.subject %}
+                                        <dt class="col-sm-3">Subject</dt>
+                                        <dd class="col-sm-9">{{ email.subject }}</dd>
+                                        {% endif %}
+                                        
+                                        {% if email.contact_recipients.exists or email.user_recipients.exists %}
+                                        <dt class="col-sm-3">Recipients</dt>
+                                        <dd class="col-sm-9">
+                                            <ul class="list-unstyled mb-0">
+                                                {% for recipient in email.contact_recipients.all %}
+                                                    <li>{{ recipient.first_name }} {{ recipient.last_name }} ({{ recipient.email }})</li>
+                                                {% endfor %}
+                                                {% for recipient in email.user_recipients.all %}
+                                                    <li>{{ recipient.get_full_name }} ({{ recipient.email }})</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </dd>
+                                        {% endif %}
+                                        
+                                        {% if email.body %}
+                                        <dt class="col-sm-3">Email Body</dt>
+                                        <dd class="col-sm-9">
+                                            <div class="border p-3 bg-light rounded">
+                                                {{ email.body|linebreaks }}
+                                            </div>
+                                        </dd>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
+                            {% elif activity.activity_type == 'call' %}
+                                <!-- Call activity specific fields -->
+                                {% with call=activity|get_activity_details:'callactivity' %}
+                                    {% if call %}
+                                        {% if call.duration %}
+                                        <dt class="col-sm-3">Duration</dt>
+                                        <dd class="col-sm-9">{{ call.duration }} minutes</dd>
+                                        {% endif %}
+                                        
+                                        {% if call.call_type %}
+                                        <dt class="col-sm-3">Call Type</dt>
+                                        <dd class="col-sm-9">{{ call.call_type }}</dd>
+                                        {% endif %}
+                                        
+                                        {% if call.summary %}
+                                        <dt class="col-sm-3">Summary</dt>
+                                        <dd class="col-sm-9">{{ call.summary|linebreaks }}</dd>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
+                            {% elif activity.activity_type == 'meeting' %}
+                                <!-- Meeting activity specific fields -->
+                                {% with meeting=activity|get_activity_details:'meetingactivity' %}
+                                    {% if meeting %}
+                                        {% if meeting.title %}
+                                        <dt class="col-sm-3">Title</dt>
+                                        <dd class="col-sm-9">{{ meeting.title }}</dd>
+                                        {% endif %}
+                                        
+                                        {% if meeting.location %}
+                                        <dt class="col-sm-3">Location</dt>
+                                        <dd class="col-sm-9">{{ meeting.location }}</dd>
+                                        {% endif %}
+                                        
+                                        {% if meeting.duration %}
+                                        <dt class="col-sm-3">Duration</dt>
+                                        <dd class="col-sm-9">{{ meeting.duration }} minutes</dd>
+                                        {% endif %}
+                                        
+                                        {% if meeting.attendees.exists %}
+                                        <dt class="col-sm-3">Attendees</dt>
+                                        <dd class="col-sm-9">
+                                            <ul class="list-unstyled mb-0">
+                                                {% for attendee in meeting.attendees.all %}
+                                                    <li>{{ attendee.first_name }} {{ attendee.last_name }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </dd>
+                                        {% endif %}
+                                        
+                                        {% if meeting.agenda %}
+                                        <dt class="col-sm-3">Agenda</dt>
+                                        <dd class="col-sm-9">{{ meeting.agenda|linebreaks }}</dd>
+                                        {% endif %}
+                                        
+                                        {% if meeting.minutes %}
+                                        <dt class="col-sm-3">Minutes</dt>
+                                        <dd class="col-sm-9">{{ meeting.minutes|linebreaks }}</dd>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
+                            {% elif activity.activity_type == 'note' %}
+                                <!-- Note activity specific fields -->
+                                {% with note=activity|get_activity_details:'noteactivity' %}
+                                    {% if note %}
+                                        {% if note.content %}
+                                        <dt class="col-sm-3">Content</dt>
+                                        <dd class="col-sm-9">{{ note.content|linebreaks }}</dd>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        </dl>
+                    </div>
+                    
+                    {% if activity.todos.exists %}
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Related Tasks</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group">
+                                {% for todo in activity.todos.all %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <span class="badge bg-{% if todo.status == 'completed' %}success{% elif todo.status == 'in_progress' %}warning{% else %}info{% endif %} me-2">
+                                            {{ todo.get_status_display }}
+                                        </span>
+                                        {{ todo.title }}
+                                    </span>
+                                    <small class="text-muted">Due: {{ todo.due_date|date:"d M Y" }}</small>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
                     {% endif %}
-                  {% endwith %}
-                {% elif activity.activity_type == 'call' %}
-                  <!-- Call activity specific fields -->
-                  {% with call=activity|get_activity_details:'callactivity' %}
-                    {% if call %}
-                      {% if call.duration %}
-                      <dt class="col-sm-3">Duration</dt>
-                      <dd class="col-sm-9">{{ call.duration }} minutes</dd>
-                      {% endif %}
-                      
-                      {% if call.call_type %}
-                      <dt class="col-sm-3">Call Type</dt>
-                      <dd class="col-sm-9">{{ call.call_type }}</dd>
-                      {% endif %}
-                      
-                      {% if call.summary %}
-                      <dt class="col-sm-3">Summary</dt>
-                      <dd class="col-sm-9">{{ call.summary|linebreaks }}</dd>
-                      {% endif %}
-                    {% endif %}
-                  {% endwith %}
-                {% elif activity.activity_type == 'meeting' %}
-                  <!-- Meeting activity specific fields -->
-                  {% with meeting=activity|get_activity_details:'meetingactivity' %}
-                    {% if meeting %}
-                      {% if meeting.title %}
-                      <dt class="col-sm-3">Title</dt>
-                      <dd class="col-sm-9">{{ meeting.title }}</dd>
-                      {% endif %}
-                      
-                      {% if meeting.location %}
-                      <dt class="col-sm-3">Location</dt>
-                      <dd class="col-sm-9">{{ meeting.location }}</dd>
-                      {% endif %}
-                      
-                      {% if meeting.duration %}
-                      <dt class="col-sm-3">Duration</dt>
-                      <dd class="col-sm-9">{{ meeting.duration }} minutes</dd>
-                      {% endif %}
-                      
-                      {% if meeting.attendees.exists %}
-                      <dt class="col-sm-3">Attendees</dt>
-                      <dd class="col-sm-9">
-                        <ul class="list-unstyled mb-0">
-                          {% for attendee in meeting.attendees.all %}
-                            <li>{{ attendee.first_name }} {{ attendee.last_name }}</li>
-                          {% endfor %}
-                        </ul>
-                      </dd>
-                      {% endif %}
-                      
-                      {% if meeting.agenda %}
-                      <dt class="col-sm-3">Agenda</dt>
-                      <dd class="col-sm-9">{{ meeting.agenda|linebreaks }}</dd>
-                      {% endif %}
-                      
-                      {% if meeting.minutes %}
-                      <dt class="col-sm-3">Minutes</dt>
-                      <dd class="col-sm-9">{{ meeting.minutes|linebreaks }}</dd>
-                      {% endif %}
-                    {% endif %}
-                  {% endwith %}
-                {% elif activity.activity_type == 'note' %}
-                  <!-- Note activity specific fields -->
-                  {% with note=activity|get_activity_details:'noteactivity' %}
-                    {% if note %}
-                      {% if note.content %}
-                      <dt class="col-sm-3">Content</dt>
-                      <dd class="col-sm-9">{{ note.content|linebreaks }}</dd>
-                      {% endif %}
-                    {% endif %}
-                  {% endwith %}
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'crm:edit_activity' activity.id %}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a href="{% url 'crm:delete_activity' activity.id %}" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </a>
+                    </div>
+                </div>
                 {% endif %}
-              </dl>
-            </div>
-          </div>
-          
-          {% if activity.todos.exists %}
-          <div class="card">
-            <div class="card-header bg-light">
-              <h6 class="mb-0">Related Tasks</h6>
-            </div>
-            <div class="card-body">
-              <ul class="list-group">
-                {% for todo in activity.todos.all %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <span>
-                    <span class="badge bg-{% if todo.status == 'completed' %}success{% elif todo.status == 'in_progress' %}warning{% else %}info{% endif %} me-2">
-                      {{ todo.get_status_display }}
-                    </span>
-                    {{ todo.title }}
-                  </span>
-                  <small class="text-muted">Due: {{ todo.due_date|date:"d M Y" }}</small>
-                </li>
                 {% endfor %}
-              </ul>
             </div>
-          </div>
-          {% endif %}
-          
-          <div class="mt-3">
-            <a href="{% url 'crm:edit_activity' activity.id %}" class="btn btn-primary">
-              <i class="fas fa-edit"></i> Edit
-            </a>
-            <a href="{% url 'crm:delete_activity' activity.id %}" class="btn btn-danger">
-              <i class="fas fa-trash"></i> Delete
-            </a>
-          </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
-        {% endfor %}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
     </div>
-  </div>
 </div>
 
 <!-- Edit Activity Modal -->

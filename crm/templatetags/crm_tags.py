@@ -125,24 +125,19 @@ def split_call_desc(description, activity=None):
 def split_note_desc(description, activity=None):
     """
     Parse a note activity description into structured data.
-    If activity is provided and has data field, use that instead.
+    If activity is provided and is a NoteActivity, use its content field.
     """
-    if activity and activity.data and isinstance(activity.data, dict):
-        # Use stored structured data if available
-        note_data = {}
-        note_data['content'] = activity.data.get('content', '')
+    if activity and hasattr(activity, 'noteactivity'):
+        # Use the NoteActivity model's content field
+        note_data = {
+            'content': activity.noteactivity.content,
+            'contact': None
+        }
         
         # Get contact name if applicable
-        contact_name = None
-        if 'contact_id' in activity.data:
-            try:
-                from crm.models import Contact
-                contact = Contact.objects.get(id=activity.data['contact_id'])
-                contact_name = f"{contact.first_name} {contact.last_name}"
-            except Contact.DoesNotExist:
-                pass
+        if activity.contact:
+            note_data['contact'] = f"{activity.contact.first_name} {activity.contact.last_name}"
         
-        note_data['contact'] = contact_name
         return note_data
 
     # Fall back to parsing description

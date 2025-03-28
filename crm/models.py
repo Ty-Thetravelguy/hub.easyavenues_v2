@@ -465,6 +465,7 @@ class Activity(models.Model):
     outcome = models.TextField(blank=True)
     follow_up_date = models.DateField(null=True, blank=True)
     follow_up_notes = models.TextField(blank=True)
+    is_system_activity = models.BooleanField(default=False, help_text="Indicates if this is an automatically generated system activity")
 
     class Meta:
         verbose_name_plural = "Activities"
