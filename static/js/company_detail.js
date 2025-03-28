@@ -38,8 +38,9 @@ $(document).ready(function() {
     var travelPoliciesTable = $('#company-travel-policies-table');
     if (travelPoliciesTable.length) {
         try {
-            console.log('📊 Company travel policies table found');
-            initializeTravelPoliciesTable(travelPoliciesTable);
+            console.log('📊 Company travel policies table found - skipping initialization (using static HTML)');
+            // Skipping initialization as we're now using a static HTML table
+            // initializeTravelPoliciesTable(travelPoliciesTable);
         } catch (e) {
             console.error('❌ Error initializing travel policies table:', e);
         }

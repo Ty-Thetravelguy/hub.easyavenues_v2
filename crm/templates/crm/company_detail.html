@@ -700,72 +700,99 @@
           </a>
         </div>
         <div class="card-body">
-          <table id="company-travel-policies-table" class="table table-striped">
-            <thead>
-              <tr>
-                <th>Policy Name</th>
-                <th>Effective Date</th>
-                <th>Status</th>
-                <th>Last Updated</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for policy in travel_policies %}
-              <tr>
-                <td>
-                  <a
-                    href="{% url 'crm:travel_policy_detail' policy.pk %}"
-                    class="fw-bold link-color"
-                  >
-                    {{ policy.policy_name }}
-                  </a>
-                </td>
-                <td>{{ policy.effective_date|date:"d M Y" }}</td>
-                <td>
-                  <span class="badge {% if policy.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                    {% if policy.is_active %}Active{% else %}Inactive{% endif %}
-                  </span>
-                </td>
-                <td>{{ policy.last_updated|date:"d M Y" }}</td>
-                <td>
-                  <div class="d-flex gap-2">
-                    <a
-                      href="{% url 'crm:travel_policy_detail' policy.pk %}"
-                      class="btn btn-sm action-btn-purple text-white"
-                      title="View"
-                    >
-                      <i class="fas fa-eye"></i>
+          <!-- Controls row -->
+          <div class="row mb-3">
+            <div class="col-md-6 d-flex align-items-center">
+              <div class="me-2">Show</div>
+              <select class="form-select form-select-sm w-auto me-2">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <div>policies per page</div>
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search policies...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom table without DataTables -->
+          <div class="table-responsive">
+            <table class="table table-hover table-striped">
+              <thead>
+                <tr class="bg-light">
+                  <th class="w-25">Policy Name</th>
+                  <th class="w-20">Effective Date</th>
+                  <th class="w-15 text-center">Status</th>
+                  <th class="w-20">Last Updated</th>
+                  <th class="w-20 text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for policy in travel_policies %}
+                <tr>
+                  <td>
+                    <a href="{% url 'crm:travel_policy_detail' policy.pk %}" class="fw-bold link-color">
+                      {{ policy.policy_name }}
                     </a>
-                    <a
-                      href="{% url 'crm:travel_policy_update' policy.pk %}"
-                      class="btn btn-sm btn-secondary-ea"
-                      title="Edit"
-                    >
-                      <i class="fas fa-edit"></i>
-                    </a>
-                    <a
-                      href="{% url 'crm:travel_policy_delete' policy.pk %}"
-                      class="btn btn-sm btn-danger"
-                      title="Delete"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </a>
-                  </div>
-                </td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="5" class="text-center">
-                  <p class="mb-0 py-3 text-muted">
-                    <i class="fas fa-plane-departure me-2"></i>
-                    There are no travel policies available.
-                  </p>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                  </td>
+                  <td>{{ policy.effective_date|date:"d M Y" }}</td>
+                  <td class="text-center">
+                    <span class="badge {% if policy.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if policy.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                  </td>
+                  <td>{{ policy.last_updated|date:"d M Y" }}</td>
+                  <td class="text-end">
+                    <div class="d-flex justify-content-end gap-2">
+                      <a href="{% url 'crm:travel_policy_detail' policy.pk %}" class="btn btn-sm action-btn-purple text-white" title="View">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="{% url 'crm:travel_policy_update' policy.pk %}" class="btn btn-sm btn-secondary-ea" title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <a href="{% url 'crm:travel_policy_delete' policy.pk %}" class="btn btn-sm btn-danger" title="Delete">
+                        <i class="fas fa-trash"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center">
+                    <p class="mb-0 py-3 text-muted">
+                      <i class="fas fa-plane-departure me-2"></i>
+                      There are no travel policies available.
+                    </p>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="row mt-3">
+            <div class="col-md-6">
+              <p class="text-muted mb-0">Showing 1 to {{ travel_policies|length }} of {{ travel_policies|length }} policies</p>
+            </div>
+            <div class="col-md-6">
+              <nav aria-label="Travel policies pagination" class="float-end">
+                <ul class="pagination mb-0">
+                  <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                  </li>
+                  <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                  <li class="page-item disabled">
+                    <a class="page-link" href="#">Next</a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1252,7 +1279,6 @@
           <!-- Initial message -->
           <div id="initial-message" class="text-center py-4">
             <p>Please select an activity type above to start logging.</p>
-        </div>
         </div>
         </div>
         </div>
