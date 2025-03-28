@@ -229,4 +229,26 @@ def split_exception_desc(description, activity=None):
         'contact': 'Unknown',
         'approval': 'Not specified',
         'description': description
-    } 
+    }
+
+@register.filter
+def get_activity_details(activity, model_name):
+    """
+    Get a related activity model instance (e.g., EmailActivity, CallActivity) for an Activity.
+    
+    Usage:
+        {% with email=activity|get_activity_details:'emailactivity' %}
+            {{ email.subject }}
+        {% endwith %}
+    """
+    try:
+        # Use Django's _meta API to get the related objects
+        if not hasattr(activity, model_name.lower()):
+            return None
+        
+        # Get the specific activity model (e.g., emailactivity, callactivity)
+        related_activity = getattr(activity, model_name.lower())
+        return related_activity
+    except Exception as e:
+        # In case of error, return None
+        return None 

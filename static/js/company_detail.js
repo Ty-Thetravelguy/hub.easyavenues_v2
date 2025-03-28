@@ -45,6 +45,14 @@ $(document).ready(function() {
             console.error('❌ Error initializing travel policies table:', e);
         }
     }
+    
+    // Initialize Activity Details Modal
+    try {
+        console.log('🔍 Initializing Activity Details Modal');
+        initializeActivityDetailsModal();
+    } catch (e) {
+        console.error('❌ Error initializing activity details modal:', e);
+    }
 });
 
 // Function to initialize contacts table
@@ -336,4 +344,48 @@ function updateSortIcons(table) {
     } catch (e) {
         console.error('❌ Error updating sort icons:', e);
     }
+}
+
+// Activity details modal handler
+function initializeActivityDetailsModal() {
+    console.log('🔄 Initializing activity details modal');
+    
+    // When the activity details modal is about to be shown
+    $('#activity-details-modal').on('show.bs.modal', function (event) {
+        console.log('🔄 Activity modal being shown');
+        
+        // Button that triggered the modal
+        var button = $(event.relatedTarget);
+        
+        // Extract activity id from data attributes
+        var activityId = button.data('activity-id');
+        var activityType = button.data('activity-type');
+        
+        console.log('🔄 Showing activity:', activityId, activityType);
+        
+        // Hide all activity details sections
+        $('.activity-detail-section').hide();
+        
+        // Hide the no activity selected message
+        $('#no-activity-selected').hide();
+        
+        // Show the selected activity details
+        var detailsSelector = '#activity-' + activityId + '-details';
+        if ($(detailsSelector).length) {
+            console.log('✅ Found activity details element, showing:', detailsSelector);
+            $(detailsSelector).show();
+        } else {
+            console.error('❌ Activity details element not found for ID:', activityId);
+            // Show the no activity selected message if details not found
+            $('#no-activity-selected').show();
+        }
+    });
+    
+    // When the modal is hidden, reset all detail visibility
+    $('#activity-details-modal').on('hidden.bs.modal', function () {
+        $('.activity-detail-section').hide();
+        $('#no-activity-selected').show();
+    });
+    
+    console.log('✅ Activity details modal initialized');
 } 
