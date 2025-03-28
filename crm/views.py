@@ -767,7 +767,7 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['company'] = self.object.company
+        kwargs['user'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
@@ -776,56 +776,61 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
         original_data = {
             'first_name': original_contact.first_name,
             'last_name': original_contact.last_name,
-            'job_role': original_contact.job_role,
             'email': original_contact.email,
-            'landline': original_contact.landline,
             'mobile': original_contact.mobile,
+            'landline': original_contact.landline,
+            'job_role': original_contact.job_role,
             'date_of_birth': original_contact.date_of_birth,
             'hospitality': original_contact.hospitality,
-            'tag_list': original_contact.tag_list
+            'tag_list': original_contact.tag_list,
         }
-        
-        # Save the form to update the contact
+
+        # Save the updated contact
         response = super().form_valid(form)
-        
-        # Compare original data with updated data
         updated_contact = self.object
-        changed_fields = []
-        
+
+        # Compare original and updated data
+        changes = []
         for field, original_value in original_data.items():
             updated_value = getattr(updated_contact, field)
-            
-            # Check for date field (date_of_birth)
-            if field == 'date_of_birth' and original_value != updated_value:
-                orig_str = str(original_value) if original_value else "Not set"
-                updated_str = str(updated_value) if updated_value else "Not set"
-                changed_fields.append(f"{field.replace('_', ' ').title()}: {orig_str} → {updated_str}")
-            # Handle other fields
-            elif original_value != updated_value:
-                orig_str = str(original_value) if original_value else "Not set"
-                updated_str = str(updated_value) if updated_value else "Not set"
-                changed_fields.append(f"{field.replace('_', ' ').title()}: {orig_str} → {updated_str}")
-        
-        # Create activity record if fields were changed
-        if changed_fields:
-            description = f"Contact {updated_contact.first_name} {updated_contact.last_name} was updated:\n• " + "\n• ".join(changed_fields)
-            
+            if original_value != updated_value:
+                if field == 'tag_list':
+                    # Format tags with proper capitalization
+                    def format_tag(tag):
+                        tag_map = {
+                            'primary': 'Primary Contact',
+                            'key_personnel': 'Key Personnel',
+                            'booker': 'Booker',
+                            'vip_traveller': 'VIP Traveller',
+                            'traveller': 'Traveller'
+                        }
+                        return tag_map.get(tag, tag.title().replace('_', ' '))
+
+                    original_tags = [format_tag(tag) for tag in (original_value or [])]
+                    updated_tags = [format_tag(tag) for tag in (updated_value or [])]
+                    
+                    changes.append(f"Tag List: {', '.join(original_tags)} → {', '.join(updated_tags)}")
+                else:
+                    # Format field name for display
+                    field_display = field.replace('_', ' ').title()
+                    changes.append(f"{field_display}: {original_value} → {updated_value}")
+
+        if changes:
+            # Create activity record for the update
             Activity.objects.create(
                 company=updated_contact.company,
                 contact=updated_contact,
-                activity_type='status_change',
-                description=description,
+                activity_type='update',
+                description=f"Contact {updated_contact.first_name} {updated_contact.last_name} was updated:\n" + "\n".join(f"• {change}" for change in changes),
                 performed_by=self.request.user,
                 is_system_activity=True
             )
-        
-        messages.success(self.request, f"Contact {self.object.first_name} {self.object.last_name} has been updated successfully.")
+
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = f"Update {self.object.first_name} {self.object.last_name}"
-        context['submit_text'] = "Update Contact"
+        context['company'] = self.object.company
         return context
 
 @login_required
