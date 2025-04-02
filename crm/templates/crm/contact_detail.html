@@ -255,258 +255,329 @@
 
         <!-- Activities Tab -->
         <div class="tab-pane fade" id="activities" role="tabpanel">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Activity History</h5>
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="activity-icon-wrapper rounded-circle bg-primary-ea text-white me-3">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h5 class="mb-0 text-primary-ea">Activity History</h5>
+                    </div>
+                    
+                    <!-- Activity Filters -->
+                    <div class="activity-filters mt-3 p-3 bg-light border rounded">
+                        <div class="row g-3">
+                            <!-- Search Bar -->
+                            <div class="col-md-12 mb-2">
+                                <label for="activity-search" class="form-label fw-bold">Search</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="activity-search" placeholder="Search activities...">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-12">
+                                <div class="row">
+                                    <!-- Activity Type Filter -->
+                                    <div class="col-md-4 mb-2">
+                                        <label for="activity-type-filter" class="form-label fw-bold">Activity Type</label>
+                                        <select class="form-select" id="activity-type-filter">
+                                            <option value="">All Activities</option>
+                                            <option value="email">Emails</option>
+                                            <option value="call">Calls</option>
+                                            <option value="meeting">Meetings</option>
+                                            <option value="exception">Waiver & Favor</option>
+                                            <option value="note">Notes</option>
+                                            <option value="system">System Updates</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Date Range Filters -->
+                                    <div class="col-md-7">
+                                        <label class="form-label fw-bold">Date Range</label>
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                                    <input type="date" class="form-control" id="date-from" placeholder="From">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                                    <input type="date" class="form-control" id="date-to" placeholder="To">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Reset Button -->
+                                    <div class="col-md-1 d-flex align-items-end">
+                                        <button type="button" id="reset-filters" class="btn btn-outline-secondary w-100">
+                                            <i class="fas fa-undo-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="activity-timeline">
                         {% for activity in activities %}
-                        <div class="timeline-item {% if 'created' in activity.description|lower %}border-success{% elif 'updated' in activity.description|lower %}border-warning{% elif 'deleted' in activity.description|lower %}border-danger{% else %}border-info{% endif %} ps-3 mb-4">
+                        <div class="timeline-item {% if activity.activity_type == 'email' %}border-top-primary-ea bg-primary-ea{% elif activity.activity_type == 'call' %}border-top-secondary-ea bg-secondary-ea{% elif activity.activity_type == 'note' %}border-top-tertiary-ea bg-tertiary-ea{% elif activity.activity_type == 'exception' %}border-top-purple bg-purple{% elif 'created' in activity.description|lower %}border-top-primary-ea bg-primary-ea{% elif 'updated' in activity.description|lower %}border-top-secondary-ea bg-secondary-ea{% elif 'deleted' in activity.description|lower %}border-top-purple bg-purple{% else %}border-top-accent-ea bg-accent-ea{% endif %} bg-opacity-10 ps-3 mb-4 rounded shadow-sm">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="mb-0">
-                                    {% if activity.activity_type == 'status_change' %}
-                                        <i class="fas fa-exchange-alt text-warning me-2"></i>
-                                    {% elif 'created' in activity.description|lower %}
-                                        <i class="fas fa-plus-circle text-success me-2"></i>
-                                    {% elif 'updated' in activity.description|lower %}
-                                        <i class="fas fa-edit text-warning me-2"></i>
-                                    {% elif 'deleted' in activity.description|lower %}
-                                        <i class="fas fa-trash text-danger me-2"></i>
-                                    {% elif activity.activity_type == 'note' %}
-                                        <i class="fas fa-sticky-note text-info me-2"></i>
-                                    {% elif activity.activity_type == 'email' %}
-                                        <i class="fas fa-envelope text-primary me-2"></i>
-                                    {% elif activity.activity_type == 'call' %}
-                                        <i class="fas fa-phone text-success me-2"></i>
-                                    {% elif activity.activity_type == 'meeting' %}
-                                        <i class="fas fa-handshake text-primary me-2"></i>
-                                    {% else %}
-                                        <i class="fas fa-clipboard-list text-secondary me-2"></i>
-                                    {% endif %}
-                                    {{ activity.activity_type|title }}
+                                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle me-2 p-2 {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% elif activity.activity_type == 'status_change' %}bg-accent-ea{% elif 'created' in activity.description|lower %}bg-primary-ea{% elif 'updated' in activity.description|lower %}bg-secondary-ea{% elif 'deleted' in activity.description|lower %}bg-purple{% else %}bg-accent-ea{% endif %} bg-opacity-25" style="width: 32px; height: 32px;">
+                                        {% if activity.activity_type == 'status_change' %}
+                                            <i class="fas fa-exchange-alt {% if activity.activity_type == 'status_change' %}text-accent-ea{% endif %}"></i>
+                                        {% elif 'created' in activity.description|lower %}
+                                            <i class="fas fa-plus-circle text-primary-ea"></i>
+                                        {% elif 'updated' in activity.description|lower %}
+                                            <i class="fas fa-edit text-secondary-ea"></i>
+                                        {% elif 'deleted' in activity.description|lower %}
+                                            <i class="fas fa-trash text-purple"></i>
+                                        {% elif activity.activity_type == 'note' %}
+                                            <i class="fas fa-sticky-note text-tertiary-ea"></i>
+                                        {% elif activity.activity_type == 'email' %}
+                                            <i class="fas fa-envelope text-primary-ea"></i>
+                                        {% elif activity.activity_type == 'call' %}
+                                            <i class="fas fa-phone-alt text-secondary-ea"></i>
+                                        {% elif activity.activity_type == 'meeting' %}
+                                            <i class="fas fa-handshake text-primary-ea"></i>
+                                        {% elif activity.activity_type == 'exception' %}
+                                            <i class="fas fa-star text-purple"></i>
+                                        {% else %}
+                                            <i class="fas fa-clipboard-list"></i>
+                                        {% endif %}
+                                    </div>
+                                    <span class="{% if activity.activity_type == 'email' %}text-primary-ea{% elif activity.activity_type == 'call' %}text-secondary-ea{% elif activity.activity_type == 'note' %}text-tertiary-ea{% elif activity.activity_type == 'exception' %}text-purple{% elif 'created' in activity.description|lower %}text-primary-ea{% elif 'updated' in activity.description|lower %}text-secondary-ea{% elif 'deleted' in activity.description|lower %}text-purple{% endif %}">
+                                        {{ activity.activity_type|title }}
+                                    </span>
                                 </h6>
-                                <span class="badge bg-light text-dark rounded-pill">
-                                    {{ activity.performed_at|date:"d M Y, H:i" }}
+                                <span class="badge {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% elif activity.activity_type == 'status_change' %}bg-accent-ea{% elif 'created' in activity.description|lower %}bg-primary-ea{% elif 'updated' in activity.description|lower %}bg-secondary-ea{% elif 'deleted' in activity.description|lower %}bg-purple{% else %}bg-accent-ea{% endif %} bg-opacity-25 text-dark rounded-pill">
+                                    <i class="far fa-clock me-1"></i>{{ activity.performed_at|date:"d M Y, H:i" }}
                                 </span>
                             </div>
-                            <p class="text-muted small mb-2">
-                                <i class="fas fa-user me-1"></i> {{ activity.performed_by.get_full_name }}
-                            </p>
-                            
-                            {% if activity.is_system_activity %}
-                                {% if 'tag list' in activity.description|lower %}
-                                    {% with desc_parts=activity.description|split:"\n" %}
-                                        <div class="mb-1">{{ desc_parts.0 }}</div>
-                                        {% for part in desc_parts|slice:"1:" %}
-                                            <div class="text-muted small">{{ part }}</div>
-                                        {% endfor %}
-                                    {% endwith %}
+                            <div class="ps-4 ms-2">
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-user-circle me-1"></i> {{ activity.performed_by.get_full_name }}
+                                </p>
+                                
+                                {% if activity.is_system_activity %}
+                                    {% if 'tag list' in activity.description|lower %}
+                                        {% with desc_parts=activity.description|split:"\n" %}
+                                            <div class="mb-1 fw-medium">{{ desc_parts.0 }}</div>
+                                            {% for part in desc_parts|slice:"1:" %}
+                                                <div class="text-muted small">{{ part }}</div>
+                                            {% endfor %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <p class="mb-0">{{ activity.description }}</p>
+                                    {% endif %}
+                                {% elif activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
+                                    <!-- Enhanced card-style presentation for logged activities -->
+                                    <div class="card mb-2 activity-card {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% endif %} bg-opacity-10">
+                                        <div class="card-body py-2 px-3">
+                                            {% if activity.activity_type == 'email' %}
+                                                {% with email_parts=activity.description|split_email_desc:activity %}
+                                                    <div class="mb-1"><strong class="{% if activity.activity_type == 'email' %}text-primary-ea{% endif %}">Subject:</strong> {{ email_parts.subject }}</div>
+                                                    {% if email_parts.recipients %}
+                                                        <div class="small text-muted mb-1"><i class="fas fa-paper-plane me-1"></i> {{ email_parts.recipients }}</div>
+                                                    {% endif %}
+                                                    <div class="content-preview">{{ email_parts.content|truncatechars:100 }}</div>
+                                                {% endwith %}
+                                            {% elif activity.activity_type == 'call' %}
+                                                {% with call_parts=activity.description|split_call_desc:activity %}
+                                                    <div class="mb-1">
+                                                        <strong class="{% if activity.activity_type == 'call' %}text-secondary-ea{% endif %}">{{ call_parts.call_type|default:"" }} Call with {{ call_parts.contact }}</strong>
+                                                        {% if call_parts.duration != 'Not specified' %}
+                                                            <span class="text-muted"><i class="fas fa-clock ms-1 me-1"></i>{{ call_parts.duration }} mins</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="content-preview">{{ call_parts.summary|truncatechars:100 }}</div>
+                                                {% endwith %}
+                                            {% elif activity.activity_type == 'note' %}
+                                                {% with note_parts=activity.description|split_note_desc:activity %}
+                                                    {% if note_parts.contact %}
+                                                        <div class="mb-1"><strong class="{% if activity.activity_type == 'note' %}text-tertiary-ea{% endif %}">About:</strong> {{ note_parts.contact }}</div>
+                                                    {% endif %}
+                                                    <div class="content-preview">{{ note_parts.content|truncatechars:100 }}</div>
+                                                {% endwith %}
+                                            {% elif activity.activity_type == 'exception' %}
+                                                {% with exception_parts=activity.description|split_exception_desc:activity %}
+                                                    <div class="mb-1">
+                                                        <strong class="text-purple">{{ exception_parts.type }}</strong>
+                                                        {% if exception_parts.value != 'Not specified' %}
+                                                            <span class="text-muted"><i class="fas fa-pound-sign ms-1 me-1"></i>{{ exception_parts.value }}</span>
+                                                        {% endif %}
+                                                        for {{ exception_parts.contact }}
+                                                    </div>
+                                                    <div class="content-preview">{{ exception_parts.description|truncatechars:100 }}</div>
+                                                {% endwith %}
+                                            {% else %}
+                                                <p class="mb-0">{{ activity.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 {% else %}
                                     <p class="mb-0">{{ activity.description }}</p>
                                 {% endif %}
-                            {% elif activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
-                                <!-- Enhanced card-style presentation for logged activities -->
-                                <div class="card mb-2 activity-content-card {% if activity.activity_type == 'email' %}bg-primary bg-opacity-10{% elif activity.activity_type == 'call' %}bg-success bg-opacity-10{% elif activity.activity_type == 'note' %}bg-warning bg-opacity-10{% elif activity.activity_type == 'exception' %}bg-danger bg-opacity-10{% endif %}">
-                                    <div class="card-body py-2 px-3">
-                                        {% if activity.activity_type == 'email' %}
-                                            {% with email_parts=activity.description|split_email_desc:activity %}
-                                                <div class="mb-1"><strong>Subject:</strong> {{ email_parts.subject }}</div>
-                                                {% if email_parts.recipients %}
-                                                    <div class="small text-muted mb-1">To: {{ email_parts.recipients }}</div>
-                                                {% endif %}
-                                                <div class="content-preview">{{ email_parts.content|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% elif activity.activity_type == 'call' %}
-                                            {% with call_parts=activity.description|split_call_desc:activity %}
-                                                <div class="mb-1">
-                                                    <strong>{{ call_parts.call_type|default:"" }} Call with {{ call_parts.contact }}</strong>
-                                                    {% if call_parts.duration != 'Not specified' %}
-                                                        <span class="text-muted">({{ call_parts.duration }} mins)</span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="content-preview">{{ call_parts.summary|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% elif activity.activity_type == 'note' %}
-                                            {% with note_parts=activity.description|split_note_desc:activity %}
-                                                {% if note_parts.contact %}
-                                                    <div class="mb-1"><strong>About:</strong> {{ note_parts.contact }}</div>
-                                                {% endif %}
-                                                <div class="content-preview">{{ note_parts.content|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% elif activity.activity_type == 'exception' %}
-                                            {% with exception_parts=activity.description|split_exception_desc:activity %}
-                                                <div class="mb-1">
-                                                    <strong>{{ exception_parts.type }}</strong>
-                                                    {% if exception_parts.value != 'Not specified' %}
-                                                        <span class="text-muted">(£{{ exception_parts.value }})</span>
-                                                    {% endif %}
-                                                    for {{ exception_parts.contact }}
-                                                </div>
-                                                <div class="content-preview">{{ exception_parts.description|truncatechars:100 }}</div>
-                                            {% endwith %}
-                                        {% else %}
-                                            <p class="mb-0">{{ activity.description }}</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% else %}
-                                <p class="mb-0">{{ activity.description }}</p>
-                            {% endif %}
-                            
-                            {% if activity.activity_type == 'status_change' and activity.outcome %}
-                            <div class="mt-2">
-                                <span class="badge bg-secondary me-2">From</span> {{ activity.outcome|split:"|"|first }}
-                                <i class="fas fa-arrow-right mx-2"></i>
-                                <span class="badge bg-primary me-2">To</span> {{ activity.outcome|split:"|"|last }}
-                            </div>
-                            {% endif %}
-                            
-                            {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
-                            <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#activityModal{{ activity.id }}">
-                                    <i class="fas fa-eye me-1"></i> View Details
-                                </button>
                                 
-                                <!-- Activity Details Modal -->
-                                <div class="modal fade" id="activityModal{{ activity.id }}" tabindex="-1" aria-labelledby="activityModalLabel{{ activity.id }}" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header {% if activity.activity_type == 'email' %}bg-primary text-white{% elif activity.activity_type == 'call' %}bg-success text-white{% elif activity.activity_type == 'note' %}bg-warning{% elif activity.activity_type == 'exception' %}bg-danger text-white{% endif %}">
-                                                <h5 class="modal-title" id="activityModalLabel{{ activity.id }}">
-                                                    {% if activity.activity_type == 'email' %}
-                                                        <i class="fas fa-envelope me-2"></i>
-                                                    {% elif activity.activity_type == 'call' %}
-                                                        <i class="fas fa-phone me-2"></i>
-                                                    {% elif activity.activity_type == 'note' %}
-                                                        <i class="fas fa-sticky-note me-2"></i>
-                                                    {% elif activity.activity_type == 'exception' %}
-                                                        <i class="fas fa-star me-2"></i>
-                                                    {% endif %}
-                                                    {{ activity.activity_type|title }} Details
-                                                </h5>
-                                                <button type="button" class="btn-close {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'exception' %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <h6 class="m-0">Created by</h6>
-                                                        <span class="badge bg-light text-dark">{{ activity.performed_at|date:"d M Y, H:i" }}</span>
-                                                    </div>
-                                                    <p class="mb-0">{{ activity.performed_by.get_full_name }}</p>
+                                {% if activity.activity_type == 'status_change' and activity.outcome %}
+                                <div class="mt-2">
+                                    <span class="badge bg-secondary-ea bg-opacity-25 text-dark me-2">From</span> {{ activity.outcome|split:"|"|first }}
+                                    <i class="fas fa-long-arrow-alt-right mx-2 text-primary-ea"></i>
+                                    <span class="badge bg-primary-ea bg-opacity-25 text-dark me-2">To</span> {{ activity.outcome|split:"|"|last }}
+                                </div>
+                                {% endif %}
+                                
+                                {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'note' or activity.activity_type == 'exception' %}
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm {% if activity.activity_type == 'email' %}btn-outline-primary-ea{% elif activity.activity_type == 'call' %}btn-outline-secondary-ea{% elif activity.activity_type == 'note' %}btn-outline-tertiary-ea{% elif activity.activity_type == 'exception' %}btn-outline-purple{% else %}btn-outline-secondary{% endif %}" data-bs-toggle="modal" data-bs-target="#activityModal{{ activity.id }}">
+                                        <i class="fas fa-eye me-1"></i> View Details
+                                    </button>
+                                    
+                                    <!-- Activity Details Modal -->
+                                    <div class="modal fade" id="activityModal{{ activity.id }}" tabindex="-1" aria-labelledby="activityModalLabel{{ activity.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-header {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% endif %} {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'exception' %}text-white{% endif %}">
+                                                    <h5 class="modal-title" id="activityModalLabel{{ activity.id }}">
+                                                        {% if activity.activity_type == 'email' %}
+                                                            <i class="fas fa-envelope me-2"></i>
+                                                        {% elif activity.activity_type == 'call' %}
+                                                            <i class="fas fa-phone-alt me-2"></i>
+                                                        {% elif activity.activity_type == 'note' %}
+                                                            <i class="fas fa-sticky-note me-2"></i>
+                                                        {% elif activity.activity_type == 'exception' %}
+                                                            <i class="fas fa-star me-2"></i>
+                                                        {% endif %}
+                                                        {{ activity.activity_type|title }} Details
+                                                    </h5>
+                                                    <button type="button" class="btn-close {% if activity.activity_type == 'email' or activity.activity_type == 'call' or activity.activity_type == 'exception' %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
-                                                
-                                                <hr>
-                                                
-                                                {% if activity.activity_type == 'email' %}
-                                                    {% with email_parts=activity.description|split_email_desc:activity %}
-                                                        <div class="mb-3">
-                                                            <h6>Subject</h6>
-                                                            <p class="mb-0">{{ email_parts.subject }}</p>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <h6 class="m-0">Created by</h6>
+                                                            <span class="badge bg-light text-dark">{{ activity.performed_at|date:"d M Y, H:i" }}</span>
                                                         </div>
-                                                        
-                                                        {% if email_parts.recipients %}
-                                                        <div class="mb-3">
-                                                            <h6>Recipients</h6>
-                                                            <p class="mb-0">{{ email_parts.recipients }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Content</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ email_parts.content|linebreaks }}
+                                                        <p class="mb-0">{{ activity.performed_by.get_full_name }}</p>
+                                                    </div>
+                                                    
+                                                    <hr>
+                                                    
+                                                    {% if activity.activity_type == 'email' %}
+                                                        {% with email_parts=activity.description|split_email_desc:activity %}
+                                                            <div class="mb-3">
+                                                                <h6>Subject</h6>
+                                                                <p class="mb-0">{{ email_parts.subject }}</p>
+                                                            </div>
+                                                            
+                                                            {% if email_parts.recipients %}
+                                                            <div class="mb-3">
+                                                                <h6>Recipients</h6>
+                                                                <p class="mb-0">{{ email_parts.recipients }}</p>
+                                                            </div>
+                                                            {% endif %}
+                                                            
+                                                            <div class="mb-0">
+                                                                <h6>Content</h6>
+                                                                <div class="card">
+                                                                    <div class="card-body bg-light">
+                                                                        {{ email_parts.content|linebreaks }}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% elif activity.activity_type == 'call' %}
-                                                    {% with call_parts=activity.description|split_call_desc:activity %}
-                                                        <div class="mb-3">
-                                                            <h6>Call With</h6>
-                                                            <p class="mb-0">{{ call_parts.contact }}</p>
-                                                        </div>
-                                                        
-                                                        {% if call_parts.duration %}
-                                                        <div class="mb-3">
-                                                            <h6>Duration</h6>
-                                                            <p class="mb-0">{{ call_parts.duration }} {% if call_parts.duration != 'Not specified' %}minutes{% endif %}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Summary</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ call_parts.summary|linebreaks }}
+                                                        {% endwith %}
+                                                    {% elif activity.activity_type == 'call' %}
+                                                        {% with call_parts=activity.description|split_call_desc:activity %}
+                                                            <div class="mb-3">
+                                                                <h6>Call With</h6>
+                                                                <p class="mb-0">{{ call_parts.contact }}</p>
+                                                            </div>
+                                                            
+                                                            {% if call_parts.duration %}
+                                                            <div class="mb-3">
+                                                                <h6>Duration</h6>
+                                                                <p class="mb-0">{{ call_parts.duration }} {% if call_parts.duration != 'Not specified' %}minutes{% endif %}</p>
+                                                            </div>
+                                                            {% endif %}
+                                                            
+                                                            <div class="mb-0">
+                                                                <h6>Summary</h6>
+                                                                <div class="card">
+                                                                    <div class="card-body bg-light">
+                                                                        {{ call_parts.summary|linebreaks }}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% elif activity.activity_type == 'note' %}
-                                                    {% with note_parts=activity.description|split_note_desc:activity %}
-                                                        {% if note_parts.contact %}
-                                                        <div class="mb-3">
-                                                            <h6>About</h6>
-                                                            <p class="mb-0">{{ note_parts.contact }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Note Content</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ note_parts.content|linebreaks }}
+                                                        {% endwith %}
+                                                    {% elif activity.activity_type == 'note' %}
+                                                        {% with note_parts=activity.description|split_note_desc:activity %}
+                                                            {% if note_parts.contact %}
+                                                            <div class="mb-3">
+                                                                <h6>About</h6>
+                                                                <p class="mb-0">{{ note_parts.contact }}</p>
+                                                            </div>
+                                                            {% endif %}
+                                                            
+                                                            <div class="mb-0">
+                                                                <h6>Note Content</h6>
+                                                                <div class="card">
+                                                                    <div class="card-body bg-light">
+                                                                        {{ note_parts.content|linebreaks }}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% elif activity.activity_type == 'exception' %}
-                                                    {% with exception_parts=activity.description|split_exception_desc:activity %}
-                                                        <div class="mb-3">
-                                                            <h6>Exception Type</h6>
-                                                            <p class="mb-0">{{ exception_parts.type }}</p>
-                                                        </div>
-                                                        
-                                                        {% if exception_parts.value != 'Not specified' %}
-                                                        <div class="mb-3">
-                                                            <h6>Value</h6>
-                                                            <p class="mb-0">£{{ exception_parts.value }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-3">
-                                                            <h6>For</h6>
-                                                            <p class="mb-0">{{ exception_parts.contact }}</p>
-                                                        </div>
-                                                        
-                                                        {% if exception_parts.approval %}
-                                                        <div class="mb-3">
-                                                            <h6>Approval</h6>
-                                                            <p class="mb-0">{{ exception_parts.approval }}</p>
-                                                        </div>
-                                                        {% endif %}
-                                                        
-                                                        <div class="mb-0">
-                                                            <h6>Description/Reason</h6>
-                                                            <div class="card">
-                                                                <div class="card-body bg-light">
-                                                                    {{ exception_parts.description|linebreaks }}
+                                                        {% endwith %}
+                                                    {% elif activity.activity_type == 'exception' %}
+                                                        {% with exception_parts=activity.description|split_exception_desc:activity %}
+                                                            <div class="mb-3">
+                                                                <h6>Exception Type</h6>
+                                                                <p class="mb-0">{{ exception_parts.type }}</p>
+                                                            </div>
+                                                            
+                                                            {% if exception_parts.value != 'Not specified' %}
+                                                            <div class="mb-3">
+                                                                <h6>Value</h6>
+                                                                <p class="mb-0">£{{ exception_parts.value }}</p>
+                                                            </div>
+                                                            {% endif %}
+                                                            
+                                                            <div class="mb-3">
+                                                                <h6>For</h6>
+                                                                <p class="mb-0">{{ exception_parts.contact }}</p>
+                                                            </div>
+                                                            
+                                                            {% if exception_parts.approval %}
+                                                            <div class="mb-3">
+                                                                <h6>Approval</h6>
+                                                                <p class="mb-0">{{ exception_parts.approval }}</p>
+                                                            </div>
+                                                            {% endif %}
+                                                            
+                                                            <div class="mb-0">
+                                                                <h6>Description/Reason</h6>
+                                                                <div class="card">
+                                                                    <div class="card-body bg-light">
+                                                                        {{ exception_parts.description|linebreaks }}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    {% endwith %}
-                                                {% endif %}
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        {% endwith %}
+                                                    {% endif %}
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                                {% endif %}
                             </div>
-                            {% endif %}
                         </div>
                         {% empty %}
                         <div class="text-center text-muted py-4">
