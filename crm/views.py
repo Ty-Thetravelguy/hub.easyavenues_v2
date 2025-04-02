@@ -768,6 +768,7 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
+        kwargs['company'] = self.object.company
         return kwargs
 
     def form_valid(self, form):
@@ -809,7 +810,10 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
                     original_tags = [format_tag(tag) for tag in (original_value or [])]
                     updated_tags = [format_tag(tag) for tag in (updated_value or [])]
                     
-                    changes.append(f"Tag List: {', '.join(original_tags)} → {', '.join(updated_tags)}")
+                    # Format the tag list change without Python list syntax
+                    original_tags_str = ', '.join(original_tags) if original_tags else 'None'
+                    updated_tags_str = ', '.join(updated_tags) if updated_tags else 'None'
+                    changes.append(f"Tag List: {original_tags_str} → {updated_tags_str}")
                 else:
                     # Format field name for display
                     field_display = field.replace('_', ' ').title()

@@ -277,6 +277,7 @@ class ContactForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         company = kwargs.pop('company', None)
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
         if company:

@@ -864,7 +864,82 @@
                                             {% with desc_parts=activity.description|split:"\n" %}
                                                 <div class="mb-1">{{ desc_parts.0 }}</div>
                                                 {% for part in desc_parts|slice:"1:" %}
-                                                    <div class="text-muted small">{{ part }}</div>
+                                                    {% if 'tag list' in part|lower %}
+                                                        <div class="text-muted small">
+                                                            {% with tag_parts=part|split:"→" %}
+                                                                {% if tag_parts|length == 2 %}
+                                                                    <span>Tags changed from:</span>
+                                                                    <!-- Handle old format with Python list syntax or new comma-separated format -->
+                                                                    {% if "[" in tag_parts.0 %}
+                                                                        <!-- Old format with Python list syntax -->
+                                                                        {% with from_str=tag_parts.0|slice:"10:" %}
+                                                                            {% if from_str|slice:"-1:" == "]" %}
+                                                                                {% with clean_str=from_str|slice:"1:-1" %}
+                                                                                    {% for raw_tag in clean_str|split:"', '" %}
+                                                                                        {% with tag=raw_tag|cut:"'" %}
+                                                                                            <span class="badge me-1 {% if tag == 'primary' %}bg-primary{% elif tag == 'key_personnel' %}bg-success{% elif tag == 'booker' %}bg-warning text-dark{% elif tag == 'vip_traveller' %}bg-warning{% elif tag == 'traveller' %}bg-info{% else %}bg-secondary{% endif %}">
+                                                                                                {% if tag == 'primary' %}Primary Contact{% elif tag == 'key_personnel' %}Key Personnel{% elif tag == 'booker' %}Booker{% elif tag == 'vip_traveller' %}VIP Traveller{% elif tag == 'traveller' %}Traveller{% else %}{{ tag }}{% endif %}
+                                                                                            </span>
+                                                                                        {% endwith %}
+                                                                                    {% endfor %}
+                                                                                {% endwith %}
+                                                                            {% endif %}
+                                                                        {% endwith %}
+                                                                    {% else %}
+                                                                        <!-- New format with comma-separated values -->
+                                                                        {% with from_tags=tag_parts.0|split:":" %}
+                                                                            {% if from_tags|length > 1 %}
+                                                                                {% with tag_list=from_tags.1|split:"," %}
+                                                                                    {% for tag in tag_list %}
+                                                                                        {% with clean_tag=tag|striptags|cut:" " %}
+                                                                                            <span class="badge me-1 {% if 'Primary Contact' in clean_tag %}bg-primary{% elif 'Key Personnel' in clean_tag %}bg-success{% elif 'Booker' in clean_tag %}bg-warning text-dark{% elif 'VIP Traveller' in clean_tag %}bg-warning{% elif 'Traveller' in clean_tag %}bg-info{% else %}bg-secondary{% endif %}">
+                                                                                                {{ clean_tag }}
+                                                                                            </span>
+                                                                                        {% endwith %}
+                                                                                    {% endfor %}
+                                                                                {% endwith %}
+                                                                            {% endif %}
+                                                                        {% endwith %}
+                                                                    {% endif %}
+
+                                                                    <span class="ms-2">to:</span>
+                                                                    
+                                                                    <!-- Handle old format with Python list syntax or new comma-separated format -->
+                                                                    {% if "[" in tag_parts.1 %}
+                                                                        <!-- Old format with Python list syntax -->
+                                                                        {% with to_str=tag_parts.1|striptags %}
+                                                                            {% if to_str|slice:"-1:" == "]" %}
+                                                                                {% with clean_str=to_str|slice:"1:-1" %}
+                                                                                    {% for raw_tag in clean_str|split:"', '" %}
+                                                                                        {% with tag=raw_tag|cut:"'" %}
+                                                                                            <span class="badge me-1 {% if tag == 'primary' %}bg-primary{% elif tag == 'key_personnel' %}bg-success{% elif tag == 'booker' %}bg-warning text-dark{% elif tag == 'vip_traveller' %}bg-warning{% elif tag == 'traveller' %}bg-info{% else %}bg-secondary{% endif %}">
+                                                                                                {% if tag == 'primary' %}Primary Contact{% elif tag == 'key_personnel' %}Key Personnel{% elif tag == 'booker' %}Booker{% elif tag == 'vip_traveller' %}VIP Traveller{% elif tag == 'traveller' %}Traveller{% else %}{{ tag }}{% endif %}
+                                                                                            </span>
+                                                                                        {% endwith %}
+                                                                                    {% endfor %}
+                                                                                {% endwith %}
+                                                                            {% endif %}
+                                                                        {% endwith %}
+                                                                    {% else %}
+                                                                        <!-- New format with comma-separated values -->
+                                                                        {% with to_tags=tag_parts.1|striptags|split:"," %}
+                                                                            {% for tag in to_tags %}
+                                                                                {% with clean_tag=tag|striptags|cut:" " %}
+                                                                                    <span class="badge me-1 {% if 'Primary Contact' in clean_tag %}bg-primary{% elif 'Key Personnel' in clean_tag %}bg-success{% elif 'Booker' in clean_tag %}bg-warning text-dark{% elif 'VIP Traveller' in clean_tag %}bg-warning{% elif 'Traveller' in clean_tag %}bg-info{% else %}bg-secondary{% endif %}">
+                                                                                        {{ clean_tag }}
+                                                                                    </span>
+                                                                                {% endwith %}
+                                                                            {% endfor %}
+                                                                        {% endwith %}
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    {{ part }}
+                                                                {% endif %}
+                                                            {% endwith %}
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="text-muted small">{{ part }}</div>
+                                                    {% endif %}
                                                 {% endfor %}
                                             {% endwith %}
                                         {% else %}
