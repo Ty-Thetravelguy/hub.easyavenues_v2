@@ -974,7 +974,7 @@
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between align-items-start">
                                                 <div>
-                                                    <h6 class="mb-1">{{ activity.activity_type|title }}</h6>
+                                                    <h6 class="mb-1">{{ activity.get_activity_type_display }}</h6>
                                                     <p class="card-text mb-0">{{ activity.description }}</p>
                                                     {% if activity.data %}
                                                         {% if activity.activity_type == 'email' and activity.data.subject %}
@@ -1030,8 +1030,8 @@
                 <div id="activity-{{ activity.id }}-details" class="activity-detail-section" style="display: none;">
                     <div class="card-header bg-light">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">{{ activity.activity_type|title }} Activity</h6>
-                            <span class="badge bg-{% if activity.activity_type == 'email' %}info{% elif activity.activity_type == 'call' %}primary{% elif activity.activity_type == 'meeting' %}success{% elif activity.activity_type == 'note' %}warning{% else %}secondary{% endif %}">{{ activity.activity_type|title }}</span>
+                            <h6 class="mb-0">{{ activity.get_activity_type_display }} Activity</h6>
+                            <span class="badge bg-{% if activity.activity_type == 'email' %}info{% elif activity.activity_type == 'call' %}primary{% elif activity.activity_type == 'meeting' %}success{% elif activity.activity_type == 'note' %}warning{% else %}secondary{% endif %}">{{ activity.get_activity_type_display }}</span>
                         </div>
                     </div>
                     <div class="card-body">

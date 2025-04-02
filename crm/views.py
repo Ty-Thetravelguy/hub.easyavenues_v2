@@ -835,6 +835,8 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['company'] = self.object.company
+        context['title'] = f"Edit Contact: {self.object.first_name} {self.object.last_name}"
+        context['submit_text'] = "Update Contact"
         return context
 
 @login_required
