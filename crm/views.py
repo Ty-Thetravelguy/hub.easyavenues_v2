@@ -1264,17 +1264,34 @@ def log_email(request, company_id):
         form = EmailActivityForm(request.POST, request.FILES, company=company)
         todo_form = ToDoTaskForm(request.POST)
         if form.is_valid() and todo_form.is_valid():
-            activity = form.save(commit=False)
-            activity.company = company
-            activity.performed_by = request.user
-            activity.save()
-            form.save_m2m()  # Save many-to-many relationships
+            email_activity = form.save(commit=False)
+            email_activity.company = company
+            email_activity.performed_by = request.user
+            email_activity.save()
+            
+            # Fix recipient handling
+            recipients = request.POST.getlist('recipients', [])
+            print(f"Debug - Recipients: {recipients}")  # Add for debugging
+            
+            for recipient_id in recipients:
+                try:
+                    if '_' in recipient_id:  # Check for the type prefix
+                        prefix, id_value = recipient_id.split('_', 1)
+                        
+                        if prefix == 'contact':
+                            contact = Contact.objects.get(id=id_value)
+                            email_activity.contact_recipients.add(contact)
+                        elif prefix == 'user':
+                            user = get_user_model().objects.get(id=id_value)
+                            email_activity.user_recipients.add(user)
+                except Exception as e:
+                    print(f"Error adding recipient {recipient_id}: {e}")
             
             # Handle follow-up task if provided
             if todo_form.cleaned_data.get('to_do_task_date'):
-                activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
-                activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
-                activity.save()
+                email_activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
+                email_activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
+                email_activity.save()
             
             messages.success(request, 'Email activity logged successfully.')
             return redirect('crm:company_detail', pk=company_id)
