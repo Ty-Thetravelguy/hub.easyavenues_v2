@@ -542,4 +542,15 @@
 
 .timeline-item, .system-activity-item {
     transition: all 0.2s ease;
+}
+
+.btn-outline-accent-ea {
+    color: #f9f871;
+    border-color: #f9f871;
+}
+
+.btn-outline-accent-ea:hover {
+    color: #212529;
+    background-color: #f9f871;
+    border-color: #f9f871;
 } 
