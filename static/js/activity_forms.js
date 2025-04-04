@@ -305,6 +305,9 @@
                     $element.select2('destroy');
                 }
                 
+                // Find the actual scrollable container in the modal
+                const scrollableContainer = $element.closest('.modal-body');
+                
                 // Initialize with Bootstrap classes only
                 $element.select2({
                     theme: 'bootstrap-5',
@@ -362,12 +365,32 @@
                     tokenSeparators: [','],
                     minimumInputLength: 2,
                     width: '100%',
-                    dropdownParent: modalParent.length ? modalParent : jQuery('body'),
+                    dropdownPosition: 'below',
+                    dropdownParent: $('body'),
                     language: {
                         noResults: function() {
                             return "No contacts or users found";
                         }
                     }
+                }).on('select2:open', function() {
+                    // Get references to the elements
+                    const $select = $(this);
+                    const $dropdown = $('.select2-dropdown');
+                    
+                    // Get more precise measurements
+                    const selectRect = $select[0].getBoundingClientRect();
+                    const modalBodyScroll = $select.closest('.modal-body').scrollTop();
+                    
+                    // Apply fixed positioning with precise coordinates
+                    $dropdown.css({
+                        'position': 'fixed',
+                        'top': (selectRect.bottom) + 'px',  // Position directly under the input
+                        'left': (selectRect.left) + 'px',   // Align left edges
+                        'width': (selectRect.width) + 'px'  // Match width exactly
+                    });
+                    
+                    // Force width on the search field too
+                    $('.select2-search__field').css('width', '100%');
                 });
                 
                 console.log(`✅ Select2 initialized for ${$element.attr('name')}`);
@@ -813,12 +836,23 @@ function initBasicSelect2() {
                     tokenSeparators: [','],
                     minimumInputLength: 2,
                     width: '100%',
+                    dropdownPosition: 'below',
                     dropdownParent: modalParent.length ? modalParent : jQuery('body'),
                     language: {
                         noResults: function() {
                             return "No contacts or users found";
                         }
                     }
+                }).on('select2:open', function() {
+                    // Fix dropdown position after it opens
+                    const selectPosition = $(this).offset();
+                    const modalScrollTop = $(this).closest('.modal-body').scrollTop();
+                    
+                    $('.select2-dropdown').css({
+                        top: (selectPosition.top - modalScrollTop + $(this).outerHeight()) + 'px',
+                        left: selectPosition.left + 'px',
+                        width: $(this).outerWidth() + 'px'
+                    });
                 });
                 
                 // Add debug event handlers
