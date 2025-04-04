@@ -16,7 +16,6 @@
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="{% static 'css/activities.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -739,7 +738,7 @@
           <div class="row mb-3">
             <div class="col-md-6 d-flex align-items-center">
               <div class="me-2">Show</div>
-              <select class="form-select form-select-sm w-auto me-2">
+              <select class="form-select form-select-sm w-auto">
                 <option value="10" selected>10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
@@ -971,23 +970,23 @@
                                                     </p>
                                                     
                                                     <div class="card mb-2 activity-card {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'meeting' %}bg-accent-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% endif %} bg-opacity-10">
-                                                        <div class="card-body py-2 px-3">
+                                                        <div class="card-body py-1 px-2">
                                                             <div class="content-preview">{{ activity.description }}</div>
                                                             {% if activity.activity_type == 'email' %}
                                                                 {% if activity.emailactivity %}
-                                                                    <div class="mb-1 mt-2"><strong class="text-primary-ea">Subject:</strong> {{ activity.emailactivity.subject }}</div>
+                                                                    <div class="mb-0 mt-1"><strong class="text-primary-ea">Subject:</strong> {{ activity.emailactivity.subject }}</div>
                                                                 {% endif %}
                                                             {% elif activity.activity_type == 'call' %}
                                                                 {% if activity.callactivity %}
-                                                                    <div class="mb-1 mt-2"><strong class="text-secondary-ea">Duration:</strong> {{ activity.callactivity.duration }} minutes</div>
+                                                                    <div class="mb-0 mt-1"><strong class="text-secondary-ea">Duration:</strong> {{ activity.callactivity.duration }} minutes</div>
                                                                 {% endif %}
                                                             {% elif activity.activity_type == 'meeting' %}
                                                                 {% if activity.meetingactivity %}
-                                                                    <div class="mb-1 mt-2"><strong class="text-accent-ea">Location:</strong> {{ activity.meetingactivity.location }}</div>
+                                                                    <div class="mb-0 mt-1"><strong class="text-accent-ea">Location:</strong> {{ activity.meetingactivity.location }}</div>
                                                                 {% endif %}
                                                             {% elif activity.activity_type == 'note' %}
                                                                 {% if activity.noteactivity %}
-                                                                    <div class="mb-1 mt-2"><strong class="text-tertiary-ea">Note:</strong> {{ activity.noteactivity.content|truncatechars:100 }}</div>
+                                                                    <div class="mb-0 mt-1"><strong class="text-tertiary-ea">Note:</strong> {{ activity.noteactivity.content|truncatechars:100 }}</div>
                                                                 {% endif %}
                                                             {% endif %}
                                                         </div>

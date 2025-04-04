@@ -55,7 +55,13 @@
 
 .timeline-item {
     position: relative;
-    padding-bottom: 1.5rem;
+    padding: .25rem;
+    background-color: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0.75rem;
+    border-left-width: 4px !important;
+    border-left-style: solid;
 }
 
 .timeline-item::before {
@@ -553,4 +559,358 @@
     color: #212529;
     background-color: #f9f871;
     border-color: #f9f871;
+}
+
+/* ---------------------- MERGED FROM ACTIVITIES.CSS ---------------------- */
+
+/* Email Activity Form Styling */
+.email-activity-form {
+    padding: 15px;
+}
+
+.email-activity-form .form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.email-activity-form .form-control,
+.email-activity-form .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+}
+
+.email-activity-form .form-control:focus,
+.email-activity-form .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Email Editor */
+.email-editor {
+    border: 1px solid #cbd6e2;
+    border-radius: 3px;
+}
+
+.email-editor .editor-toolbar {
+    border-bottom: 1px solid #cbd6e2;
+    background-color: #f5f8fa;
+}
+
+.email-editor .editor-toolbar .btn-light {
+    color: #33475b;
+    border: none;
+    padding: 0.25rem 0.5rem;
+}
+
+.email-editor .editor-toolbar .btn-light:hover {
+    background-color: #eaf0f6;
+}
+
+.email-editor textarea {
+    border: none;
+    border-radius: 0 0 3px 3px;
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* Associated Record */
+.associated-record {
+    font-size: 13px;
+}
+
+.associated-item {
+    background-color: #f5f8fa;
+    color: #33475b;
+}
+
+/* To-do Section */
+.create-todo {
+    border-top: 1px solid #eaf0f6;
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+.create-todo .form-check-label {
+    color: #33475b;
+    font-weight: 500;
+}
+
+.todo-details {
+    padding-left: 1.5rem;
+}
+
+/* Contact Count */
+.selected-contacts-count {
+    font-weight: 600;
+    color: #00a4bd;
+}
+
+/* Style for loading state */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Activity form styles */
+.activity-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Activity item and header styles */
+.activity-item {
+    border-left: 4px solid #007bff;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+.activity-item:hover {
+    background-color: #e9ecef;
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.activity-title {
+    font-weight: 600;
+    margin: 0;
+}
+
+.activity-meta {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.activity-content {
+    margin-bottom: 0.5rem;
+}
+
+.activity-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.activity-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.activity-actions button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Activity type indicators */
+.activity-type-email {
+    border-left-color: #28a745;
+}
+
+.activity-type-call {
+    border-left-color: #17a2b8;
+}
+
+.activity-type-meeting {
+    border-left-color: #ffc107;
+}
+
+.activity-type-note {
+    border-left-color: #6c757d;
+}
+
+/* Activity form specific styles */
+.activity-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.activity-form label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.activity-form .form-control {
+    border-radius: 0.25rem;
+}
+
+.activity-form textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+/* To-do section styles */
+.todo-section {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-top: 1rem;
+}
+
+.todo-section h6 {
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+/* Rich text editor toolbar */
+.editor-toolbar {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.editor-toolbar button {
+    margin-right: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Activity outcome styles */
+.activity-outcome {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.outcome-sent {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.outcome-received {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.outcome-no-response {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+/* Timeline content specific styling */
+.timeline-content {
+    position: relative;
+    padding-left: 10px;
+}
+
+.timeline-content::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+/* System activity styling */
+.system-activity-item {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #6c757d;
+}
+
+.system-activity-item:hover {
+    background-color: #f1f3f5;
+}
+
+.system-activity-item .text-muted {
+    font-size: 0.875rem;
+}
+
+.system-activity-item small {
+    font-size: 0.75rem;
+}
+
+/* User Activity Styles */
+.timeline-item.user-activity .timeline-icon {
+    border: 2px solid #0d6efd;
+    color: #0d6efd;
+}
+
+.timeline-item.user-activity .timeline-content {
+    padding-left: 15px;
+}
+
+.timeline-item.user-activity .card {
+    border: none;
+    border-radius: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.timeline-item.user-activity .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Activity Type Specific Icon Colors */
+.timeline-item.user-activity[data-type="email"] .timeline-icon {
+    border-color: #0dcaf0;
+    color: #0dcaf0;
+}
+
+.timeline-item.user-activity[data-type="call"] .timeline-icon {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.timeline-item.user-activity[data-type="meeting"] .timeline-icon {
+    border-color: #198754;
+    color: #198754;
+}
+
+.timeline-item.user-activity[data-type="note"] .timeline-icon {
+    border-color: #ffc107;
+    color: #ffc107;
+}
+
+/* Select2 Icon Colors */
+.icon-contact {
+    color: #444a9f !important; /* Brand primary color */
+}
+
+.icon-user {
+    color: #9c85db !important; /* Brand secondary color */
+}
+
+/* Make sure colors apply to selected items */
+.select2-selection__choice .icon-contact,
+.select2-selection__choice__display .icon-contact,
+span.select2-selection--multiple .icon-contact {
+    color: #444a9f !important; 
+}
+
+.select2-selection__choice .icon-user,
+.select2-selection__choice__display .icon-user,
+span.select2-selection--multiple .icon-user {
+    color: #9c85db !important;
+}
+
+/* Theme-specific icon colors */
+.icon-contact-alt {
+    color: #a44493; /* Purple */
+}
+
+.icon-user-alt {
+    color: #ff8568; /* Tertiary orange */
+}
+
+/* Utility Classes */
+.cursor-pointer {
+    cursor: pointer;
 } 
