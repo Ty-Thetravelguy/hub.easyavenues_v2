@@ -1,0 +1,257 @@
+/* Activity Tabs and Side Panel Styling */
+
+/* Custom Colors from company_detail.css */
+:root {
+  --primary-ea-color: #444a9f;
+  --secondary-ea-color: #9c85db;
+  --accent-ea-color: #a44493;
+  --tertiary-ea-color: #ff8568;
+  --purple-color: #7952b3;
+  --info-color: #0dcaf0;
+}
+
+/* Tab styling */
+.activity-tab-pane {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Activity type tab headers */
+.activity-header-email {
+  border-bottom: 2px solid var(--primary-ea-color);
+  color: var(--primary-ea-color);
+}
+
+.activity-header-call {
+  border-bottom: 2px solid var(--secondary-ea-color);
+  color: var(--secondary-ea-color);
+}
+
+.activity-header-meeting {
+  border-bottom: 2px solid var(--accent-ea-color);
+  color: var(--accent-ea-color);
+}
+
+.activity-header-note {
+  border-bottom: 2px solid var(--tertiary-ea-color);
+  color: var(--tertiary-ea-color);
+}
+
+.activity-header-waiver {
+  border-bottom: 2px solid var(--purple-color);
+  color: var(--purple-color);
+}
+
+.activity-header-task {
+  border-bottom: 2px solid var(--info-color);
+  color: var(--info-color);
+}
+
+/* Activity card styling */
+.activity-card {
+  transition: all 0.2s ease;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.activity-card:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Activity type specific cards */
+.activity-card-email {
+  border-left: 4px solid var(--primary-ea-color);
+}
+
+.activity-card-call {
+  border-left: 4px solid var(--secondary-ea-color);
+}
+
+.activity-card-meeting {
+  border-left: 4px solid var(--accent-ea-color);
+}
+
+.activity-card-note {
+  border-left: 4px solid var(--tertiary-ea-color);
+}
+
+.activity-card-waiver {
+  border-left: 4px solid var(--purple-color);
+}
+
+.activity-card-task {
+  border-left: 4px solid var(--info-color);
+}
+
+/* Side panel customization */
+.activity-panel {
+  width: 450px;
+  max-width: 90vw;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.activity-panel .offcanvas-header {
+  padding-bottom: 0.75rem;
+}
+
+.activity-panel .offcanvas-body {
+  padding-top: 1rem;
+}
+
+/* Custom buttons to match activity types */
+.btn-email {
+  background-color: var(--primary-ea-color);
+  border-color: var(--primary-ea-color);
+  color: white;
+}
+
+.btn-email:hover {
+  background-color: #373d85;
+  border-color: #373d85;
+  color: white;
+}
+
+.btn-call {
+  background-color: var(--secondary-ea-color);
+  border-color: var(--secondary-ea-color);
+  color: white;
+}
+
+.btn-call:hover {
+  background-color: #8571c3;
+  border-color: #8571c3;
+  color: white;
+}
+
+.btn-meeting {
+  background-color: var(--accent-ea-color);
+  border-color: var(--accent-ea-color);
+  color: white;
+}
+
+.btn-meeting:hover {
+  background-color: #8b387c;
+  border-color: #8b387c;
+  color: white;
+}
+
+.btn-note {
+  background-color: var(--tertiary-ea-color);
+  border-color: var(--tertiary-ea-color);
+  color: white;
+}
+
+.btn-note:hover {
+  background-color: #ff704f;
+  border-color: #ff704f;
+  color: white;
+}
+
+.btn-waiver {
+  background-color: var(--purple-color);
+  border-color: var(--purple-color);
+  color: white;
+}
+
+.btn-waiver:hover {
+  background-color: #6941a0;
+  border-color: #6941a0;
+  color: white;
+}
+
+.btn-task {
+  background-color: var(--info-color);
+  border-color: var(--info-color);
+  color: white;
+}
+
+.btn-task:hover {
+  background-color: #0bb6d9;
+  border-color: #0bb6d9;
+  color: white;
+}
+
+/* Activity form styling */
+.activity-form label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.activity-form .form-control:focus,
+.activity-form .form-select:focus {
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.1);
+}
+
+/* Type-specific form focus */
+.activity-form.email-form .form-control:focus,
+.activity-form.email-form .form-select:focus {
+  border-color: var(--primary-ea-color);
+  box-shadow: 0 0 0 0.2rem rgba(68, 74, 159, 0.25);
+}
+
+.activity-form.call-form .form-control:focus,
+.activity-form.call-form .form-select:focus {
+  border-color: var(--secondary-ea-color);
+  box-shadow: 0 0 0 0.2rem rgba(156, 133, 219, 0.25);
+}
+
+.activity-form.meeting-form .form-control:focus,
+.activity-form.meeting-form .form-select:focus {
+  border-color: var(--accent-ea-color);
+  box-shadow: 0 0 0 0.2rem rgba(164, 68, 147, 0.25);
+}
+
+.activity-form.note-form .form-control:focus,
+.activity-form.note-form .form-select:focus {
+  border-color: var(--tertiary-ea-color);
+  box-shadow: 0 0 0 0.2rem rgba(255, 133, 104, 0.25);
+}
+
+.activity-form.waiver-form .form-control:focus,
+.activity-form.waiver-form .form-select:focus {
+  border-color: var(--purple-color);
+  box-shadow: 0 0 0 0.2rem rgba(121, 82, 179, 0.25);
+}
+
+.activity-form.task-form .form-control:focus,
+.activity-form.task-form .form-select:focus {
+  border-color: var(--info-color);
+  box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.25);
+}
+
+/* Tab indicators for activity categories */
+.nav-pills .nav-link.active.email-tab {
+  background-color: var(--primary-ea-color);
+}
+
+.nav-pills .nav-link.active.call-tab {
+  background-color: var(--secondary-ea-color);
+}
+
+.nav-pills .nav-link.active.meeting-tab {
+  background-color: var(--accent-ea-color);
+}
+
+.nav-pills .nav-link.active.note-tab {
+  background-color: var(--tertiary-ea-color);
+}
+
+.nav-pills .nav-link.active.waiver-tab {
+  background-color: var(--purple-color);
+}
+
+.nav-pills .nav-link.active.task-tab {
+  background-color: var(--info-color);
+} 

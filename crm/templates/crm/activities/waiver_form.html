@@ -1,0 +1,60 @@
+<!-- Waiver/Favor Activity Form -->
+<form method="post" action="{% url 'crm:log_waiver_activity' %}" class="activity-form waiver-form">
+    {% csrf_token %}
+    <input type="hidden" name="company_id" value="{{ company.id }}">
+    <input type="hidden" name="activity_type" value="waiver">
+    
+    <div class="mb-3">
+        <label for="waiver_title" class="form-label">Title</label>
+        <input type="text" class="form-control" id="waiver_title" name="title" required placeholder="Describe the waiver or favor">
+    </div>
+    
+    <div class="mb-3">
+        <label for="waiver_type" class="form-label">Type</label>
+        <select class="form-control" id="waiver_type" name="waiver_type" required>
+            <option value="waiver">Fee Waiver</option>
+            <option value="favor">Special Favor</option>
+            <option value="exception">Policy Exception</option>
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label for="waiver_amount" class="form-label">Amount/Value (if applicable)</label>
+        <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control" id="waiver_amount" name="amount" step="0.01" min="0">
+        </div>
+        <small class="form-text text-muted">Leave blank if not applicable</small>
+    </div>
+    
+    <div class="mb-3">
+        <label for="waiver_contact" class="form-label">Related Contact</label>
+        <select class="form-control select2-field" id="waiver_contact" name="contact">
+            <option value="">Select Contact (Optional)</option>
+            {% for contact in company.contact_set.all %}
+                <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label for="waiver_reason" class="form-label">Reason/Justification</label>
+        <textarea class="form-control" id="waiver_reason" name="reason" rows="4" required></textarea>
+    </div>
+    
+    <div class="mb-3">
+        <label for="waiver_approved_by" class="form-label">Approved By</label>
+        <select class="form-control" id="waiver_approved_by" name="approved_by">
+            <option value="">Select Approver (Optional)</option>
+            {% for user in users %}
+                <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="d-grid">
+        <button type="submit" class="btn btn-activity-waiver">
+            <i class="fas fa-exclamation-triangle me-1"></i> Save Waiver/Favor
+        </button>
+    </div>
+</form> 

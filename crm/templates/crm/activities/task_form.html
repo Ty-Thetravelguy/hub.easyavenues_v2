@@ -1,0 +1,90 @@
+<!-- Task Activity Form -->
+<form method="post" action="{% url 'crm:log_task_activity' %}" class="activity-form task-form">
+    {% csrf_token %}
+    <input type="hidden" name="company_id" value="{{ company.id }}">
+    <input type="hidden" name="activity_type" value="task">
+    
+    <div class="mb-3">
+        <label for="task_title" class="form-label">Task Title</label>
+        <input type="text" class="form-control" id="task_title" name="title" required>
+    </div>
+    
+    <div class="mb-3">
+        <label for="task_description" class="form-label">Description</label>
+        <textarea class="form-control" id="task_description" name="description" rows="3" required></textarea>
+    </div>
+    
+    <div class="mb-3">
+        <label for="task_priority" class="form-label">Priority</label>
+        <select class="form-control" id="task_priority" name="priority" required>
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label for="task_status" class="form-label">Status</label>
+        <select class="form-control" id="task_status" name="status" required>
+            <option value="not_started">Not Started</option>
+            <option value="in_progress">In Progress</option>
+            <option value="waiting">Waiting on Something</option>
+            <option value="completed">Completed</option>
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label for="task_assignee" class="form-label">Assigned To</label>
+        <select class="form-control" id="task_assignee" name="assignee" required>
+            <option value="current_user">Me</option>
+            {% for user in users %}
+                <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label for="task_due_date" class="form-label">Due Date</label>
+        <input type="text" class="form-control datepicker" id="task_due_date" name="due_date" required>
+    </div>
+    
+    <div class="mb-3">
+        <label for="task_related_contacts" class="form-label">Related Contact</label>
+        <select class="form-control select2-field" id="task_related_contacts" name="related_contacts">
+            <option value="">Select a Contact</option>
+            {% for contact in company.contact_set.all %}
+                <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
+            {% endfor %}
+        </select>
+        <small class="form-text text-muted">Select a single contact to associate with this task</small>
+    </div>
+    
+    <div class="d-grid">
+        <button type="submit" class="btn btn-activity-task">
+            <i class="fas fa-tasks me-1"></i> Save Task
+        </button>
+    </div>
+</form>
+
+<script>
+    // Set due date to 7 days from today by default
+    document.addEventListener('DOMContentLoaded', function() {
+        const dueDateField = document.getElementById('task_due_date');
+        if (dueDateField) {
+            const today = new Date();
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            
+            const year = nextWeek.getFullYear();
+            let month = nextWeek.getMonth() + 1;
+            let day = nextWeek.getDate();
+            
+            // Pad with leading zero if needed
+            month = month < 10 ? '0' + month : month;
+            day = day < 10 ? '0' + day : day;
+            
+            dueDateField.value = `${year}-${month}-${day}`;
+        }
+    });
+</script> 

@@ -2,14 +2,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 Easy Avenues CRM - Initializing activities.js');
     
-    // Set up activity section buttons
-    setupActivityButtons();
+    // Initialize activity tabs
+    initializeActivityTabs();
     
     // Set up activity card click handlers
     setupActivityCardHandlers();
-    
-    // Initialize activity details modal
-    setupActivityDetailsModal();
     
     // Initialize activity filtering
     initializeActivityFiltering();
@@ -22,7 +19,532 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize Select2 for recipient selectors
     initializeRecipientSelect();
+    
+    // Directly load all activities when on a company page
+    const companyIdField = document.getElementById('company_id');
+    const activitiesTab = document.getElementById('activities');
+    
+    if (companyIdField && activitiesTab) {
+        console.log('Company page detected, will load activities...');
+        
+        // Check if we're on the activities tab or another tab
+        const activitiesTabLink = document.getElementById('activities-tab');
+        
+        // Initial load of all activities
+        setTimeout(function() {
+            console.log('Initial load of activities...');
+            loadActivitiesByType('all');
+            
+            // Also preload other activity types
+            const activityTypes = ['email', 'call', 'meeting', 'note', 'waiver', 'task'];
+            for (const type of activityTypes) {
+                setTimeout(() => loadActivitiesByType(type), 500);
+            }
+        }, 500);
+        
+        // Manual trigger for activities tab
+        if (activitiesTabLink) {
+            activitiesTabLink.addEventListener('click', function() {
+                console.log('Activities tab clicked, loading all activities...');
+                // Force reload activities after a small delay
+                setTimeout(() => loadActivitiesByType('all'), 300);
+            });
+        }
+    }
 });
+
+// ======================================================
+// Activity Tabs and Side Panel
+// ======================================================
+
+/**
+ * Initialize activity tabs
+ */
+function initializeActivityTabs() {
+    // Log activity buttons for each type
+    setupActivityTypeButtons();
+    
+    // Setup tab activation handlers to load data
+    setupTabActivationHandlers();
+}
+
+/**
+ * Setup activity type buttons
+ */
+function setupActivityTypeButtons() {
+    // Email activity button
+    const emailButton = document.getElementById('log-email-btn');
+    if (emailButton) {
+        emailButton.addEventListener('click', function() {
+            openActivitySidePanel('email');
+        });
+    }
+    
+    // Call activity button
+    const callButton = document.getElementById('log-call-btn');
+    if (callButton) {
+        callButton.addEventListener('click', function() {
+            openActivitySidePanel('call');
+        });
+    }
+    
+    // Meeting activity button
+    const meetingButton = document.getElementById('log-meeting-btn');
+    if (meetingButton) {
+        meetingButton.addEventListener('click', function() {
+            openActivitySidePanel('meeting');
+        });
+    }
+    
+    // Note activity button
+    const noteButton = document.getElementById('log-note-btn');
+    if (noteButton) {
+        noteButton.addEventListener('click', function() {
+            openActivitySidePanel('note');
+        });
+    }
+    
+    // Waiver activity button
+    const waiverButton = document.getElementById('log-waiver-btn');
+    if (waiverButton) {
+        waiverButton.addEventListener('click', function() {
+            openActivitySidePanel('waiver');
+        });
+    }
+    
+    // Task activity button
+    const taskButton = document.getElementById('log-task-btn');
+    if (taskButton) {
+        taskButton.addEventListener('click', function() {
+            openActivitySidePanel('task');
+        });
+    }
+}
+
+/**
+ * Setup tab activation handlers to load data
+ */
+function setupTabActivationHandlers() {
+    // Listen for bootstrap tab show events
+    const activityTabs = document.querySelectorAll('[data-bs-toggle="tab"]');
+    
+    console.log(`Found ${activityTabs.length} tabs with data-bs-toggle="tab"`);
+    
+    activityTabs.forEach(tab => {
+        const tabTarget = tab.getAttribute('href');
+        console.log(`Tab target: ${tabTarget}`);
+        
+        tab.addEventListener('shown.bs.tab', function(event) {
+            const tabId = event.target.getAttribute('href');
+            console.log(`Tab activated: ${tabId}`);
+            
+            // Load data based on which tab was activated
+            if (tabId === '#email-activities') {
+                console.log('Loading email activities...');
+                loadActivitiesByType('email');
+            } else if (tabId === '#call-activities') {
+                console.log('Loading call activities...');
+                loadActivitiesByType('call');
+            } else if (tabId === '#meeting-activities') {
+                console.log('Loading meeting activities...');
+                loadActivitiesByType('meeting');
+            } else if (tabId === '#note-activities') {
+                console.log('Loading note activities...');
+                loadActivitiesByType('note');
+            } else if (tabId === '#waiver-activities') {
+                console.log('Loading waiver activities...');
+                loadActivitiesByType('waiver');
+            } else if (tabId === '#task-activities') {
+                console.log('Loading task activities...');
+                loadActivitiesByType('task');
+            } else if (tabId === '#activity-overview') {
+                console.log('Loading all activities...');
+                loadActivitiesByType('all');
+            } else if (tabId === '#activities') {
+                console.log('Activities main tab activated, loading all activities...');
+                loadActivitiesByType('all');
+            }
+        });
+    });
+    
+    // Also check for direct navigation to the activities tab
+    if (window.location.hash === '#activities') {
+        console.log('Direct navigation to #activities detected');
+        setTimeout(() => loadActivitiesByType('all'), 500);
+    }
+}
+
+/**
+ * Open activity side panel
+ */
+function openActivitySidePanel(activityType) {
+    // Get the side panel element
+    const sidePanel = document.getElementById('activity-side-panel');
+    if (!sidePanel) {
+        console.error('Activity side panel not found');
+        return;
+    }
+    
+    // Update panel title and appearance
+    updateSidePanelHeader(activityType);
+    
+    // Show loading state
+    const loadingElement = document.getElementById('activity-panel-loading');
+    const formContainer = document.getElementById('activity-panel-form-container');
+    
+    if (loadingElement && formContainer) {
+        loadingElement.style.display = 'block';
+        formContainer.style.display = 'none';
+    }
+    
+    // Initialize Bootstrap offcanvas and show
+    const offcanvas = new bootstrap.Offcanvas(sidePanel);
+    offcanvas.show();
+    
+    // Load the appropriate form
+    loadActivityForm(activityType);
+}
+
+/**
+ * Update side panel header based on activity type
+ */
+function updateSidePanelHeader(activityType) {
+    const panelTitle = document.getElementById('activitySidePanelLabel');
+    if (!panelTitle) return;
+    
+    // Set title based on activity type
+    const titleMap = {
+        'email': 'Log Email',
+        'call': 'Log Call',
+        'meeting': 'Log Meeting',
+        'note': 'Log Note',
+        'waiver': 'Log Waiver/Favor',
+        'task': 'Log Task'
+    };
+    
+    const iconMap = {
+        'email': 'envelope',
+        'call': 'phone-alt',
+        'meeting': 'users',
+        'note': 'sticky-note',
+        'waiver': 'exclamation-triangle',
+        'task': 'tasks'
+    };
+    
+    // Update title with icon
+    panelTitle.innerHTML = `<i class="fas fa-${iconMap[activityType] || 'file-alt'} me-2"></i> ${titleMap[activityType] || 'Log Activity'}`;
+    
+    // Add appropriate class for styling
+    panelTitle.className = 'offcanvas-title activity-header-' + activityType;
+}
+
+/**
+ * Load activity form into side panel
+ */
+function loadActivityForm(activityType) {
+    const formContainer = document.getElementById('activity-panel-form-container');
+    const loadingElement = document.getElementById('activity-panel-loading');
+    
+    if (!formContainer) return;
+    
+    // Get company ID
+    const companyIdField = document.getElementById('company_id');
+    const companyId = companyIdField ? companyIdField.value : null;
+    
+    if (!companyId) {
+        console.error('No company ID found');
+        formContainer.innerHTML = '<div class="alert alert-danger">Error: Company ID not found</div>';
+        if (loadingElement) loadingElement.style.display = 'none';
+        formContainer.style.display = 'block';
+        return;
+    }
+    
+    // Build URL for the form
+    const url = `/crm/activity/${activityType}/form/?company_id=${companyId}`;
+    
+    // Fetch the form via AJAX
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Hide loading, show form
+            if (loadingElement) loadingElement.style.display = 'none';
+            formContainer.innerHTML = html;
+            formContainer.style.display = 'block';
+            
+            // Initialize form elements
+            initializeFormElements(activityType);
+        })
+        .catch(error => {
+            console.error('Error loading form:', error);
+            formContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error loading form: ${error.message}
+                </div>
+            `;
+            if (loadingElement) loadingElement.style.display = 'none';
+            formContainer.style.display = 'block';
+        });
+}
+
+/**
+ * Initialize form elements after loading
+ */
+function initializeFormElements(activityType) {
+    // Add appropriate class to form
+    const form = document.querySelector('#activity-panel-form-container form');
+    if (form) {
+        form.classList.add('activity-form', `${activityType}-form`);
+        
+        // Initialize Select2 for any multi-select fields
+        const multiSelects = form.querySelectorAll('.select2-field');
+        if (multiSelects.length && typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
+            jQuery(multiSelects).select2({
+                dropdownParent: jQuery('#activity-side-panel'),
+                width: '100%'
+            });
+        }
+        
+        // Initialize datepickers
+        initializeDateTimePickers();
+        
+        // Add submit handler
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitActivityForm(form, activityType);
+        });
+    }
+}
+
+/**
+ * Submit activity form
+ */
+function submitActivityForm(form, activityType) {
+    // Show loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Saving...';
+    }
+    
+    // Use FormData to gather all form fields
+    const formData = new FormData(form);
+    
+    // Use fetch to submit the form
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showMessage(data.message || 'Activity logged successfully', 'success');
+            
+            // Close side panel
+            const sidePanel = bootstrap.Offcanvas.getInstance(document.getElementById('activity-side-panel'));
+            if (sidePanel) {
+                sidePanel.hide();
+            }
+            
+            // Reload activities
+            loadActivitiesByType(activityType);
+            
+            // Reload all activities if on the overview tab
+            const overviewTab = document.querySelector('.nav-link.active[href="#activity-overview"]');
+            if (overviewTab) {
+                loadActivitiesByType('all');
+            }
+        } else {
+            // Show error message from server
+            showMessage(data.message || 'Error saving activity', 'danger');
+            
+            // Re-enable submit button
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Save';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting form:', error);
+        showMessage('Error saving activity: ' + error.message, 'danger');
+        
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save';
+        }
+    });
+}
+
+/**
+ * Load activities by type
+ */
+function loadActivitiesByType(activityType) {
+    // Get company ID
+    const companyIdField = document.getElementById('company_id');
+    const companyId = companyIdField ? companyIdField.value : null;
+    
+    if (!companyId) {
+        console.error('No company ID found');
+        return;
+    }
+    
+    // Determine which container to update
+    let container;
+    
+    if (activityType === 'all') {
+        container = document.getElementById('all-activities-list');
+    } else {
+        container = document.getElementById(`${activityType}-activities-list`);
+    }
+    
+    if (!container) {
+        console.error(`Container for ${activityType} activities not found`);
+        return;
+    }
+    
+    // Clear any existing content completely
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+    
+    // Show loading state
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'text-center py-4';
+    loadingDiv.innerHTML = `
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Loading activities...</p>
+    `;
+    container.appendChild(loadingDiv);
+    
+    // First try loading activities from the JSON endpoint
+    const jsonUrl = `/crm/company/${companyId}/activities-json/?type=${activityType}&_=${new Date().getTime()}`;
+    console.log(`Loading activities from JSON: ${jsonUrl}`);
+    
+    fetch(jsonUrl)
+        .then(response => {
+            console.log(`JSON response status: ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`Received JSON data with ${data.count} activities`);
+            
+            if (data.status === 'success') {
+                // Clear container completely
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
+                }
+                
+                // Render activities from JSON data
+                const activitiesHtml = renderActivitiesFromJson(data);
+                container.innerHTML = activitiesHtml;
+                console.log('Successfully rendered activities from JSON');
+            } else {
+                throw new Error(`Error in JSON response: ${data.message || 'Unknown error'}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading activities from JSON:', error);
+            console.log('Falling back to HTML endpoint...');
+            
+            // Fallback to original HTML endpoint
+            const htmlUrl = `/crm/company/${companyId}/activities/?type=${activityType}&_=${new Date().getTime()}`;
+            
+            fetch(htmlUrl)
+                .then(response => {
+                    console.log(`HTML response status: ${response.status} ${response.statusText}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    console.log(`Received HTML response (${html.length} characters)`);
+                    
+                    if (!html || html.trim().length < 10) {
+                        throw new Error('Response is empty or too short');
+                    }
+                    
+                    // Clear container completely
+                    while (container.firstChild) {
+                        container.removeChild(container.firstChild);
+                    }
+                    
+                    container.innerHTML = html;
+                    console.log('Successfully updated container with HTML response');
+                })
+                .catch(htmlError => {
+                    console.error('Error loading activities from HTML endpoint:', htmlError);
+                    
+                    // Clear container completely
+                    while (container.firstChild) {
+                        container.removeChild(container.firstChild);
+                    }
+                    
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading activities: ${htmlError.message}
+                        </div>
+                    `;
+                });
+        });
+}
+
+/**
+ * Render activities from JSON data
+ */
+function renderActivitiesFromJson(data) {
+    if (!data.activities || data.activities.length === 0) {
+        return `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No activities found for type "${data.activity_type}"
+            </div>
+        `;
+    }
+    
+    let html = `
+        <div class="alert alert-info mb-3">
+            Found ${data.count} activities of type "${data.activity_type}"
+        </div>
+        <ul class="list-group">
+    `;
+    
+    data.activities.forEach(activity => {
+        html += `
+            <li class="list-group-item">
+                <div>
+                    <strong>Type:</strong> ${activity.type_display || activity.activity_type}
+                    ${activity.description ? `<br><strong>Description:</strong> ${activity.description}` : ''}
+                    <br><strong>Date:</strong> ${activity.performed_at}
+                    <br><strong>By:</strong> ${activity.performed_by}
+                </div>
+            </li>
+        `;
+    });
+    
+    html += `</ul>`;
+    return html;
+}
 
 // ======================================================
 // Activity Section and Card Handlers
@@ -32,7 +554,8 @@ document.addEventListener('DOMContentLoaded', function() {
  * Setup buttons in the activity section
  */
 function setupActivityButtons() {
-    // Log activity button handler
+    // Log activity button handler - DISABLED FOR NEW ACTIVITY UI
+    /*
     const logActivityButton = document.getElementById('log-activity-btn');
     if (logActivityButton) {
         logActivityButton.addEventListener('click', function() {
@@ -69,6 +592,7 @@ function setupActivityButtons() {
             }
         });
     });
+    */
 }
 
 /**
@@ -134,12 +658,13 @@ function initializeDateTimePickers() {
 }
 
 // ======================================================
-// Activity Details Modal
+// Activity Details Modal - DISABLED FOR NEW ACTIVITY UI
 // ======================================================
 
 /**
  * Set up activity details modal
  */
+/*
 function setupActivityDetailsModal() {
     const modal = document.getElementById('activity-details-modal');
     if (!modal) return;
@@ -173,6 +698,7 @@ function setupActivityDetailsModal() {
     // Setup delete button
     setupDeleteButton();
 }
+*/
 
 /**
  * Helper function to get activity type title
@@ -201,8 +727,9 @@ function getLoadingHTML() {
 }
 
 /**
- * Fetch activity details via AJAX
+ * Fetch activity details via AJAX - DISABLED FOR NEW ACTIVITY UI
  */
+/*
 function fetchActivityDetails(activityId, modal) {
     jQuery.ajax({
         url: '/crm/activity/' + activityId + '/details/',
@@ -223,10 +750,12 @@ function fetchActivityDetails(activityId, modal) {
         }
     });
 }
+*/
 
 /**
- * Format activity details based on type
+ * Format activity details based on type - DISABLED FOR NEW ACTIVITY UI
  */
+/*
 function formatActivityDetails(activityType, data) {
     let contentHtml = '';
     
@@ -317,10 +846,12 @@ function formatActivityDetails(activityType, data) {
     
     return contentHtml;
 }
+*/
 
 /**
- * Setup edit button on activity details modal
+ * Setup edit button on activity details modal - DISABLED FOR NEW ACTIVITY UI
  */
+/*
 function setupEditButton() {
     const editButton = document.getElementById('activity-edit-btn');
     if (!editButton) return;
@@ -333,10 +864,12 @@ function setupEditButton() {
         window.location.href = `/crm/activity/${currentActivityId}/edit/`;
     });
 }
+*/
 
 /**
- * Setup delete button on activity details modal
+ * Setup delete button on activity details modal - DISABLED FOR NEW ACTIVITY UI
  */
+/*
 function setupDeleteButton() {
     const deleteButton = document.getElementById('activity-delete-btn');
     if (!deleteButton) return;
@@ -376,6 +909,7 @@ function setupDeleteButton() {
         }
     });
 }
+*/
 
 // ======================================================
 // Activity Filtering

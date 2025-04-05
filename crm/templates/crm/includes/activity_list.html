@@ -1,0 +1,27 @@
+{% load humanize %}
+
+<div class="activity-list-simple">
+    {% if activities %}
+        <div class="alert alert-info mb-3">
+            Found {{ activities|length }} activities of type "{{ activity_type }}"
+        </div>
+        
+        <ul class="list-group">
+            {% for activity in activities %}
+                <li class="list-group-item">
+                    <div>
+                        <strong>Type:</strong> {{ activity.activity_type }} 
+                        {% if activity.description %}
+                            <br><strong>Description:</strong> {{ activity.description|truncatechars:100 }}
+                        {% endif %}
+                        <br><strong>Date:</strong> {{ activity.performed_at|date:"M d, Y" }}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="alert alert-warning">
+            No activities found for type "{{ activity_type }}"
+        </div>
+    {% endif %}
+</div> 

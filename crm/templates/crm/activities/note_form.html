@@ -1,0 +1,56 @@
+<!-- Note Activity Form -->
+<form method="post" action="{% url 'crm:log_note_activity' %}" class="activity-form note-form">
+    {% csrf_token %}
+    <input type="hidden" name="company_id" value="{{ company.id }}">
+    <input type="hidden" name="activity_type" value="note">
+    
+    <div class="mb-3">
+        <label for="note_title" class="form-label">Note Title</label>
+        <input type="text" class="form-control" id="note_title" name="title" required>
+    </div>
+    
+    <div class="mb-3">
+        <label for="note_date" class="form-label">Date</label>
+        <input type="text" class="form-control datepicker" id="note_date" name="date" value="{{ today_date|date:'Y-m-d' }}" required>
+    </div>
+    
+    <div class="mb-3">
+        <label for="note_category" class="form-label">Category</label>
+        <select class="form-control" id="note_category" name="category">
+            <option value="general">General</option>
+            <option value="follow_up">Follow-up</option>
+            <option value="important">Important</option>
+            <option value="reminder">Reminder</option>
+            <option value="client_feedback">Client Feedback</option>
+            <option value="project_notes">Project Notes</option>
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label for="note_related_contacts" class="form-label">Related Contacts</label>
+        <select class="form-control select2-field" id="note_related_contacts" name="related_contacts" multiple>
+            {% for contact in company.contact_set.all %}
+                <option value="{{ contact.id }}">{{ contact.full_name }}</option>
+            {% endfor %}
+        </select>
+        <small class="form-text text-muted">Optional: Select any contacts this note is related to</small>
+    </div>
+    
+    <div class="mb-3">
+        <label for="note_content" class="form-label">Note Content</label>
+        <textarea class="form-control" id="note_content" name="content" rows="6" required></textarea>
+    </div>
+    
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="note_important" name="important" value="1">
+        <label class="form-check-label" for="note_important">
+            <i class="fas fa-star text-warning"></i> Mark as Important
+        </label>
+    </div>
+    
+    <div class="d-grid">
+        <button type="submit" class="btn btn-activity-note">
+            <i class="fas fa-sticky-note me-1"></i> Save Note
+        </button>
+    </div>
+</form> 

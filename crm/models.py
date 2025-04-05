@@ -453,6 +453,9 @@ class Activity(models.Model):
         ('document', 'Document Upload'),
         ('status_change', 'Status Change'),
         ('policy_update', 'Policy Update'),
+        ('waiver', 'Waiver/Favor'),
+        ('task', 'Task'),
+        ('update', 'Update'),
     ]
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='activities')
@@ -466,6 +469,24 @@ class Activity(models.Model):
     follow_up_date = models.DateField(null=True, blank=True)
     follow_up_notes = models.TextField(blank=True)
     is_system_activity = models.BooleanField(default=False, help_text="Indicates if this is an automatically generated system activity")
+    
+    def debug_info(self):
+        """Return a dictionary with debugging information about this activity"""
+        subclass_models = ['emailactivity', 'callactivity', 'meetingactivity', 
+                         'noteactivity', 'documentactivity', 'statuschangeactivity',
+                         'policyupdateactivity', 'waiveractivity', 'taskactivity']
+        
+        available_subclasses = []
+        for model_name in subclass_models:
+            if hasattr(self, model_name):
+                available_subclasses.append(model_name)
+        
+        return {
+            'id': self.id,
+            'activity_type': self.activity_type,
+            'has_description': bool(self.description),
+            'available_subclasses': available_subclasses
+        }
 
     class Meta:
         verbose_name_plural = "Activities"
@@ -604,6 +625,51 @@ class PolicyUpdateActivity(Activity):
         verbose_name = 'Policy Update Activity'
         verbose_name_plural = 'Policy Update Activities'
         ordering = ['-performed_at']
+
+class WaiverActivity(Activity):
+    """
+    Model for waiver/favor activities.
+    """
+    waiver_type = models.CharField(max_length=50, choices=[
+        ('waiver', 'Fee Waiver'),
+        ('favor', 'Special Favor'),
+        ('exception', 'Policy Exception')
+    ])
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    reason = models.TextField()
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_waivers')
+
+    class Meta:
+        verbose_name = 'Waiver/Favor Activity'
+        verbose_name_plural = 'Waiver/Favor Activities'
+        ordering = ['-performed_at']
+
+class TaskActivity(Activity):
+    """
+    Model for task activities.
+    """
+    title = models.CharField(max_length=255)
+    due_date = models.DateField()
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
+    priority = models.CharField(max_length=20, choices=[
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent')
+    ], default='medium')
+    status = models.CharField(max_length=20, choices=[
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('waiting', 'Waiting'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled')
+    ], default='not_started')
+    completion_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Task Activity'
+        verbose_name_plural = 'Task Activities'
+        ordering = ['-due_date']
 
 class StatusHistory(models.Model):
     """

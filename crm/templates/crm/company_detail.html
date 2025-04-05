@@ -832,185 +832,9 @@
     <!-- Activities Tab -->
     <div class="tab-pane fade" id="activities" role="tabpanel">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Activity History</h5>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#logActivityModal">
-                    <i class="fas fa-plus me-2"></i>Log Activity
-                </button>
-            </div>
-            <div class="card-body">
-                <!-- Activity Filters Section -->
-                <div class="activity-filters mb-4 p-3 bg-light border rounded">
-                    <div class="row g-3">
-                        <!-- Filter status indicator -->
-                        <div class="col-12 mb-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small id="filter-status" class="text-muted">Filters ready</small>
-                                <small class="text-muted">Total: <span class="badge bg-secondary" id="total-activities">{{ activities|length }}</span></small>
-                            </div>
-                        </div>
-
-                        <!-- Search Bar -->
-                        <div class="col-md-12 mb-2">
-                            <label for="activity-search" class="form-label fw-bold">Search</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" class="form-control" id="activity-search" placeholder="Search activities...">
-                                <button class="btn btn-outline-secondary" type="button" id="activity-search-btn">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-12">
-                            <div class="row align-items-end">
-                                <!-- Activity Type Filter -->
-                                <div class="col-md-4">
-                                    <label for="activity-type-filter" class="form-label fw-bold">Activity Type</label>
-                                    <select class="form-select" id="activity-type-filter">
-                                        <option value="">All Activities</option>
-                                        <option value="email">Emails</option>
-                                        <option value="call">Calls</option>
-                                        <option value="meeting">Meetings</option>
-                                        <option value="exception">Waiver & Favor</option>
-                                        <option value="note">Notes</option>
-                                        <option value="system">System Updates</option>
-                                    </select>
-                                </div>
-                                
-                                <!-- Date Range Filters -->
-                                <div class="col-md-7">
-                                    <label class="form-label fw-bold">Date Range</label>
-                                    <div class="row g-2">
-                                        <div class="col-md-6">
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                                                <input type="date" class="form-control" id="date-from" placeholder="From">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
-                                                <input type="date" class="form-control" id="date-to" placeholder="To">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Reset Button -->
-                                <div class="col-md-1">
-                                    <button type="button" id="reset-filters" class="btn btn-outline-secondary w-100">
-                                        <i class="fas fa-undo-alt"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline">
-                    {% for activity in activities %}
-                        {% if activity.is_system_activity or activity.activity_type == 'document' %}
-                            <!-- System Activity -->
-                            <div class="system-activity-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <!-- Simplified description without showing tag change details -->
-                                        <span class="text-muted">{{ activity.description|split:"\n"|first }}</span>
-                                        <small class="text-muted ms-2">
-                                            <i class="fas fa-user me-1"></i>
-                                            {{ activity.performed_by.get_full_name }}
-                                        </small>
-                                    </div>
-                                    <small class="text-muted">{{ activity.performed_at|date:"d M Y H:i" }}</small>
-                                </div>
-                            </div>
-                        {% else %}
-                            <!-- User Logged Activity -->
-                            <div class="timeline-item user-activity">
-                                <div class="timeline-icon">
-                                    {% if activity.activity_type == 'email' %}
-                                        <i class="fas fa-envelope"></i>
-                                    {% elif activity.activity_type == 'call' %}
-                                        <i class="fas fa-phone"></i>
-                                    {% elif activity.activity_type == 'meeting' %}
-                                        <i class="fas fa-handshake"></i>
-                                    {% elif activity.activity_type == 'note' %}
-                                        <i class="fas fa-sticky-note"></i>
-                                    {% else %}
-                                        <i class="fas fa-clipboard-list"></i>
-                                    {% endif %}
-                                </div>
-                                <div class="timeline-content">
-                                    <div class="card border-top-{% if activity.activity_type == 'email' %}primary-ea{% elif activity.activity_type == 'call' %}secondary-ea{% elif activity.activity_type == 'meeting' %}accent-ea{% elif activity.activity_type == 'note' %}tertiary-ea{% elif activity.activity_type == 'exception' %}purple{% endif %} bg-{% if activity.activity_type == 'email' %}primary-ea{% elif activity.activity_type == 'call' %}secondary-ea{% elif activity.activity_type == 'meeting' %}accent-ea{% elif activity.activity_type == 'note' %}tertiary-ea{% elif activity.activity_type == 'exception' %}purple{% endif %} bg-opacity-10 ps-3 mb-4 rounded shadow-sm">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div>
-                                                    <h6 class="mb-1 {% if activity.activity_type == 'email' %}text-primary-ea{% elif activity.activity_type == 'call' %}text-secondary-ea{% elif activity.activity_type == 'meeting' %}text-accent-ea{% elif activity.activity_type == 'note' %}text-tertiary-ea{% elif activity.activity_type == 'exception' %}text-purple{% endif %}">
-                                                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle me-2 p-2 {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'meeting' %}bg-accent-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% endif %} bg-opacity-25" style="width: 32px; height: 32px;">
-                                                            {% if activity.activity_type == 'email' %}
-                                                                <i class="fas fa-envelope text-primary-ea"></i>
-                                                            {% elif activity.activity_type == 'call' %}
-                                                                <i class="fas fa-phone-alt text-secondary-ea"></i>
-                                                            {% elif activity.activity_type == 'meeting' %}
-                                                                <i class="fas fa-handshake text-accent-ea"></i>
-                                                            {% elif activity.activity_type == 'note' %}
-                                                                <i class="fas fa-sticky-note text-tertiary-ea"></i>
-                                                            {% elif activity.activity_type == 'exception' %}
-                                                                <i class="fas fa-star text-purple"></i>
-                                                            {% endif %}
-                                                        </div>
-                                                        {{ activity.get_activity_type_display }}
-                                                    </h6>
-                                                    <p class="text-muted small mb-2 ps-4 ms-2">
-                                                        <i class="fas fa-user-circle me-1"></i> {{ activity.performed_by.get_full_name }}
-                                                    </p>
-                                                    
-                                                    <div class="card mb-2 activity-card {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'meeting' %}bg-accent-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% endif %} bg-opacity-10">
-                                                        <div class="card-body py-1 px-2">
-                                                            <div class="content-preview">{{ activity.description }}</div>
-                                                            {% if activity.activity_type == 'email' %}
-                                                                {% if activity.emailactivity %}
-                                                                    <div class="mb-0 mt-1"><strong class="text-primary-ea">Subject:</strong> {{ activity.emailactivity.subject }}</div>
-                                                                {% endif %}
-                                                            {% elif activity.activity_type == 'call' %}
-                                                                {% if activity.callactivity %}
-                                                                    <div class="mb-0 mt-1"><strong class="text-secondary-ea">Duration:</strong> {{ activity.callactivity.duration }} minutes</div>
-                                                                {% endif %}
-                                                            {% elif activity.activity_type == 'meeting' %}
-                                                                {% if activity.meetingactivity %}
-                                                                    <div class="mb-0 mt-1"><strong class="text-accent-ea">Location:</strong> {{ activity.meetingactivity.location }}</div>
-                                                                {% endif %}
-                                                            {% elif activity.activity_type == 'note' %}
-                                                                {% if activity.noteactivity %}
-                                                                    <div class="mb-0 mt-1"><strong class="text-tertiary-ea">Note:</strong> {{ activity.noteactivity.content|truncatechars:100 }}</div>
-                                                                {% endif %}
-                                                            {% endif %}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="text-end">
-                                                    <span class="badge {% if activity.activity_type == 'email' %}bg-primary-ea{% elif activity.activity_type == 'call' %}bg-secondary-ea{% elif activity.activity_type == 'meeting' %}bg-accent-ea{% elif activity.activity_type == 'note' %}bg-tertiary-ea{% elif activity.activity_type == 'exception' %}bg-purple{% endif %} bg-opacity-25 text-dark rounded-pill mb-2">
-                                                        <i class="far fa-clock me-1"></i>{{ activity.performed_at|date:"d M Y, H:i" }}
-                                                    </span>
-                                                    <div>
-                                                        <button type="button" class="btn btn-sm {% if activity.activity_type == 'email' %}btn-outline-primary-ea{% elif activity.activity_type == 'call' %}btn-outline-secondary-ea{% elif activity.activity_type == 'meeting' %}btn-outline-accent-ea{% elif activity.activity_type == 'note' %}btn-outline-tertiary-ea{% elif activity.activity_type == 'exception' %}btn-outline-purple{% else %}btn-outline-secondary{% endif %}" data-bs-toggle="modal" data-bs-target="#activity-details-modal" data-activity-id="{{ activity.id }}" data-activity-type="{{ activity.activity_type }}">
-                                                            <i class="fas fa-eye me-1"></i> View Details
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% empty %}
-                        <div class="alert alert-info mb-0">
-                            <i class="fas fa-info-circle me-2"></i>No activities found for this company.
-                        </div>
-                    {% endfor %}
-                </div>
+            <div class="card-body p-0">
+                <input type="hidden" id="company_id" value="{{ company.id }}">
+                {% include 'crm/includes/activity_tabs.html' %}
             </div>
         </div>
     </div>
@@ -1180,312 +1004,6 @@
   </div>
 </div>
 
-<!-- Add the missing Log Activity Modal -->
-<div class="modal fade" id="logActivityModal" tabindex="-1" aria-labelledby="logActivityModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="logActivityModalLabel">Log New Activity</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <!-- Activity Type Selection -->
-        <div class="mb-4">
-          <h6 class="mb-3">Select Activity Type</h6>
-          <div class="row row-cols-1 row-cols-md-3 g-3">
-            <div class="col">
-              <div class="card h-100 activity-type-card" data-form-target="email-form">
-                <div class="card-body text-center py-4">
-                  <i class="fas fa-envelope fa-2x text-primary-ea mb-3"></i>
-                  <h6 class="card-title">Email</h6>
-                </div>
-              </div>
-            </div>
-            <div class="col">
-              <div class="card h-100 activity-type-card" data-form-target="call-form">
-                <div class="card-body text-center py-4">
-                  <i class="fas fa-phone-alt fa-2x text-secondary-ea mb-3"></i>
-                  <h6 class="card-title">Call</h6>
-                </div>
-              </div>
-            </div>
-            <div class="col">
-              <div class="card h-100 activity-type-card" data-form-target="note-form">
-                <div class="card-body text-center py-4">
-                  <i class="fas fa-sticky-note fa-2x text-accent-ea mb-3"></i>
-                  <h6 class="card-title">Note</h6>
-                </div>
-              </div>
-            </div>
-            <div class="col">
-              <div class="card h-100 activity-type-card" data-form-target="meeting-form">
-                <div class="card-body text-center py-4">
-                  <i class="fas fa-users fa-2x color-purple mb-3"></i>
-                  <h6 class="card-title">Meeting</h6>
-                </div>
-              </div>
-            </div>
-            <div class="col">
-              <div class="card h-100 activity-type-card" data-form-target="waiver-form">
-                <div class="card-body text-center py-4">
-                  <i class="fas fa-exclamation-triangle fa-2x text-tertiary-ea mb-3"></i>
-                  <h6 class="card-title">Waiver/Favor</h6>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Form Container -->
-        <div id="activity-form-container">
-          <!-- Email Form -->
-          <form id="email-form" action="{% url 'crm:log_email' company.id %}" method="post" class="activity-form" style="display: none;">
-            {% csrf_token %}
-            <input type="hidden" name="company_id" value="{{ company.id }}">
-            
-            <!-- Recipients field first -->
-            <div class="mb-3">
-              <label for="id_recipients" class="form-label">Recipients</label>
-              <select name="recipients" id="id_recipients" class="form-control tom-select" multiple="multiple" data-placeholder="Select recipients...">
-                <!-- Options will be loaded via AJAX -->
-              </select>
-              {% if email_form.recipients.help_text %}
-              <small class="form-text text-muted">{{ email_form.recipients.help_text }}</small>
-              {% endif %}
-              {% if email_form.recipients.errors %}
-              <div class="invalid-feedback d-block">
-                {{ email_form.recipients.errors }}
-              </div>
-              {% endif %}
-            </div>
-            
-            <!-- Date and Time on same line -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="{{ email_form.email_date.id_for_label }}" class="form-label">{{ email_form.email_date.label }}</label>
-                {{ email_form.email_date }}
-                {% if email_form.email_date.help_text %}
-                <small class="form-text text-muted">{{ email_form.email_date.help_text }}</small>
-                {% endif %}
-                {% if email_form.email_date.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ email_form.email_date.errors }}
-                </div>
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <label for="{{ email_form.email_time.id_for_label }}" class="form-label">{{ email_form.email_time.label }}</label>
-                {{ email_form.email_time }}
-                {% if email_form.email_time.help_text %}
-                <small class="form-text text-muted">{{ email_form.email_time.help_text }}</small>
-                {% endif %}
-                {% if email_form.email_time.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ email_form.email_time.errors }}
-                </div>
-                {% endif %}
-              </div>
-            </div>
-            
-            <!-- Subject field -->
-            <div class="mb-3">
-              <label for="{{ email_form.subject.id_for_label }}" class="form-label">{{ email_form.subject.label }}</label>
-              {{ email_form.subject }}
-              {% if email_form.subject.help_text %}
-              <small class="form-text text-muted">{{ email_form.subject.help_text }}</small>
-              {% endif %}
-              {% if email_form.subject.errors %}
-              <div class="invalid-feedback d-block">
-                {{ email_form.subject.errors }}
-              </div>
-              {% endif %}
-            </div>
-            
-            <!-- Body field -->
-            <div class="mb-3">
-              <label for="{{ email_form.body.id_for_label }}" class="form-label">{{ email_form.body.label }}</label>
-              {{ email_form.body }}
-              {% if email_form.body.help_text %}
-              <small class="form-text text-muted">{{ email_form.body.help_text }}</small>
-              {% endif %}
-              {% if email_form.body.errors %}
-              <div class="invalid-feedback d-block">
-                {{ email_form.body.errors }}
-              </div>
-              {% endif %}
-            </div>
-            
-            <!-- Email outcome field -->
-            <div class="mb-3">
-              <label for="{{ email_form.email_outcome.id_for_label }}" class="form-label">{{ email_form.email_outcome.label }}</label>
-              {{ email_form.email_outcome }}
-              {% if email_form.email_outcome.help_text %}
-              <small class="form-text text-muted">{{ email_form.email_outcome.help_text }}</small>
-              {% endif %}
-              {% if email_form.email_outcome.errors %}
-              <div class="invalid-feedback d-block">
-                {{ email_form.email_outcome.errors }}
-              </div>
-              {% endif %}
-            </div>
-            
-            <!-- Any other email form fields not explicitly mentioned -->
-            {% for field in email_form %}
-              {% if field.name != 'recipients' and field.name != 'email_date' and field.name != 'email_time' and field.name != 'subject' and field.name != 'body' and field.name != 'email_outcome' %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ field.errors }}
-                </div>
-                {% endif %}
-              </div>
-              {% endif %}
-            {% endfor %}
-            
-            <!-- Task fields from todo_form -->
-            {% for field in todo_form %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ field.errors }}
-                </div>
-                {% endif %}
-              </div>
-            {% endfor %}
-            
-            <div class="mt-3 d-flex justify-content-between">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Save Email Activity</button>
-          </div>
-          </form>
-
-          <!-- Call Form -->
-          <form id="call-form" action="{% url 'crm:log_call' company.id %}" method="post" class="activity-form" style="display: none;">
-            {% csrf_token %}
-            {{ call_form.as_p }}
-            
-            <!-- Task fields from todo_form -->
-            {% for field in todo_form %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ field.errors }}
-                </div>
-                {% endif %}
-              </div>
-            {% endfor %}
-            
-            <div class="mt-3 d-flex justify-content-between">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Save Call Activity</button>
-              </div>
-          </form>
-
-          <!-- Note Form -->
-          <form id="note-form" action="{% url 'crm:log_note' company.id %}" method="post" class="activity-form" style="display: none;">
-            {% csrf_token %}
-            {{ note_form.as_p }}
-            
-            <!-- Task fields from todo_form -->
-            {% for field in todo_form %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ field.errors }}
-                </div>
-                {% endif %}
-              </div>
-            {% endfor %}
-            
-            <div class="mt-3 d-flex justify-content-between">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Save Note Activity</button>
-            </div>
-          </form>
-
-          <!-- Meeting Form -->
-          <form id="meeting-form" action="{% url 'crm:log_meeting' company.id %}" method="post" class="activity-form" style="display: none;">
-            {% csrf_token %}
-            {{ meeting_form.as_p }}
-            
-            <!-- Task fields from todo_form -->
-            {% for field in todo_form %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ field.errors }}
-                </div>
-                {% endif %}
-              </div>
-            {% endfor %}
-            
-            <div class="mt-3 d-flex justify-content-between">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Save Meeting Activity</button>
-            </div>
-          </form>
-
-          <!-- Waiver Form -->
-          <form id="waiver-form" action="{% url 'crm:log_waiver_favor' company.id %}" method="post" class="activity-form" style="display: none;">
-            {% csrf_token %}
-            {{ waiver_form.as_p }}
-            
-            <!-- Task fields from todo_form -->
-            {% for field in todo_form %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">
-                  {{ field.errors }}
-                </div>
-                {% endif %}
-              </div>
-            {% endfor %}
-            
-            <div class="mt-3 d-flex justify-content-between">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Save Waiver/Favor Activity</button>
-            </div>
-          </form>
-
-          <!-- Initial message -->
-          <div id="initial-message" class="text-center py-4">
-            <p>Please select an activity type above to start logging.</p>
-        </div>
-        </div>
-        </div>
-        </div>
-        </div>
-        
 {% endblock content %}
 
 {% block extra_js %}
@@ -1501,4 +1019,145 @@
 {% endblock extra_js %}
 
 {% include 'crm/includes/invoice_remarks_modal.html' %}
-{% block postload_js %}{% endblock postload_js %}
+{% block postload_js %}
+<script>
+  // Diagnostic script for activities tab
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add a diagnostic button to the UI
+    const activities = document.getElementById('activities');
+    if (activities) {
+      const diagnosticButton = document.createElement('button');
+      diagnosticButton.classList.add('btn', 'btn-warning', 'mt-3');
+      diagnosticButton.innerHTML = 'Test Activities API';
+      diagnosticButton.onclick = function() {
+        testActivitiesApi();
+      };
+      activities.appendChild(diagnosticButton);
+      
+      const loadButton = document.createElement('button');
+      loadButton.classList.add('btn', 'btn-primary', 'mt-3', 'ms-2');
+      loadButton.innerHTML = 'Load Activities Now';
+      loadButton.onclick = function() {
+        if (typeof loadActivitiesByType === 'function') {
+          console.log('Manually loading activities now...');
+          try {
+            loadActivitiesByType('all');
+          } catch (e) {
+            console.error('Error manually loading activities:', e);
+            alert('Error loading activities: ' + e.message);
+          }
+        } else {
+          console.error('loadActivitiesByType function not available');
+          alert('Error: loadActivitiesByType function not found!');
+        }
+      };
+      activities.appendChild(loadButton);
+      
+      // Try to directly load activities when the tab is shown
+      document.getElementById('activities-tab').addEventListener('click', function() {
+        console.log('Activities tab clicked directly');
+        setTimeout(function() {
+          if (typeof loadActivitiesByType === 'function') {
+            console.log('Loading activities from tab click...');
+            loadActivitiesByType('all');
+          }
+        }, 100);
+      });
+    }
+    
+    // Function to test the activities API directly
+    function testActivitiesApi() {
+      const companyId = document.getElementById('company_id').value;
+      const testUrl = `/crm/company/${companyId}/activities/?type=all&_=${new Date().getTime()}`;
+      
+      console.log('Testing Activities API:', testUrl);
+      
+      fetch(testUrl)
+        .then(response => {
+          console.log('Response status:', response.status, response.statusText);
+          return response.text();
+        })
+        .then(html => {
+          console.log('Response length:', html.length);
+          console.log('First 100 chars:', html.substring(0, 100));
+          
+          // Try to create a temporary div to hold the response
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          console.log('Elements in response:', tempDiv.childNodes.length);
+          
+          // Add the response directly to the page for inspection
+          const resultsDiv = document.createElement('div');
+          resultsDiv.classList.add('alert', 'alert-info', 'mt-3');
+          resultsDiv.innerHTML = `
+            <h5>API Test Results</h5>
+            <div>Response status: OK</div>
+            <div>Response length: ${html.length} chars</div>
+            <div class="border p-3 mt-2 bg-light">
+              <pre>${html.substring(0, 500)}${html.length > 500 ? '...' : ''}</pre>
+            </div>
+          `;
+          activities.appendChild(resultsDiv);
+          
+          // Try to directly update the activities container
+          const allActivitiesList = document.getElementById('all-activities-list');
+          if (allActivitiesList) {
+            console.log('Found all-activities-list container, updating...');
+            allActivitiesList.innerHTML = html;
+          }
+        })
+        .catch(error => {
+          console.error('Error testing API:', error);
+          const errorDiv = document.createElement('div');
+          errorDiv.classList.add('alert', 'alert-danger', 'mt-3');
+          errorDiv.innerHTML = `
+            <h5>API Test Error</h5>
+            <div>${error.message}</div>
+          `;
+          activities.appendChild(errorDiv);
+        });
+    }
+    
+    // Try direct activity loading on page load with a delay
+    setTimeout(function() {
+      if (document.getElementById('activities').classList.contains('active') || 
+          window.location.hash === '#activities') {
+        console.log('Activities tab is active, loading activities...');
+        if (typeof loadActivitiesByType === 'function') {
+          loadActivitiesByType('all');
+        }
+      }
+    }, 1000);
+  });
+</script>
+
+<script>
+  // Direct load when activities tab is shown (using both methods for better cross-browser support)
+  $(document).ready(function() {
+    $('#activities-tab').on('shown.bs.tab', function() {
+      console.log('Activities tab shown via jQuery event');
+      if (typeof loadActivitiesByType === 'function') {
+        console.log('Loading all activities...');
+        setTimeout(function() {
+          loadActivitiesByType('all');
+        }, 200);
+      }
+    });
+  });
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    // This is the key fix - we need to initialize the activities when the main activities tab is shown
+    const activitiesTab = document.getElementById('activities-tab');
+    if (activitiesTab) {
+      activitiesTab.addEventListener('shown.bs.tab', function() {
+        console.log('Activities tab shown via direct event listener');
+        setTimeout(function() {
+          if (typeof loadActivitiesByType === 'function') {
+            loadActivitiesByType('all');
+          }
+        }, 200);
+      });
+    }
+  });
+</script>
+{% endblock postload_js %}
