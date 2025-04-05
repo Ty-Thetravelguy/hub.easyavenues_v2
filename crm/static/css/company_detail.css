@@ -213,3 +213,19 @@
     margin-bottom: 0;
     background-color: #fff;
 }
+
+
+   /* Tom Select Bootstrap 5 customizations */
+   .ts-wrapper.multi .ts-control .item {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+  }
+  
+  .ts-dropdown .option {
+    padding: 8px 12px;
+  }
+  
+  .ts-dropdown .active {
+    background-color: #e9ecef;
+    color: #212529;
+  }

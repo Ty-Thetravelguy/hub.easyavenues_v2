@@ -100,7 +100,7 @@
                                     </div>
                                 </div>
 
-                                <select name="vip_travelers" id="vip_travelers" class="form-select select2" multiple>
+                                <select name="vip_travelers" id="vip_travelers" class="form-select tom-select" multiple>
                                     <optgroup label="VIP Travelers">
                                         {% for contact in company_contacts %}
                                             {% if 'vip_traveller' in contact.tag_list %}
@@ -232,5 +232,5 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="{% static 'js/travel_policy_form.js' %}"></script>
+<!-- Travel policy form functionality now included in the consolidated forms.js file -->
 {% endblock %} 
