@@ -61,7 +61,6 @@ urlpatterns = [
     path('activity/<str:activity_type>/form/', activity_views.activity_form, name='activity_form'),
     path('company/<int:company_id>/activities/', activity_views.company_activities, name='company_activities'),
     path('company/<int:company_id>/activities-json/', activity_views.company_activities_json, name='company_activities_json'),
-    path('company/<int:company_id>/debug-activities/', activity_views.debug_activities, name='debug_activities'),
     path('activity/email/', activity_views.log_email_activity, name='log_email_activity'),
     path('activity/call/', activity_views.log_call_activity, name='log_call_activity'),
     path('activity/meeting/', activity_views.log_meeting_activity, name='log_meeting_activity'),

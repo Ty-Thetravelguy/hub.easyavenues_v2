@@ -60,14 +60,8 @@ def activity_form(request, activity_type):
 def company_activities(request, company_id):
     """Get activities for a specific company"""
     try:
-        # Add simple health check response if requested
-        if 'health_check' in request.GET:
-            return HttpResponse("Activity view is responding correctly", content_type="text/plain")
-            
-        logging.info(f"Starting company_activities view for company_id={company_id}")
         company = get_object_or_404(Company, id=company_id)
         activity_type = request.GET.get('type', 'all')
-        logging.info(f"Fetching activities of type '{activity_type}' for company {company.company_name} (ID: {company.id})")
         
         if activity_type == 'all':
             activities = Activity.objects.filter(company=company).select_related(
@@ -84,39 +78,18 @@ def company_activities(request, company_id):
                 'policyupdateactivity'
             ).order_by('-performed_at')
         
-        logging.info(f"Found {activities.count()} activities for company {company.id}, type: {activity_type}")
-        
-        # Log first 5 activities for debugging
-        for i, activity in enumerate(activities[:5]):
-            logging.info(f"Activity {i+1}: ID={activity.id}, type={activity.activity_type}, performed_at={activity.performed_at}")
-            
-            # Check if activity type is valid in model choices
-            valid_types = [t[0] for t in Activity.ACTIVITY_TYPES]
-            if activity.activity_type not in valid_types:
-                logging.warning(f"Activity {activity.id} has invalid type: {activity.activity_type}")
-        
         context = {
             'company': company,
             'activities': activities,
             'activity_type': activity_type
         }
         
-        try:
-            # Try to render the template to catch any template errors
-            logging.info("Rendering activity_list.html template")
-            html = render_to_string('crm/includes/activity_list.html', context, request)
-            logging.info(f"Successfully rendered template with {len(html)} characters")
-            return HttpResponse(html)
-        except Exception as template_error:
-            import traceback
-            logging.error(f"Template rendering error in activity_list.html: {str(template_error)}")
-            logging.error(traceback.format_exc())
-            return HttpResponse(f"<div class='alert alert-danger'>Error rendering activities: {str(template_error)}</div>")
+        html = render_to_string('crm/includes/activity_list.html', context, request)
+        return HttpResponse(html)
             
     except Exception as e:
         import traceback
         logging.error(f"Error in company_activities view: {str(e)}")
-        logging.error(traceback.format_exc())
         return HttpResponse(f"<div class='alert alert-danger'>Server error: {str(e)}</div>")
 
 @login_required
@@ -660,60 +633,6 @@ def activity_details(request, activity_id):
     return render(request, 'crm/activity_details.html', context)
 
 @login_required
-def debug_activities(request, company_id):
-    """Debug view for activities"""
-    try:
-        company = get_object_or_404(Company, id=company_id)
-        activity_type = request.GET.get('type', 'all')
-        
-        # Query activities
-        if activity_type == 'all':
-            activities = Activity.objects.filter(company=company).order_by('-performed_at')
-        else:
-            activities = Activity.objects.filter(company=company, activity_type=activity_type).order_by('-performed_at')
-        
-        # Gather debug info for each activity
-        activity_data = []
-        for activity in activities:
-            # Basic activity info
-            info = {
-                'id': activity.id,
-                'type': activity.activity_type,
-                'description': activity.description[:50] + '...' if len(activity.description) > 50 else activity.description,
-                'performed_at': activity.performed_at.isoformat(),
-            }
-            
-            # Check for subclass instances
-            subclass_models = ['emailactivity', 'callactivity', 'meetingactivity', 'noteactivity', 
-                               'waiveractivity', 'taskactivity', 'documentactivity']
-            for model_name in subclass_models:
-                if hasattr(activity, model_name):
-                    info[f'has_{model_name}'] = True
-                    # Add a few fields from the subclass if they exist
-                    subclass = getattr(activity, model_name)
-                    if hasattr(subclass, 'title'):
-                        info[f'{model_name}_title'] = getattr(subclass, 'title', '')
-            
-            activity_data.append(info)
-        
-        # Return as JSON
-        return JsonResponse({
-            'company': company.company_name,
-            'activity_type': activity_type,
-            'count': len(activity_data),
-            'activities': activity_data
-        })
-        
-    except Exception as e:
-        import traceback
-        logging.error(f"Error in debug_activities view: {str(e)}")
-        logging.error(traceback.format_exc())
-        return JsonResponse({
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }, status=500)
-
-@login_required
 def company_activities_json(request, company_id):
     """Get activities for a specific company as JSON"""
     try:
@@ -748,11 +667,8 @@ def company_activities_json(request, company_id):
         })
             
     except Exception as e:
-        import traceback
         logging.error(f"Error in company_activities_json view: {str(e)}")
-        logging.error(traceback.format_exc())
         return JsonResponse({
             'status': 'error',
-            'message': str(e),
-            'traceback': traceback.format_exc()
+            'message': str(e)
         }, status=500) 
