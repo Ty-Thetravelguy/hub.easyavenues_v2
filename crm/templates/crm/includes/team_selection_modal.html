@@ -7,46 +7,51 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Team Selection -->
-                <div class="mb-3">
-                    <label for="teamSelect" class="form-label">Select Team</label>
-                    <select id="teamSelect" class="form-select">
-                        <option value="">Choose a team...</option>
-                        {% for team in teams %}
-                        <option value="{{ team.id }}">{{ team.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Team Members Section (initially hidden) -->
-                <div id="teamMembersSection" class="d-none">
-                    <h6 class="mb-3">Team Members</h6>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th class="table-column-icon"></th>
-                                    <th>Name</th>
-                                    <th>Role</th>
-                                </tr>
-                            </thead>
-                            <tbody id="teamMembersTableBody">
-                                <!-- Team members will be populated here -->
-                            </tbody>
-                        </table>
+                <form id="team-selection-form">
+                    <!-- Team Selection -->
+                    <div class="mb-3">
+                        <label for="teamSelect" class="form-label">Select Team</label>
+                        <select id="teamSelect" class="form-select">
+                            <option value="">Choose a team...</option>
+                            {% for team in teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </div>
 
-                <!-- Template for team member row (hidden) -->
-                <template id="teamMemberRowTemplate">
-                    <tr>
-                        <td>
-                            <input type="radio" name="selectedUser" class="form-check-input">
-                        </td>
-                        <td class="member-name"></td>
-                        <td class="member-role"></td>
-                    </tr>
-                </template>
+                    <!-- Team Members Section (initially hidden) -->
+                    <div id="teamMembersSection" class="d-none">
+                        <h6 class="mb-3">Team Members</h6>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="table-column-icon"></th>
+                                        <th>Name</th>
+                                        <th>Role</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teamMembersTableBody">
+                                    <!-- Team members will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Hidden input for selected user -->
+                    <input type="hidden" id="selected_user_id" name="selected_user_id" value="">
+                    
+                    <!-- Template for team member row (hidden) -->
+                    <template id="teamMemberRowTemplate">
+                        <tr>
+                            <td>
+                                <input type="radio" name="selectedUser" class="form-check-input">
+                            </td>
+                            <td class="member-name"></td>
+                            <td class="member-role"></td>
+                        </tr>
+                    </template>
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

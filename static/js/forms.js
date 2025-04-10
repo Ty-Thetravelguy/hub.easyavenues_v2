@@ -416,6 +416,51 @@ function initializeInvoiceReferenceSelection() {
             return false;
         }
     });
+    
+    // Handle invoice reference selection
+    const saveInvoiceReferencesBtn = document.getElementById('saveInvoiceReferences');
+    if (saveInvoiceReferencesBtn) {
+        saveInvoiceReferencesBtn.addEventListener('click', function() {
+            const selectedReferences = [];
+            const checkboxes = document.querySelectorAll('.reference-checkbox:checked');
+            
+            checkboxes.forEach(checkbox => {
+                const referenceId = checkbox.value;
+                const typeSelect = document.getElementById(`type_${referenceId}`);
+                const isMandatory = typeSelect.value === 'mandatory';
+                
+                selectedReferences.push({
+                    id: referenceId,
+                    is_mandatory: isMandatory
+                });
+            });
+            
+            // Update the hidden input
+            const selectedReferencesInput = document.getElementById('selectedReferencesInput');
+            if (selectedReferencesInput) {
+                selectedReferencesInput.value = JSON.stringify(selectedReferences);
+            }
+            
+            // Submit the form
+            const form = document.getElementById('invoiceReferencesForm');
+            if (form) {
+                form.submit();
+            }
+        });
+    }
+    
+    // Handle reference checkbox changes
+    const referenceCheckboxes = document.querySelectorAll('.reference-checkbox');
+    referenceCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const referenceId = this.value;
+            const typeSelect = document.getElementById(`type_${referenceId}`);
+            
+            if (typeSelect) {
+                typeSelect.disabled = !this.checked;
+            }
+        });
+    });
 }
 
 /**
@@ -488,89 +533,114 @@ function initializeTeamSelection() {
     
     console.log('🔄 Initializing team selection');
     
-    // Initialize Select2 for team members
-    if (typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
-        jQuery('#team_members').select2({
-            width: '100%',
-            placeholder: 'Select team members',
-            tags: false,
-            multiple: true,
-            ajax: {
-                url: '/users/search/',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return {
-                        q: params.term || '',
-                        page: params.page || 1
-                    };
-                },
-                processResults: function(data, params) {
-                    params.page = params.page || 1;
+    const teamSelect = document.getElementById('teamSelect');
+    const teamMembersSection = document.getElementById('teamMembersSection');
+    const teamMembersTableBody = document.getElementById('teamMembersTableBody');
+    const teamMemberRowTemplate = document.getElementById('teamMemberRowTemplate');
+    const selectedUserIdInput = document.getElementById('selected_user_id');
+    const selectUserBtn = document.getElementById('selectUserBtn');
+    
+    // Target input and display elements for the user selection
+    let targetInputId = null;
+    let targetDisplayId = null;
+    
+    // Handle team selection
+    if (teamSelect) {
+        teamSelect.addEventListener('change', function() {
+            const teamId = this.value;
+            
+            if (!teamId) {
+                teamMembersSection.classList.add('d-none');
+                selectUserBtn.disabled = true;
+                return;
+            }
+            
+            // Fetch team members
+            fetch(`/accounts/api/teams/${teamId}/members/`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing rows
+                    teamMembersTableBody.innerHTML = '';
                     
-                    return {
-                        results: data.results,
-                        pagination: {
-                            more: (params.page * 10) < data.count
-                        }
-                    };
-                },
-                cache: true
-            },
-            templateResult: formatUserResult,
-            templateSelection: formatUserSelection
+                    // Add new rows
+                    data.forEach(member => {
+                        const template = teamMemberRowTemplate.content.cloneNode(true);
+                        const row = template.querySelector('tr');
+                        const radio = row.querySelector('input[type="radio"]');
+                        const nameCell = row.querySelector('.member-name');
+                        const roleCell = row.querySelector('.member-role');
+                        
+                        radio.value = member.id;
+                        nameCell.textContent = member.full_name;
+                        roleCell.textContent = member.role;
+                        
+                        // Add event listener to radio button
+                        radio.addEventListener('change', function() {
+                            if (this.checked) {
+                                selectedUserIdInput.value = this.value;
+                                selectUserBtn.disabled = false;
+                            }
+                        });
+                        
+                        teamMembersTableBody.appendChild(row);
+                    });
+                    
+                    // Show the team members section
+                    teamMembersSection.classList.remove('d-none');
+                })
+                .catch(error => {
+                    console.error('Error fetching team members:', error);
+                    teamMembersSection.classList.add('d-none');
+                });
         });
     }
     
-    // Handle form submission
-    teamSelectionForm.addEventListener('submit', function(e) {
-        const isValid = validateTeamForm();
-        
-        if (!isValid) {
-            e.preventDefault();
-            return false;
-        }
-    });
-}
-
-/**
- * Format user search result
- */
-function formatUserResult(user) {
-    if (user.loading) return user.text;
-    
-    return jQuery(`
-        <div class="select2-result-user">
-            <div>
-                <strong>${user.name}</strong>
-            </div>
-            <div class="text-muted small">
-                <i class="fas fa-envelope me-1"></i> ${user.email}
-                ${user.department ? `<span class="ms-2"><i class="fas fa-building me-1"></i> ${user.department}</span>` : ''}
-            </div>
-        </div>
-    `);
-}
-
-/**
- * Format user selection
- */
-function formatUserSelection(user) {
-    return user.name || user.text;
-}
-
-/**
- * Validate team selection form
- */
-function validateTeamForm() {
-    const form = document.getElementById('team-selection-form');
-    if (!form) return true;
-    
-    const teamMembers = document.getElementById('team_members');
-    if (teamMembers && teamMembers.required && !teamMembers.value) {
-        teamMembers.classList.add('is-invalid');
-        return false;
+    // Handle user selection button
+    if (selectUserBtn) {
+        selectUserBtn.addEventListener('click', function() {
+            const userId = selectedUserIdInput.value;
+            if (!userId) return;
+            
+            // Get the selected user's name from the table
+            const selectedRadio = teamMembersTableBody.querySelector('input[type="radio"]:checked');
+            if (selectedRadio) {
+                const userName = selectedRadio.closest('tr').querySelector('.member-name').textContent;
+                
+                // Update the target input and display
+                if (targetInputId && targetDisplayId) {
+                    const targetInput = document.getElementById(targetInputId);
+                    const targetDisplay = document.getElementById(targetDisplayId);
+                    
+                    if (targetInput && targetDisplay) {
+                        targetInput.value = userId;
+                        targetDisplay.value = userName;
+                    }
+                }
+            }
+            
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('teamSelectionModal'));
+            if (modal) {
+                modal.hide();
+            }
+        });
     }
     
-    return true;
+    // Handle modal open event to set target elements
+    const teamSelectionModal = document.getElementById('teamSelectionModal');
+    if (teamSelectionModal) {
+        teamSelectionModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            if (button) {
+                targetInputId = button.getAttribute('data-target-input');
+                targetDisplayId = button.getAttribute('data-target-display');
+                
+                // Reset form
+                teamSelect.value = '';
+                teamMembersSection.classList.add('d-none');
+                selectedUserIdInput.value = '';
+                selectUserBtn.disabled = true;
+            }
+        });
+    }
 } 
