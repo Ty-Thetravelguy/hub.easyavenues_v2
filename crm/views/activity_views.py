@@ -14,7 +14,7 @@ from crm.forms import (
     NoteActivityForm, WaiverFavorActivityForm, ToDoTaskForm, DocumentActivityForm, 
     StatusChangeActivityForm, PolicyUpdateActivityForm
 )
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 @login_required
 def activity_form(request, activity_type):
@@ -27,6 +27,7 @@ def activity_form(request, activity_type):
         company = get_object_or_404(Company, id=company_id)
         
         # Get all users for task assignment
+        User = get_user_model()
         users = User.objects.filter(is_active=True)
         
         template_map = {
@@ -317,10 +318,10 @@ def log_waiver_activity(request):
         # Set approved_by if provided
         if request.POST.get('approved_by'):
             try:
-                approver = User.objects.get(id=request.POST.get('approved_by'))
+                approver = get_user_model().objects.get(id=request.POST.get('approved_by'))
                 activity.approved_by = approver
                 activity.save()
-            except User.DoesNotExist:
+            except get_user_model().DoesNotExist:
                 pass
         
         # Add contact
@@ -359,7 +360,7 @@ def log_task_activity(request):
         if assignee_id == 'current_user':
             assignee = request.user
         elif assignee_id:
-            assignee = get_object_or_404(User, id=assignee_id)
+            assignee = get_object_or_404(get_user_model(), id=assignee_id)
         else:
             assignee = None
         
@@ -671,4 +672,32 @@ def company_activities_json(request, company_id):
         return JsonResponse({
             'status': 'error',
             'message': str(e)
-        }, status=500) 
+        }, status=500)
+
+@login_required
+def approve_waiver_favor(request, activity_id):
+    """Approve a waiver/favor activity."""
+    activity = get_object_or_404(Activity, id=activity_id)
+    
+    if request.method == 'POST':
+        try:
+            # Get the approver
+            User = get_user_model()
+            approver = User.objects.get(id=request.POST.get('approved_by'))
+            
+            # Update the waiver activity
+            waiver = activity.waiveractivity
+            waiver.approved_by = approver
+            waiver.save()
+            
+            # Update the activity outcome
+            activity.outcome = request.POST.get('outcome', '')
+            activity.save()
+            
+            messages.success(request, 'Waiver/Favor activity approved successfully.')
+            return redirect('crm:company_detail', pk=activity.company.id)
+        except Exception as e:
+            messages.error(request, f'Error approving waiver/favor: {str(e)}')
+            return redirect('crm:company_detail', pk=activity.company.id)
+    else:
+        return redirect('crm:company_detail', pk=activity.company.id) 
