@@ -83,6 +83,12 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         return reverse_lazy('crm:contact_detail', kwargs={'pk': self.object.pk})
+        
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        kwargs['company'] = self.object.company
+        return kwargs
 
 @login_required
 def contact_add_note(request, pk):
