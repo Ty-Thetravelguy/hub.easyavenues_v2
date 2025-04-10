@@ -2,12 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 
 from crm.models import Company, Contact, Activity, ContactNote
 from crm.forms import ContactForm, ContactNoteForm
+from crm.utils import create_system_activity
 
 class ContactListView(LoginRequiredMixin, ListView):
     model = Contact
@@ -36,39 +37,22 @@ class ContactCreateView(LoginRequiredMixin, CreateView):
         kwargs = super().get_form_kwargs()
         company_id = self.kwargs.get('company_id')
         if company_id:
-            try:
-                company = Company.objects.get(id=company_id)
-                kwargs['company'] = company
-            except Company.DoesNotExist:
-                messages.error(self.request, "Company not found. Please create the company first.")
-                return redirect('crm:company_list')
+            kwargs['company'] = get_object_or_404(Company, pk=company_id)
         return kwargs
-
+    
     def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        company_id = self.kwargs.get('company_id')
-        if company_id:
-            try:
-                company = Company.objects.get(id=company_id)
-                form.instance.company = company
-            except Company.DoesNotExist:
-                messages.error(self.request, "Company not found. Please create the company first.")
-                return redirect('crm:company_list')
-                
-        # Save the form to create the contact
         response = super().form_valid(form)
         
-        # Create an activity record for the contact creation
-        Activity.objects.create(
-            company=form.instance.company,
-            contact=form.instance,
-            activity_type='status_change',
-            description=f"Contact {form.instance.first_name} {form.instance.last_name} was created",
-            performed_by=self.request.user,
-            is_system_activity=True
+        # Create system activity for contact creation
+        create_system_activity(
+            company=self.object.company,
+            user=self.request.user,
+            activity_type='create',
+            description=f"created new contact {self.object.get_full_name()}",
+            contact=self.object
         )
         
-        messages.success(self.request, "Contact created successfully.")
+        messages.success(self.request, 'Contact created successfully.')
         return response
     
     def get_success_url(self):
@@ -81,14 +65,73 @@ class ContactUpdateView(LoginRequiredMixin, UpdateView):
     form_class = ContactForm
     template_name = 'crm/contact_form.html'
     
-    def get_success_url(self):
-        return reverse_lazy('crm:contact_detail', kwargs={'pk': self.object.pk})
-        
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
         kwargs['company'] = self.object.company
         return kwargs
+    
+    def form_valid(self, form):
+        # Get the old tags before saving
+        old_tags = set(self.object.tag_list or [])
+        
+        # Save the form to update the contact
+        response = super().form_valid(form)
+        
+        # Get the new tags after saving
+        new_tags = set(form.instance.tag_list or [])
+        
+        # Calculate added and removed tags
+        added_tags = new_tags - old_tags
+        removed_tags = old_tags - new_tags
+        
+        # Get the appropriate choices based on company type
+        tag_choices = dict(self.object.CONTACT_TAG_CHOICES if self.object.company.company_type == 'Client' 
+                         else self.object.SUPPLIER_TAG_CHOICES)
+        
+        # Create activity for tag changes if any tags were modified
+        if added_tags or removed_tags:
+            tag_changes = []
+            if added_tags:
+                added_labels = [tag_choices.get(tag, tag) for tag in added_tags]
+                tag_changes.append(f"added tags: {', '.join(added_labels)}")
+            if removed_tags:
+                removed_labels = [tag_choices.get(tag, tag) for tag in removed_tags]
+                tag_changes.append(f"removed tags: {', '.join(removed_labels)}")
+            
+            create_system_activity(
+                company=self.object.company,
+                user=self.request.user,
+                activity_type='update',
+                description=f"updated contact {self.object.get_full_name()} - {', '.join(tag_changes)}",
+                contact=self.object
+            )
+        
+        messages.success(self.request, 'Contact updated successfully.')
+        return response
+
+class ContactDeleteView(LoginRequiredMixin, DeleteView):
+    model = Contact
+    template_name = 'crm/contact_confirm_delete.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('crm:company_detail', kwargs={'pk': self.object.company.pk})
+    
+    def delete(self, request, *args, **kwargs):
+        contact = self.get_object()
+        company = contact.company
+        
+        # Create system activity before deletion
+        create_system_activity(
+            company=company,
+            user=request.user,
+            activity_type='delete',
+            description=f"deleted contact {contact.get_full_name()}",
+            contact=contact
+        )
+        
+        response = super().delete(request, *args, **kwargs)
+        messages.success(request, 'Contact deleted successfully.')
+        return response
 
 @login_required
 def contact_add_note(request, pk):

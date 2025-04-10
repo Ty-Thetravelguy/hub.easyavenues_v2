@@ -8,6 +8,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
 import datetime
+from django.urls import reverse
 
 
 # Choices for industry, company type, client type, and account status
@@ -287,6 +288,14 @@ class Contact(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+    def get_full_name(self):
+        """Return the contact's full name."""
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def get_absolute_url(self):
+        """Return the URL for the contact's detail view."""
+        return reverse('crm:contact_detail', kwargs={'pk': self.pk})
 
 class ContactNote(models.Model):
     """
