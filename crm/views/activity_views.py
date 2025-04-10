@@ -104,9 +104,30 @@ def log_email_activity(request):
     company = get_object_or_404(Company, id=company_id)
     
     try:
-        # Get recipient contacts
+        # Get recipient IDs
         recipient_ids = request.POST.getlist('recipients')
-        recipients = Contact.objects.filter(id__in=recipient_ids)
+        
+        # Separate contact and user recipients
+        contact_recipients = []
+        user_recipients = []
+        
+        for recipient_id in recipient_ids:
+            if recipient_id.startswith('contact_'):
+                # Extract the actual ID from the prefixed string
+                contact_id = recipient_id.replace('contact_', '')
+                contact_recipients.append(contact_id)
+            elif recipient_id.startswith('user_'):
+                # Extract the actual ID from the prefixed string
+                user_id = recipient_id.replace('user_', '')
+                user_recipients.append(user_id)
+        
+        # Get contact recipients
+        contacts = Contact.objects.filter(id__in=contact_recipients)
+        
+        # Get user recipients
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        users = User.objects.filter(id__in=user_recipients)
         
         # Import the right model
         from crm.models import EmailActivity
@@ -125,7 +146,11 @@ def log_email_activity(request):
         
         # Add recipients as related contacts if the model supports it
         if hasattr(activity, 'contact_recipients'):
-            activity.contact_recipients.add(*recipients)
+            activity.contact_recipients.add(*contacts)
+        
+        # Add user recipients if the model supports it
+        if hasattr(activity, 'user_recipients'):
+            activity.user_recipients.add(*users)
         
         return JsonResponse({
             'success': True,
@@ -547,7 +572,7 @@ def search_recipients(request):
     logger = logging.getLogger(__name__)
     
     # Get parameters with fallbacks
-    search_term = request.GET.get('term', '').strip().lower()
+    search_term = request.GET.get('q', '').strip().lower()  # Changed from 'term' to 'q' to match Tom Select
     company_id = request.GET.get('company_id', '')
     
     # Initialize results list
@@ -587,17 +612,44 @@ def search_recipients(request):
             # No company specified, search all contacts
             contacts = Contact.objects.filter(contact_query)
             
-        # For better performance, limit to top 20 results
-        contacts = contacts[:20]
+        # For better performance, limit to top 10 results
+        contacts = contacts[:10]
         
         # Format contact results
         for contact in contacts:
             results.append({
-                'id': contact.id,
+                'id': f"contact_{contact.id}",
                 'text': f"{contact.first_name} {contact.last_name}",
                 'email': getattr(contact, 'email', ''),
                 'company': contact.company.company_name if contact.company else '',
                 'type': 'contact'
+            })
+        
+        # Search users
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        user_query = Q(first_name__icontains=search_term) | \
+                    Q(last_name__icontains=search_term) | \
+                    Q(email__icontains=search_term)
+        
+        # Also search for full name matches
+        if len(name_parts) > 1:
+            for i in range(len(name_parts) - 1):
+                first_part = name_parts[i]
+                last_part = name_parts[i+1]
+                user_query |= (Q(first_name__icontains=first_part) & Q(last_name__icontains=last_part))
+        
+        users = User.objects.filter(user_query, is_active=True)
+        users = users[:10]  # Limit to top 10 results
+        
+        # Format user results
+        for user in users:
+            results.append({
+                'id': f"user_{user.id}",
+                'text': f"{user.first_name} {user.last_name}",
+                'email': user.email,
+                'type': 'user'
             })
         
         return JsonResponse({'results': results})

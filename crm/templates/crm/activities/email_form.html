@@ -11,11 +11,10 @@
 
     <div class="mb-3">
         <label for="email_recipients" class="form-label">Recipients</label>
-        <select class="form-control select2-field" id="email_recipients" name="recipients" multiple required>
-            {% for contact in company.contact_set.all %}
-                <option value="{{ contact.id }}">{{ contact.full_name }} ({{ contact.email }})</option>
-            {% endfor %}
+        <select class="form-control tom-select" id="email_recipients" name="recipients[]" multiple required data-company-id="{{ company.id }}">
+            <!-- Options will be loaded via Tom Select -->
         </select>
+        <small class="form-text text-muted">Type to search for contacts or users by name or email</small>
     </div>
 
     <div class="mb-3">

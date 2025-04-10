@@ -95,8 +95,8 @@
 }
 
 /* Side panel customization */
-.activity-panel {
-  width: 650px;
+.activity-panel.offcanvas {
+  width: 650px !important;
   max-width: 90vw;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
 }
@@ -285,4 +285,74 @@
 .activity-form button[type="submit"]:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tom Select customization */
+.tom-select .ts-control {
+  border-color: #ced4da;
+  border-radius: 0.25rem;
+  min-height: 38px;
+}
+
+.tom-select .ts-control.focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.tom-select .ts-dropdown {
+  border-color: #ced4da;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.tom-select .ts-dropdown .active {
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+.tom-select .ts-dropdown .selected {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+.tom-select .ts-dropdown .option {
+  padding: 0.5rem 0.75rem;
+}
+
+.tom-select-result {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.tom-select-result i {
+  color: #6c757d;
+}
+
+.tom-select-result small {
+  font-size: 0.75rem;
+}
+
+.tom-select .ts-wrapper.multi .ts-control > div {
+  background-color: #e9ecef;
+  border-radius: 0.25rem;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.tom-select .ts-wrapper.multi .ts-control > div .remove {
+  border-left: 1px solid #ced4da;
+  margin-left: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.tom-select .ts-wrapper.multi .ts-control > div .remove:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.no-results {
+  padding: 0.5rem 0.75rem;
+  color: #6c757d;
+  font-style: italic;
 } 

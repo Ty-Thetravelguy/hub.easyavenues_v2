@@ -17,9 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize To-do toggles
     initializeToDoToggles();
     
-    // Initialize Select2 for recipient selectors
-    initializeRecipientSelect();
-    
     // Directly load all activities when on a company page
     const companyIdField = document.getElementById('company_id');
     const activitiesTab = document.getElementById('activities');
@@ -276,6 +273,7 @@ function loadActivityForm(activityType) {
             formContainer.innerHTML = html;
             formContainer.style.display = 'block';
             
+            console.log(`🏁 Form HTML loaded for ${activityType}. Initializing elements...`);
             // Initialize form elements
             initializeFormElements(activityType);
         })
@@ -296,29 +294,166 @@ function loadActivityForm(activityType) {
  * Initialize form elements after loading
  */
 function initializeFormElements(activityType) {
+    console.log(`⚙️ Initializing form elements for ${activityType}...`);
+    const formContainer = document.getElementById('activity-panel-form-container');
+    if (!formContainer) {
+        console.error('Form container not found for initialization');
+        return;
+    }
+
     // Add appropriate class to form
-    const form = document.querySelector('#activity-panel-form-container form');
+    const form = formContainer.querySelector('form');
     if (form) {
         form.classList.add('activity-form', `${activityType}-form`);
         
-        // Initialize Select2 for any multi-select fields
-        const multiSelects = form.querySelectorAll('.select2-field');
-        if (multiSelects.length && typeof jQuery !== 'undefined' && typeof jQuery.fn.select2 !== 'undefined') {
-            jQuery(multiSelects).select2({
-                dropdownParent: jQuery('#activity-side-panel'),
-                width: '100%'
-            });
-        }
+        // Initialize datepickers within the loaded form
+        initializeDateTimePickers(form);
         
-        // Initialize datepickers
-        initializeDateTimePickers();
+        // **Initialize Tom Select specifically for the recipient field in this form**
+        if (activityType === 'email') {
+            initializeRecipientSelectForForm(form);
+        }
         
         // Add submit handler
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             submitActivityForm(form, activityType);
         });
+    } else {
+        console.error('Form element not found inside container');
     }
+}
+
+/**
+ * Initialize recipient selection with Tom Select for a specific form
+ */
+function initializeRecipientSelectForForm(formElement) {
+    console.log(`🔍 Attempting to initialize Tom Select within form...`);
+    // Only run if Tom Select is available
+    if (typeof TomSelect === 'undefined') {
+        console.error('❌ Tom Select not available');
+        return;
+    }
+
+    const selector = formElement.querySelector('.tom-select#email_recipients');
+    if (!selector) {
+        console.warn('⚠️ Recipient selector (.tom-select#email_recipients) not found in the form.');
+        return;
+    }
+    
+    // Get company ID from the form's hidden input
+    const companyId = formElement.querySelector('input[name="company_id"]')?.value || 
+                      selector.dataset.companyId;
+    
+    if (!companyId) {
+        console.warn('⚠️ No company ID found for recipient selector in the form');
+        return;
+    }
+    
+    // Prevent re-initialization if it already has Tom Select instance
+    if (selector.tomselect) {
+        console.log('Tom Select already initialized for this element.');
+        return;
+    }
+    
+    // Initialize Tom Select
+    const tomSelectInstance = new TomSelect(selector, {
+        plugins: ['remove_button'],
+        maxItems: null,
+        valueField: 'id',
+        labelField: 'text',
+        searchField: ['text', 'email'], // Search by name and email
+        create: false,
+        placeholder: 'Type to search for contacts or users...',
+        load: function(query, callback) {
+            if (!query.length || query.length < 2) {
+                // Don't search for less than 2 characters
+                return callback();
+            }
+            
+            // Show loading indicator
+            this.loading = true;
+            
+            // Build URL with parameters
+            const url = '/crm/api/search-recipients/';
+            const params = new URLSearchParams({
+                q: query,
+                company_id: companyId
+            });
+            
+            // Fetch results
+            fetch(`${url}?${params.toString()}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(json => {
+                    this.loading = false;
+                    if (json.results) {
+                        callback(json.results);
+                    } else {
+                        console.error('Invalid JSON response from server', json);
+                        callback();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching recipients:', error);
+                    this.loading = false;
+                    callback();
+                });
+        },
+        render: {
+            option: function(data, escape) {
+                const icon = data.type === 'contact' ? 'user-tie' : 'user';
+                const email = data.email ? `<small class="text-muted ms-2">(${escape(data.email)})</small>` : '';
+                return `<div class="tom-select-result d-flex align-items-center">
+                         <i class="fas fa-${icon} me-2"></i>
+                         <div>
+                           <span>${escape(data.text)}</span>
+                           ${email}
+                         </div>
+                       </div>`;
+            },
+            item: function(data, escape) {
+                const icon = data.type === 'contact' ? 'user-tie' : 'user';
+                 return `<div class="d-flex align-items-center">
+                         <i class="fas fa-${icon} me-2"></i>
+                         <span>${escape(data.text)}</span>
+                       </div>`;
+            },
+            no_results: function(data, escape) {
+                return '<div class="no-results p-2">No results found for "' + escape(data.input) + '"</div>';
+            }
+        },
+        onLoad: function() {
+            console.log('Recipients loaded successfully for form selector');
+        },
+        onDropdownOpen: function() {
+            this.focus();
+        },
+        onItemAdd: (value, $item) => { 
+            console.log('✅ onItemAdd triggered! Value:', value);
+            try {
+                // Find the input field TomSelect uses for typing, relative to the original <select>
+                const wrapper = selector.tomselect?.wrapper; // Get the main wrapper div
+                const controlInput = wrapper?.querySelector('.ts-control input'); // Find the input inside the control div
+                
+                if (controlInput) {
+                    controlInput.value = ''; // Clear the value directly
+                    console.log('   Control input value cleared directly via DOM traversal.');
+                } else {
+                    console.warn('   Could not find control input via DOM traversal.');
+                    // No reliable fallback if this fails
+                }
+            } catch (e) {
+                console.error('   Error clearing input via DOM traversal:', e);
+            }
+        }
+    });
+    
+    console.log(`✅ Tom Select initialized for #email_recipients in the loaded form.`);
 }
 
 /**
@@ -628,9 +763,9 @@ function setupActivityCardHandlers() {
 /**
  * Initialize date and time pickers
  */
-function initializeDateTimePickers() {
+function initializeDateTimePickers(form) {
     // Find all date inputs that need datepicker
-    const dateInputs = document.querySelectorAll('input[data-datepicker]');
+    const dateInputs = form.querySelectorAll('input[data-datepicker]');
     
     if (dateInputs.length && typeof flatpickr !== 'undefined') {
         dateInputs.forEach(input => {
@@ -642,7 +777,7 @@ function initializeDateTimePickers() {
     }
     
     // Find all time inputs that need timepicker
-    const timeInputs = document.querySelectorAll('input[data-timepicker]');
+    const timeInputs = form.querySelectorAll('input[data-timepicker]');
     
     if (timeInputs.length && typeof flatpickr !== 'undefined') {
         timeInputs.forEach(input => {
@@ -1047,75 +1182,96 @@ function initializeToDoToggles() {
 // ======================================================
 
 /**
- * Initialize recipient selection with Select2
+ * Initialize recipient selection with Tom Select
  */
 function initializeRecipientSelect() {
-    // Only run if Select2 is available
-    if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
-        console.error('❌ jQuery or Select2 not available');
+    // Only run if Tom Select is available
+    if (typeof TomSelect === 'undefined') {
+        console.error('❌ Tom Select not available');
         return;
     }
-    
-    // Initialize recipient selectors
-    const recipientSelectors = document.querySelectorAll('.recipient-select');
+
+    const recipientSelectors = document.querySelectorAll('.tom-select');
     
     recipientSelectors.forEach(selector => {
-        const companyId = selector.dataset.companyId || document.getElementById('company_id')?.value;
+        // Get company ID from the form or data attribute
+        const companyId = selector.closest('form')?.querySelector('input[name="company_id"]')?.value || 
+                          selector.dataset.companyId || 
+                          document.getElementById('company_id')?.value;
         
         if (!companyId) {
             console.warn('⚠️ No company ID found for recipient selector');
             return;
         }
         
-        jQuery(selector).select2({
+        // Initialize Tom Select
+        const tomSelect = new TomSelect(selector, {
+            plugins: ['remove_button'],
+            maxItems: null,
+            valueField: 'id',
+            labelField: 'text',
+            searchField: ['text'],
+            create: false,
             placeholder: 'Search for contacts or users...',
-            allowClear: true,
-            width: '100%',
-            ajax: {
-                url: '/crm/api/search-recipients/',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return {
-                        term: params.term || '',
-                        company_id: companyId
-                    };
-                },
-                processResults: function(data) {
-                    return {
-                        results: data.results
-                    };
-                },
-                cache: true
+            load: function(query, callback) {
+                // Show loading indicator
+                this.loading = true;
+                
+                // Build URL with parameters
+                const url = '/crm/api/search-recipients/';
+                const params = new URLSearchParams({
+                    q: query,
+                    company_id: companyId
+                });
+                
+                // Fetch results
+                fetch(`${url}?${params.toString()}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(json => {
+                        this.loading = false;
+                        callback(json.results);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching recipients:', error);
+                        this.loading = false;
+                        callback();
+                    });
             },
-            templateResult: formatRecipientResult,
-            templateSelection: formatRecipientSelection
+            render: {
+                option: function(data, escape) {
+                    const icon = data.type === 'contact' ? 'user-tie' : 'user';
+                    const email = data.email ? `<small class="text-muted ms-2">(${escape(data.email)})</small>` : '';
+                    return `<div class="tom-select-result">
+                             <i class="fas fa-${icon} me-2"></i>
+                             <span>${escape(data.text)}</span>
+                             ${email}
+                           </div>`;
+                },
+                item: function(data, escape) {
+                    return `<div>${escape(data.text)}</div>`;
+                },
+                no_results: function(data, escape) {
+                    return `<div class="no-results">No results found for "${escape(data.input)}"</div>`;
+                }
+            },
+            onLoad: function() {
+                // This is called after the load function completes
+                console.log('Recipients loaded successfully');
+            },
+            onDropdownOpen: function() {
+                // Focus the search input when dropdown opens
+                this.focus();
+            }
         });
+        
+        // Log initialization
+        console.log(`Tom Select initialized for ${selector.id || 'recipient selector'}`);
     });
-}
-
-/**
- * Format recipient search result
- */
-function formatRecipientResult(data) {
-    if (data.loading) return data.text;
-    
-    const icon = data.type === 'contact' ? 'user-tie' : 'user';
-    
-    return jQuery(`
-        <div class="select2-result-item">
-            <i class="fas fa-${icon} me-2"></i>
-            <span>${data.text}</span>
-            <small class="text-muted ms-2">(${data.type})</small>
-        </div>
-    `);
-}
-
-/**
- * Format recipient selection
- */
-function formatRecipientSelection(data) {
-    return data.text || data.id;
 }
 
 /**
