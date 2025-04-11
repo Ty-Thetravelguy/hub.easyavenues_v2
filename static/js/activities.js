@@ -300,7 +300,6 @@ function initializeFormElements(activityType) {
         return;
     }
 
-    // Add appropriate class to form
     const form = formContainer.querySelector('form');
     if (form) {
         form.classList.add('activity-form', `${activityType}-form`);
@@ -310,11 +309,14 @@ function initializeFormElements(activityType) {
         
         // Initialize type-specific elements
         if (activityType === 'email') {
-            initializeRecipientSelectForForm(form);
+            initializeRecipientSelectForForm(form); // Multi-select for email
             initializeTinyMCEForForm(form);
-            // Add listener for follow-up task checkbox
+            setupFollowUpTaskToggle(form);
+        } else if (activityType === 'call') {
+            initializeCallContactSelect(form); // Single-select for call
             setupFollowUpTaskToggle(form);
         }
+        // Add other else if blocks for other activity types if needed
         
         // Add submit handler
         form.addEventListener('submit', function(e) {
@@ -479,6 +481,106 @@ function initializeRecipientSelectForForm(formElement) {
     });
     
     console.log(`✅ Tom Select initialized for #email_recipients in the loaded form.`);
+}
+
+/**
+ * Initialize contact selection with Tom Select for the call form (Single Select)
+ */
+function initializeCallContactSelect(formElement) {
+    // Only run if Tom Select is available
+    if (typeof TomSelect === 'undefined') {
+        console.error('❌ Tom Select not available for call form');
+        return;
+    }
+
+    const selector = formElement.querySelector('.tom-select-single#call_contact');
+    if (!selector) {
+        console.warn('⚠️ Call Contact selector (.tom-select-single#call_contact) not found in the form.');
+        return;
+    }
+    
+    const companyId = formElement.querySelector('input[name="company_id"]')?.value || 
+                      selector.dataset.companyId;
+    
+    if (!companyId) {
+        console.warn('⚠️ No company ID found for call contact selector in the form');
+        return;
+    }
+    
+    if (selector.tomselect) {
+        console.log('Tom Select already initialized for #call_contact.');
+        return;
+    }
+    
+    // Initialize Tom Select for Single Selection
+    const tomSelectInstance = new TomSelect(selector, {
+        // No plugins needed for single select by default
+        maxItems: 1, // Allow only one selection
+        valueField: 'id', 
+        labelField: 'text',
+        searchField: ['text', 'email'], // Search by name and email
+        create: false,
+        placeholder: 'Type to search for a contact...',
+        load: function(query, callback) {
+            if (!query.length || query.length < 2) return callback();
+            
+            this.loading = true;
+            const url = '/crm/api/search-recipients/'; // Reuse the same endpoint
+            const params = new URLSearchParams({ q: query, company_id: companyId });
+            
+            fetch(`${url}?${params.toString()}`)
+                .then(response => response.json())
+                .then(json => {
+                    this.loading = false;
+                    // Filter results to only include contacts for this selector
+                    const contactsOnly = json.results ? json.results.filter(item => item.type === 'contact') : [];
+                    callback(contactsOnly);
+                })
+                .catch(error => {
+                    console.error('Error fetching call contacts:', error);
+                    this.loading = false;
+                    callback();
+                });
+        },
+        render: {
+            option: function(data, escape) {
+                const email = data.email ? `<small class="text-muted ms-2">(${escape(data.email)})</small>` : '';
+                return `<div class="tom-select-result d-flex align-items-center">
+                         <i class="fas fa-user-tie me-2"></i> 
+                         <div>
+                           <span>${escape(data.text)}</span>
+                           ${email}
+                         </div>
+                       </div>`;
+            },
+            item: function(data, escape) {
+                 return `<div class="d-flex align-items-center">
+                         <i class="fas fa-user-tie me-2"></i>
+                         <span>${escape(data.text)}</span>
+                       </div>`;
+            },
+            no_results: function(data, escape) {
+                return '<div class="no-results p-2">No contacts found for "' + escape(data.input) + '"</div>';
+            }
+        },
+        onItemAdd: (value, $item) => {
+            console.log('✅ onItemAdd (Call Contact) triggered! Value:', value);
+            try {
+                const wrapper = selector.tomselect?.wrapper;
+                const controlInput = wrapper?.querySelector('.ts-control input');
+                if (controlInput) {
+                    controlInput.value = ''; 
+                    console.log('   Call Control input value cleared directly via DOM traversal.');
+                } else {
+                    console.warn('   Could not find call control input via DOM traversal.');
+                }
+            } catch (e) {
+                console.error('   Error clearing call input via DOM traversal:', e);
+            }
+        }
+    });
+    
+    console.log(`✅ Tom Select (Single) initialized for #call_contact in the loaded form.`);
 }
 
 /**

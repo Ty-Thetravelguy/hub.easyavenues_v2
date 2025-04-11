@@ -6,11 +6,8 @@
     
     <div class="mb-3">
         <label for="call_contact" class="form-label">Contact</label>
-        <select class="form-control select2-field" id="call_contact" name="contact" required>
-            <option value="">Select Contact</option>
-            {% for contact in company.contact_set.all %}
-                <option value="{{ contact.id }}">{{ contact.full_name }} ({{ contact.phone }})</option>
-            {% endfor %}
+        <select class="form-control tom-select-single" id="call_contact" name="contact" required data-company-id="{{ company.id }}">
+            <option value="">Type to search contact...</option>
         </select>
     </div>
     
@@ -19,13 +16,19 @@
         <input type="text" class="form-control" id="call_purpose" name="purpose" required>
     </div>
     
-    <div class="row">
-        <div class="col-md-6 mb-3">
+    <div class="row mb-3">
+        <div class="col-sm-6">
             <label for="call_date" class="form-label">Date</label>
-            <input type="text" class="form-control datepicker" id="call_date" name="date" value="{{ today_date|date:'Y-m-d' }}" required>
+            <input type="text" class="form-control" id="call_date" name="date" 
+                   value="{{ today_date|date:'Y-m-d' }}" required data-datepicker>
         </div>
-        <div class="col-md-6 mb-3">
-            <label for="call_duration" class="form-label">Duration (minutes)</label>
+        <div class="col-sm-3">
+            <label for="call_time" class="form-label">Time</label>
+            <input type="text" class="form-control" id="call_time" name="time" 
+                   value="{{ current_time|default_if_none:''|date:'H:i' }}" required data-timepicker>
+        </div>
+        <div class="col-sm-3">
+            <label for="call_duration" class="form-label">Duration (min)</label>
             <input type="number" class="form-control" id="call_duration" name="duration" min="1" value="15">
         </div>
     </div>
@@ -51,42 +54,40 @@
     
     <div class="mb-3">
         <label for="call_notes" class="form-label">Call Notes</label>
-        <textarea class="form-control" id="call_notes" name="notes" rows="4" required></textarea>
+        <textarea class="form-control" id="call_notes" name="notes" rows="4"></textarea>
     </div>
     
-    <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="call_follow_up" name="needs_follow_up" value="1">
-        <label class="form-check-label" for="call_follow_up">
-            Needs Follow-up
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="create_follow_up_task" id="create_follow_up_task">
+        <label class="form-check-label" for="create_follow_up_task">
+            Create Follow-up Task?
         </label>
     </div>
-    
-    <div id="follow_up_date_container" class="mb-3 d-none">
-        <label for="call_follow_up_date" class="form-label">Follow-up Date</label>
-        <input type="text" class="form-control datepicker" id="call_follow_up_date" name="follow_up_date">
+    <div class="mb-3 ps-4" id="follow_up_task_details" style="display: none;">
+         <label for="follow_up_task_title" class="form-label form-label-sm">Task Title (Optional)</label>
+         <input type="text" name="follow_up_task_title" id="follow_up_task_title" class="form-control form-control-sm mb-2" placeholder="Defaults to: Follow up on call...">
+         
+         <div class="row mb-2">
+             <div class="col-sm-7">
+                <label for="follow_up_due_date" class="form-label form-label-sm">Due Date (Optional)</label>
+                <input type="text" name="follow_up_due_date" id="follow_up_due_date" class="form-control form-control-sm" 
+                       placeholder="Defaults to next day" data-datepicker>
+             </div>
+             <div class="col-sm-5">
+                <label for="follow_up_due_time" class="form-label form-label-sm">Due Time (Optional)</label>
+                <input type="text" name="follow_up_due_time" id="follow_up_due_time" class="form-control form-control-sm" 
+                       placeholder="Defaults to 09:00" data-timepicker>
+             </div>
+         </div>
+         
+         <label for="follow_up_task_notes" class="form-label form-label-sm">Notes (Optional)</label>
+         <textarea name="follow_up_task_notes" id="follow_up_task_notes" class="form-control form-control-sm" rows="2" 
+                   placeholder="Add brief notes for the task..."></textarea>
     </div>
-    
+
     <div class="d-grid">
         <button type="submit" class="btn btn-activity-call">
             <i class="fas fa-phone-alt me-1"></i> Save Call Activity
         </button>
     </div>
-</form>
-
-<script>
-    // Toggle follow-up date field visibility
-    document.addEventListener('DOMContentLoaded', function() {
-        const followUpCheck = document.getElementById('call_follow_up');
-        const followUpDateContainer = document.getElementById('follow_up_date_container');
-        
-        if (followUpCheck && followUpDateContainer) {
-            followUpCheck.addEventListener('change', function() {
-                if (this.checked) {
-                    followUpDateContainer.classList.remove('d-none');
-                } else {
-                    followUpDateContainer.classList.add('d-none');
-                }
-            });
-        }
-    });
-</script> 
+</form> 

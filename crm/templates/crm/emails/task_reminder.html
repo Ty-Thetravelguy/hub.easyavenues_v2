@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Reminder: {{ task.title }}</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.5; }
+        .content { padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9; }
+        strong { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <p>Hi {{ task.assigned_to.first_name|default:"User" }},</p>
+
+        <p>This is a reminder for your task:</p>
+
+        <ul>
+            <li><strong>Title:</strong> {{ task.title }}</li>
+            <li><strong>Due:</strong> {{ task.due_datetime|date:"F j, Y H:i" }}</li>
+            <li><strong>Status:</strong> {{ task.get_status_display }}</li>
+            <li><strong>Priority:</strong> {{ task.get_priority_display }}</li>
+            <li><strong>Related Company:</strong> {% if task.company %}{{ task.company.company_name }}{% else %}N/A{% endif %}</li>
+        </ul>
+
+        <p><strong>Description:</strong></p>
+        <p>{{ task.description|default:"No description provided."|linebreaksbr }}</p>
+
+        {% if task.related_activity %}
+        <p><small>This task is related to {{ task.related_activity.get_activity_type_display }} ID: {{ task.related_activity.id }}</small></p>
+        {% endif %}
+
+        <p>Please update the task status once completed.</p>
+
+        <p>Thank you,<br>Easy Avenues Hub</p>
+    </div>
+</body>
+</html>

@@ -668,7 +668,11 @@ class TaskActivity(Activity):
     Model for task activities.
     """
     title = models.CharField(max_length=255)
-    due_date = models.DateField()
+    due_datetime = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text="Date and time the task is due."
+    )
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
     priority = models.CharField(max_length=20, choices=[
         ('low', 'Low'),
@@ -684,11 +688,17 @@ class TaskActivity(Activity):
         ('cancelled', 'Cancelled')
     ], default='not_started')
     completion_date = models.DateField(null=True, blank=True)
+    # New field to track reminder sending
+    reminder_sent_at = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text="Timestamp when the reminder email was sent."
+    )
 
     class Meta:
         verbose_name = 'Task Activity'
         verbose_name_plural = 'Task Activities'
-        ordering = ['-due_date']
+        ordering = ['-due_datetime']
 
 class StatusHistory(models.Model):
     """

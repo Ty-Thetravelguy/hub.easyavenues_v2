@@ -1,0 +1,24 @@
+Subject: Task Reminder: {{ task.title }}
+
+Hi {{ task.assigned_to.first_name|default:"User" }},
+
+This is a reminder for your task:
+
+Title: {{ task.title }}
+Due: {{ task.due_datetime|date:"F j, Y H:i" }}
+Status: {{ task.get_status_display }}
+Priority: {{ task.get_priority_display }}
+
+Related Company: {% if task.company %}{{ task.company.company_name }}{% else %}N/A{% endif %}
+
+Description:
+{{ task.description|default:"No description provided." }}
+
+{% if task.related_activity %}
+This task is related to {{ task.related_activity.get_activity_type_display }} ID: {{ task.related_activity.id }}
+{% endif %}
+
+Please update the task status once completed.
+
+Thank you,
+Easy Avenues Hub

@@ -168,25 +168,47 @@ def log_email_activity(request):
             try:
                 task_title = request.POST.get('follow_up_task_title', '').strip()
                 if not task_title:
-                    # Use default title if none provided, truncate if necessary
                     default_title = f"Follow up on: {activity.subject or 'Email Activity'}"
                     task_title = default_title[:255] 
                     
-                # Default due date (e.g., next business day - simplified here as +1 day)
-                due_date = timezone.now().date() + timedelta(days=1)
+                # Get and parse the due date, defaulting to next day
+                due_date_str = request.POST.get('follow_up_due_date', '')
+                try:
+                    due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else timezone.now().date() + timedelta(days=1)
+                    if due_date < timezone.now().date():
+                         due_date = timezone.now().date() + timedelta(days=1) 
+                except ValueError:
+                    due_date = timezone.now().date() + timedelta(days=1) # Default if format is wrong
+                    
+                # Get and parse the due time, defaulting to 09:00
+                due_time_str = request.POST.get('follow_up_due_time', '')
+                try:
+                    due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time() if due_time_str else timezone.datetime.min.time().replace(hour=9)
+                except ValueError:
+                    due_time = timezone.datetime.min.time().replace(hour=9) # Default if format is wrong
+                    
+                # Combine date and time into a datetime object
+                # Ensure it's timezone-aware using Django's current timezone
+                naive_datetime = timezone.datetime.combine(due_date, due_time)
+                due_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+                
+                # Get optional notes
+                task_notes = request.POST.get('follow_up_task_notes', '').strip()
+                base_description = f"Follow-up task automatically created for Email Activity ID: {activity.id}"
+                task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
                 
                 # Create the linked task
                 TaskActivity.objects.create(
                     company=activity.company,
-                    performed_by=request.user, # Logged by the same user initially
+                    performed_by=request.user, 
                     activity_type='task',
                     title=task_title,
-                    description=f"Follow-up task automatically created for Email Activity ID: {activity.id}", 
-                    due_date=due_date,
-                    assigned_to=request.user, # Default assignment to creator
+                    description=task_description, # Use combined description
+                    due_datetime=due_datetime, # Use combined datetime
+                    assigned_to=request.user, 
                     status='not_started',
                     priority='medium', 
-                    related_activity=activity # Link back to the email
+                    related_activity=activity 
                 )
                 # You could add a specific success message for the task here if needed
                 # messages.success(request, 'Follow-up task created.') 
@@ -219,34 +241,102 @@ def log_call_activity(request):
     company = get_object_or_404(Company, id=company_id)
     
     try:
-        # Get contact
-        contact_id = request.POST.get('contact')
-        contact = get_object_or_404(Contact, id=contact_id) if contact_id else None
+        # Get contact ID (handle potential prefix from Tom Select)
+        contact_input_id = request.POST.get('contact')
+        contact_id = None
+        contact = None
+        if contact_input_id:
+            if contact_input_id.startswith('contact_'):
+                contact_id = contact_input_id.replace('contact_', '')
+            elif contact_input_id.isdigit(): # Allow plain ID for robustness
+                contact_id = contact_input_id
+            
+            if contact_id:
+                contact = get_object_or_404(Contact, id=contact_id)
         
-        # Import the right model
-        from crm.models import CallActivity
+        # Get date and time, providing defaults
+        call_date_str = request.POST.get('date', '')
+        call_time_str = request.POST.get('time', '')
         
-        # Create call activity
+        try:
+            call_date = timezone.datetime.strptime(call_date_str, '%Y-%m-%d').date() if call_date_str else timezone.now().date()
+        except ValueError:
+            call_date = timezone.now().date()
+            
+        try:
+            call_time = timezone.datetime.strptime(call_time_str, '%H:%M').time() if call_time_str else timezone.now().time()
+        except ValueError:
+            call_time = timezone.now().time()
+            
+        naive_datetime = timezone.datetime.combine(call_date, call_time)
+        performed_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+        
+        # Import the right models
+        from crm.models import CallActivity, TaskActivity # Add TaskActivity
+        
+        # Create call activity - set performed_at explicitly
         activity = CallActivity.objects.create(
             company=company,
             performed_by=request.user,
             activity_type='call',
-            description=request.POST.get('notes', ''),
+            performed_at=performed_datetime, # Use parsed datetime
+            # description will be set below
             call_type='Outbound' if bool(request.POST.get('outbound')) else 'Inbound',
             duration=int(request.POST.get('duration', 0)),
             summary=request.POST.get('purpose', ''),
-            call_outcome=request.POST.get('outcome', '')
+            call_outcome=request.POST.get('outcome', ''),
+            contact=contact # Assign contact directly
         )
         
-        # Set contact if model supports it
-        if contact:
-            activity.contact = contact
-            activity.save()
+        # Save notes to description separately
+        activity.description = request.POST.get('notes', '')
+        activity.save(update_fields=['description']) # Update only description
         
-        # Set follow-up date if provided
-        if bool(request.POST.get('needs_follow_up')) and request.POST.get('follow_up_date'):
-            activity.follow_up_date = request.POST.get('follow_up_date')
-            activity.save()
+        # --- Create Follow-up Task if requested --- 
+        if request.POST.get('create_follow_up_task'):
+            try:
+                task_title = request.POST.get('follow_up_task_title', '').strip()
+                if not task_title:
+                    contact_name = f" with {contact.get_full_name()}" if contact else ""
+                    default_title = f"Follow up on call{contact_name} ({activity.summary or 'Call Activity'})"
+                    task_title = default_title[:255]
+                    
+                due_date_str = request.POST.get('follow_up_due_date', '')
+                try:
+                    due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else timezone.now().date() + timedelta(days=1)
+                    if due_date < timezone.now().date():
+                         due_date = timezone.now().date() + timedelta(days=1) 
+                except ValueError:
+                    due_date = timezone.now().date() + timedelta(days=1)
+                    
+                due_time_str = request.POST.get('follow_up_due_time', '')
+                try:
+                    due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time() if due_time_str else timezone.datetime.min.time().replace(hour=9)
+                except ValueError:
+                    due_time = timezone.datetime.min.time().replace(hour=9)
+                    
+                naive_followup_datetime = timezone.datetime.combine(due_date, due_time)
+                due_datetime = timezone.make_aware(naive_followup_datetime, timezone.get_current_timezone())
+                
+                task_notes = request.POST.get('follow_up_task_notes', '').strip()
+                base_description = f"Follow-up task automatically created for Call Activity ID: {activity.id}"
+                task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
+                
+                TaskActivity.objects.create(
+                    company=activity.company,
+                    performed_by=request.user,
+                    activity_type='task',
+                    title=task_title,
+                    description=task_description,
+                    due_datetime=due_datetime,
+                    assigned_to=request.user,
+                    status='not_started',
+                    priority='medium',
+                    related_activity=activity
+                )
+            except Exception as task_error:
+                logging.error(f"Error creating follow-up task for call {activity.id}: {task_error}", exc_info=True)
+        # --- End Follow-up Task --- 
         
         return JsonResponse({
             'success': True,
