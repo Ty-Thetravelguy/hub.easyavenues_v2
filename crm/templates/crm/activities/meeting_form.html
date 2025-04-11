@@ -11,29 +11,29 @@
     
     <div class="mb-3">
         <label for="meeting_attendees" class="form-label">Attendees</label>
-        <select class="form-control select2-field" id="meeting_attendees" name="attendees" multiple required>
-            {% for contact in company.contact_set.all %}
-                <option value="{{ contact.id }}">{{ contact.full_name }}</option>
-            {% endfor %}
+        <select class="form-control tom-select" id="meeting_attendees" name="attendees" multiple required data-company-id="{{ company.id }}">
+            <!-- Options loaded via JS -->
         </select>
+        <small class="form-text text-muted">Search for contacts or users by name or email</small>
     </div>
     
-    <div class="row">
-        <div class="col-md-6 mb-3">
+    <div class="row mb-3">
+        <div class="col-sm-6">
             <label for="meeting_date" class="form-label">Date</label>
-            <input type="text" class="form-control datepicker" id="meeting_date" name="date" value="{{ today_date|date:'Y-m-d' }}" required>
+            <input type="text" class="form-control" id="meeting_date" name="date" 
+                   value="{{ today_date|date:'Y-m-d' }}" required data-datepicker>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-sm-3">
             <label for="meeting_time" class="form-label">Time</label>
-            <input type="text" class="form-control timepicker" id="meeting_time" name="time" value="09:00" required>
+            <input type="text" class="form-control" id="meeting_time" name="time" 
+                   value="09:00" required data-timepicker>
+        </div>
+        <div class="col-sm-3">
+            <label for="meeting_duration" class="form-label">Duration (min)</label>
+             <input type="number" class="form-control" id="meeting_duration" name="duration" min="15" step="15" value="60">
         </div>
     </div>
-    
-    <div class="mb-3">
-        <label for="meeting_duration" class="form-label">Duration (minutes)</label>
-        <input type="number" class="form-control" id="meeting_duration" name="duration" min="15" step="15" value="60">
-    </div>
-    
+        
     <div class="mb-3">
         <label for="meeting_location" class="form-label">Location</label>
         <input type="text" class="form-control" id="meeting_location" name="location" placeholder="Office, Zoom, etc.">
@@ -45,13 +45,14 @@
     </div>
     
     <div class="mb-3">
-        <label for="meeting_notes" class="form-label">Meeting Notes</label>
-        <textarea class="form-control" id="meeting_notes" name="notes" rows="4" required></textarea>
+        <label for="meeting_notes" class="form-label">Meeting Notes/Minutes</label>
+        <textarea class="form-control" id="meeting_notes" name="notes" rows="4"></textarea>
     </div>
     
     <div class="mb-3">
         <label for="meeting_outcome" class="form-label">Outcome</label>
-        <select class="form-control" id="meeting_outcome" name="outcome" required>
+        <select class="form-control" id="meeting_outcome" name="outcome">
+             <option value="" selected>--- Select Outcome ---</option>
             <option value="completed">Completed</option>
             <option value="rescheduled">Rescheduled</option>
             <option value="cancelled">Cancelled</option>
@@ -60,39 +61,37 @@
         </select>
     </div>
     
-    <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="meeting_follow_up" name="needs_follow_up" value="1">
-        <label class="form-check-label" for="meeting_follow_up">
-            Schedule Follow-up Meeting
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="create_follow_up_task" id="create_follow_up_task">
+        <label class="form-check-label" for="create_follow_up_task">
+            Create Follow-up Task?
         </label>
     </div>
-    
-    <div id="meeting_follow_up_container" class="mb-3 d-none">
-        <label for="meeting_follow_up_date" class="form-label">Follow-up Date</label>
-        <input type="text" class="form-control datepicker" id="meeting_follow_up_date" name="follow_up_date">
+    <div class="mb-3 ps-4" id="follow_up_task_details" style="display: none;">
+         <label for="follow_up_task_title" class="form-label form-label-sm">Task Title (Optional)</label>
+         <input type="text" name="follow_up_task_title" id="follow_up_task_title" class="form-control form-control-sm mb-2" placeholder="Defaults to: Follow up on meeting...">
+         
+         <div class="row mb-2">
+             <div class="col-sm-7">
+                <label for="follow_up_due_date" class="form-label form-label-sm">Due Date (Optional)</label>
+                <input type="text" name="follow_up_due_date" id="follow_up_due_date" class="form-control form-control-sm" 
+                       placeholder="Defaults to next day" data-datepicker>
+             </div>
+             <div class="col-sm-5">
+                <label for="follow_up_due_time" class="form-label form-label-sm">Due Time (Optional)</label>
+                <input type="text" name="follow_up_due_time" id="follow_up_due_time" class="form-control form-control-sm" 
+                       placeholder="Defaults to 09:00" data-timepicker>
+             </div>
+         </div>
+         
+         <label for="follow_up_task_notes" class="form-label form-label-sm">Notes (Optional)</label>
+         <textarea name="follow_up_task_notes" id="follow_up_task_notes" class="form-control form-control-sm" rows="2" 
+                   placeholder="Add brief notes for the task..."></textarea>
     </div>
-    
+
     <div class="d-grid">
         <button type="submit" class="btn btn-activity-meeting">
             <i class="fas fa-users me-1"></i> Save Meeting Activity
         </button>
     </div>
-</form>
-
-<script>
-    // Toggle follow-up meeting date field visibility
-    document.addEventListener('DOMContentLoaded', function() {
-        const followUpCheck = document.getElementById('meeting_follow_up');
-        const followUpContainer = document.getElementById('meeting_follow_up_container');
-        
-        if (followUpCheck && followUpContainer) {
-            followUpCheck.addEventListener('change', function() {
-                if (this.checked) {
-                    followUpContainer.classList.remove('d-none');
-                } else {
-                    followUpContainer.classList.add('d-none');
-                }
-            });
-        }
-    });
-</script> 
+</form> 

@@ -309,11 +309,15 @@ function initializeFormElements(activityType) {
         
         // Initialize type-specific elements
         if (activityType === 'email') {
-            initializeRecipientSelectForForm(form); // Multi-select for email
+            initializeRecipientSelectForForm(form); // Uses #email_recipients (multi-select)
             initializeTinyMCEForForm(form);
             setupFollowUpTaskToggle(form);
         } else if (activityType === 'call') {
-            initializeCallContactSelect(form); // Single-select for call
+            initializeCallContactSelect(form); // Uses #call_contact (single-select)
+            setupFollowUpTaskToggle(form);
+        } else if (activityType === 'meeting') {
+            // Use the same multi-select init function as email, just target a different ID
+            initializeRecipientSelectForForm(form, '#meeting_attendees'); 
             setupFollowUpTaskToggle(form);
         }
         // Add other else if blocks for other activity types if needed
@@ -352,70 +356,54 @@ function setupFollowUpTaskToggle(formElement) {
 }
 
 /**
- * Initialize recipient selection with Tom Select for a specific form
+ * Initialize recipient/attendee selection with Tom Select for a specific form
+ * @param {HTMLElement} formElement - The form containing the select.
+ * @param {string} [selectorId='#email_recipients'] - The ID of the select element.
  */
-function initializeRecipientSelectForForm(formElement) {
-    console.log(`🔍 Attempting to initialize Tom Select within form...`);
+function initializeRecipientSelectForForm(formElement, selectorId = '#email_recipients') {
     // Only run if Tom Select is available
     if (typeof TomSelect === 'undefined') {
         console.error('❌ Tom Select not available');
         return;
     }
 
-    const selector = formElement.querySelector('.tom-select#email_recipients');
+    const selector = formElement.querySelector(selectorId);
     if (!selector) {
-        console.warn('⚠️ Recipient selector (.tom-select#email_recipients) not found in the form.');
+        console.warn(`⚠️ Recipient/Attendee selector (${selectorId}) not found in the form.`);
         return;
     }
     
-    // Get company ID from the form's hidden input
+    // Get company ID from the form's hidden input or data attribute
     const companyId = formElement.querySelector('input[name="company_id"]')?.value || 
                       selector.dataset.companyId;
     
     if (!companyId) {
-        console.warn('⚠️ No company ID found for recipient selector in the form');
+        console.warn(`⚠️ No company ID found for selector ${selectorId} in the form`);
         return;
     }
     
-    // Prevent re-initialization if it already has Tom Select instance
+    // Prevent re-initialization
     if (selector.tomselect) {
-        console.log('Tom Select already initialized for this element.');
+        console.log(`Tom Select already initialized for ${selectorId}.`);
         return;
     }
     
     // Initialize Tom Select
     const tomSelectInstance = new TomSelect(selector, {
         plugins: ['remove_button'],
-        maxItems: null,
+        maxItems: null, // Allow multiple items
         valueField: 'id',
         labelField: 'text',
-        searchField: ['text', 'email'], // Search by name and email
+        searchField: ['text', 'email'], 
         create: false,
         placeholder: 'Type to search for contacts or users...',
         load: function(query, callback) {
-            if (!query.length || query.length < 2) {
-                // Don't search for less than 2 characters
-                return callback();
-            }
-            
-            // Show loading indicator
+             if (!query.length || query.length < 2) return callback();
             this.loading = true;
-            
-            // Build URL with parameters
             const url = '/crm/api/search-recipients/';
-            const params = new URLSearchParams({
-                q: query,
-                company_id: companyId
-            });
-            
-            // Fetch results
+            const params = new URLSearchParams({ q: query, company_id: companyId });
             fetch(`${url}?${params.toString()}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(json => {
                     this.loading = false;
                     if (json.results) {
@@ -426,13 +414,13 @@ function initializeRecipientSelectForForm(formElement) {
                     }
                 })
                 .catch(error => {
-                    console.error('Error fetching recipients:', error);
+                    console.error(`Error fetching recipients/attendees for ${selectorId}:`, error);
                     this.loading = false;
                     callback();
                 });
         },
         render: {
-            option: function(data, escape) {
+             option: function(data, escape) {
                 const icon = data.type === 'contact' ? 'user-tie' : 'user';
                 const email = data.email ? `<small class="text-muted ms-2">(${escape(data.email)})</small>` : '';
                 return `<div class="tom-select-result d-flex align-items-center">
@@ -454,33 +442,24 @@ function initializeRecipientSelectForForm(formElement) {
                 return '<div class="no-results p-2">No results found for "' + escape(data.input) + '"</div>';
             }
         },
-        onLoad: function() {
-            console.log('Recipients loaded successfully for form selector');
-        },
-        onDropdownOpen: function() {
-            this.focus();
-        },
         onItemAdd: (value, $item) => { 
-            console.log('✅ onItemAdd triggered! Value:', value);
+            console.log(`✅ onItemAdd triggered! Value: ${value} for ${selectorId}`);
             try {
-                // Find the input field TomSelect uses for typing, relative to the original <select>
-                const wrapper = selector.tomselect?.wrapper; // Get the main wrapper div
-                const controlInput = wrapper?.querySelector('.ts-control input'); // Find the input inside the control div
-                
+                const wrapper = selector.tomselect?.wrapper;
+                const controlInput = wrapper?.querySelector('.ts-control input');
                 if (controlInput) {
-                    controlInput.value = ''; // Clear the value directly
-                    console.log('   Control input value cleared directly via DOM traversal.');
+                    controlInput.value = '';
+                    console.log(`   Control input value cleared directly via DOM traversal for ${selectorId}.`);
                 } else {
-                    console.warn('   Could not find control input via DOM traversal.');
-                    // No reliable fallback if this fails
+                    console.warn(`   Could not find control input via DOM traversal for ${selectorId}.`);
                 }
             } catch (e) {
-                console.error('   Error clearing input via DOM traversal:', e);
+                console.error(`   Error clearing input via DOM traversal for ${selectorId}:`, e);
             }
         }
     });
     
-    console.log(`✅ Tom Select initialized for #email_recipients in the loaded form.`);
+    console.log(`✅ Tom Select (Multi) initialized for ${selectorId} in the loaded form.`);
 }
 
 /**

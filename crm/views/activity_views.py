@@ -360,36 +360,116 @@ def log_meeting_activity(request):
     company = get_object_or_404(Company, id=company_id)
     
     try:
-        # Get attendees
-        attendee_ids = request.POST.getlist('attendees')
-        attendees = Contact.objects.filter(id__in=attendee_ids)
+        # Get attendees (handle multiple, prefixed IDs)
+        attendee_input_ids = request.POST.getlist('attendees')
+        contact_attendee_ids = []
+        user_attendee_ids = []
+        for attendee_id in attendee_input_ids:
+            if attendee_id.startswith('contact_'):
+                contact_attendee_ids.append(attendee_id.replace('contact_', ''))
+            elif attendee_id.startswith('user_'):
+                user_attendee_ids.append(attendee_id.replace('user_', ''))
+            elif attendee_id.isdigit(): # Allow plain IDs just in case
+                 # Try resolving as contact first, then user? Or rely on prefix.
+                 # For now, assume prefixed IDs are used reliably from TomSelect.
+                 pass 
         
-        # Import the right model
-        from crm.models import MeetingActivity
+        contacts = Contact.objects.filter(id__in=contact_attendee_ids)
+        User = get_user_model()
+        users = User.objects.filter(id__in=user_attendee_ids)
         
-        # Create meeting activity
+        # Get date and time, providing defaults
+        meeting_date_str = request.POST.get('date', '')
+        meeting_time_str = request.POST.get('time', '')
+        
+        try:
+            meeting_date = timezone.datetime.strptime(meeting_date_str, '%Y-%m-%d').date() if meeting_date_str else timezone.now().date()
+        except ValueError:
+            meeting_date = timezone.now().date()
+            
+        try:
+            meeting_time = timezone.datetime.strptime(meeting_time_str, '%H:%M').time() if meeting_time_str else timezone.now().time()
+        except ValueError:
+            meeting_time = timezone.now().time()
+            
+        naive_datetime = timezone.datetime.combine(meeting_date, meeting_time)
+        performed_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+        
+        # Import the right models
+        from crm.models import MeetingActivity, TaskActivity # Add TaskActivity
+        
+        # Create meeting activity - set performed_at explicitly
         activity = MeetingActivity.objects.create(
             company=company,
             performed_by=request.user,
             activity_type='meeting',
+            performed_at=performed_datetime, # Use parsed datetime
             title=request.POST.get('title', ''),
-            description=request.POST.get('notes', ''),
+            # description set below
             location=request.POST.get('location', ''),
             duration=int(request.POST.get('duration', 0)),
             agenda=request.POST.get('agenda', ''),
-            minutes=request.POST.get('notes', ''),
+            # minutes set below (same as notes)
             meeting_outcome=request.POST.get('outcome', '')
         )
         
-        # Add attendees if the model supports it
-        if hasattr(activity, 'attendees'):
-            activity.attendees.add(*attendees)
+        # Set description/minutes from 'notes' field
+        notes = request.POST.get('notes', '')
+        activity.description = notes # Assuming notes field is for general description
+        activity.minutes = notes    # Assuming notes field also serves as minutes
         
-        # Set follow-up date if provided
-        if bool(request.POST.get('needs_follow_up')) and request.POST.get('follow_up_date'):
-            activity.follow_up_date = request.POST.get('follow_up_date')
-            activity.save()
+        # Add attendees (Contacts and Users)
+        activity.contact_attendees.add(*contacts)
+        activity.user_attendees.add(*users)
         
+        # Save changes (like description, minutes, M2M relations)
+        activity.save() 
+        
+        # --- Create Follow-up Task if requested --- 
+        if request.POST.get('create_follow_up_task'):
+            try:
+                task_title = request.POST.get('follow_up_task_title', '').strip()
+                if not task_title:
+                    default_title = f"Follow up on meeting: {activity.title or 'Meeting Activity'}"
+                    task_title = default_title[:255]
+                    
+                due_date_str = request.POST.get('follow_up_due_date', '')
+                try:
+                    due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else timezone.now().date() + timedelta(days=1)
+                    if due_date < timezone.now().date():
+                         due_date = timezone.now().date() + timedelta(days=1) 
+                except ValueError:
+                    due_date = timezone.now().date() + timedelta(days=1)
+                    
+                due_time_str = request.POST.get('follow_up_due_time', '')
+                try:
+                    due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time() if due_time_str else timezone.datetime.min.time().replace(hour=9)
+                except ValueError:
+                    due_time = timezone.datetime.min.time().replace(hour=9)
+                    
+                naive_followup_datetime = timezone.datetime.combine(due_date, due_time)
+                due_datetime = timezone.make_aware(naive_followup_datetime, timezone.get_current_timezone())
+                
+                task_notes = request.POST.get('follow_up_task_notes', '').strip()
+                base_description = f"Follow-up task automatically created for Meeting Activity ID: {activity.id}"
+                task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
+                
+                TaskActivity.objects.create(
+                    company=activity.company,
+                    performed_by=request.user,
+                    activity_type='task',
+                    title=task_title,
+                    description=task_description,
+                    due_datetime=due_datetime,
+                    assigned_to=request.user,
+                    status='not_started',
+                    priority='medium',
+                    related_activity=activity
+                )
+            except Exception as task_error:
+                logging.error(f"Error creating follow-up task for meeting {activity.id}: {task_error}", exc_info=True)
+        # --- End Follow-up Task --- 
+                
         return JsonResponse({
             'success': True,
             'message': 'Meeting activity logged successfully',

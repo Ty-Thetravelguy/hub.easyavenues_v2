@@ -639,7 +639,8 @@ class MeetingActivityForm(forms.ModelForm):
     class Meta:
         model = MeetingActivity
         fields = [
-            'title', 'location', 'duration', 'attendees',
+            'title', 'location', 'duration', 
+            'contact_attendees', 'user_attendees',
             'agenda', 'minutes', 'description', 'meeting_outcome',
             'scheduled_for', 'follow_up_date', 'follow_up_notes'
         ]
@@ -647,7 +648,8 @@ class MeetingActivityForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'location': forms.TextInput(attrs={'class': 'form-control'}),
             'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': 15, 'step': 15}),
-            'attendees': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'contact_attendees': forms.SelectMultiple(attrs={'class': 'form-control', 'id': 'meeting_attendees'}),
+            'user_attendees': forms.SelectMultiple(attrs={'class': 'form-control'}),
             'agenda': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'minutes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
