@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.template.loader import render_to_string
 from django.db.models import Q
 import logging
+from datetime import timedelta
 
 from crm.models import Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, CallActivity
 from crm.forms import (
@@ -108,29 +109,39 @@ def log_email_activity(request):
         recipient_ids = request.POST.getlist('recipients')
         
         # Separate contact and user recipients
-        contact_recipients = []
-        user_recipients = []
+        contact_recipient_ids = []
+        user_recipient_ids = []
         
         for recipient_id in recipient_ids:
             if recipient_id.startswith('contact_'):
-                # Extract the actual ID from the prefixed string
-                contact_id = recipient_id.replace('contact_', '')
-                contact_recipients.append(contact_id)
+                contact_recipient_ids.append(recipient_id.replace('contact_', ''))
             elif recipient_id.startswith('user_'):
-                # Extract the actual ID from the prefixed string
-                user_id = recipient_id.replace('user_', '')
-                user_recipients.append(user_id)
+                user_recipient_ids.append(recipient_id.replace('user_', ''))
         
         # Get contact recipients
-        contacts = Contact.objects.filter(id__in=contact_recipients)
+        contacts = Contact.objects.filter(id__in=contact_recipient_ids)
         
         # Get user recipients
-        from django.contrib.auth import get_user_model
         User = get_user_model()
-        users = User.objects.filter(id__in=user_recipients)
+        users = User.objects.filter(id__in=user_recipient_ids)
         
+        # Get date and time, providing defaults
+        email_date_str = request.POST.get('date', '')
+        email_time_str = request.POST.get('time', '')
+        
+        # Attempt to parse date and time, using defaults on failure
+        try:
+            email_date = timezone.datetime.strptime(email_date_str, '%Y-%m-%d').date() if email_date_str else timezone.now().date()
+        except ValueError:
+            email_date = timezone.now().date() # Default to today if format is wrong
+            
+        try:
+            email_time = timezone.datetime.strptime(email_time_str, '%H:%M').time() if email_time_str else timezone.now().time()
+        except ValueError:
+             email_time = timezone.now().time() # Default to now if format is wrong
+
         # Import the right model
-        from crm.models import EmailActivity
+        from crm.models import EmailActivity, TaskActivity
         
         # Create email activity
         activity = EmailActivity.objects.create(
@@ -140,8 +151,8 @@ def log_email_activity(request):
             description=request.POST.get('content', ''),
             body=request.POST.get('content', ''),
             subject=request.POST.get('subject', ''),
-            email_date=request.POST.get('date', timezone.now().date()),
-            email_time=timezone.now().time()
+            email_date=email_date, # Use parsed/default date
+            email_time=email_time  # Use parsed/default time
         )
         
         # Add recipients as related contacts if the model supports it
@@ -151,6 +162,40 @@ def log_email_activity(request):
         # Add user recipients if the model supports it
         if hasattr(activity, 'user_recipients'):
             activity.user_recipients.add(*users)
+        
+        # --- Create Follow-up Task if requested --- 
+        if request.POST.get('create_follow_up_task'):
+            try:
+                task_title = request.POST.get('follow_up_task_title', '').strip()
+                if not task_title:
+                    # Use default title if none provided, truncate if necessary
+                    default_title = f"Follow up on: {activity.subject or 'Email Activity'}"
+                    task_title = default_title[:255] 
+                    
+                # Default due date (e.g., next business day - simplified here as +1 day)
+                due_date = timezone.now().date() + timedelta(days=1)
+                
+                # Create the linked task
+                TaskActivity.objects.create(
+                    company=activity.company,
+                    performed_by=request.user, # Logged by the same user initially
+                    activity_type='task',
+                    title=task_title,
+                    description=f"Follow-up task automatically created for Email Activity ID: {activity.id}", 
+                    due_date=due_date,
+                    assigned_to=request.user, # Default assignment to creator
+                    status='not_started',
+                    priority='medium', 
+                    related_activity=activity # Link back to the email
+                )
+                # You could add a specific success message for the task here if needed
+                # messages.success(request, 'Follow-up task created.') 
+            except Exception as task_error:
+                # Log error creating task, but don't fail the whole email logging
+                logging.error(f"Error creating follow-up task for email {activity.id}: {task_error}", exc_info=True)
+                # Optionally add a message to the user about the task creation failure
+                # messages.warning(request, f'Email logged, but failed to create follow-up task: {task_error}')
+        # --- End Follow-up Task --- 
         
         return JsonResponse({
             'success': True,

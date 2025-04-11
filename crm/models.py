@@ -479,6 +479,16 @@ class Activity(models.Model):
     follow_up_notes = models.TextField(blank=True)
     is_system_activity = models.BooleanField(default=False, help_text="Indicates if this is an automatically generated system activity")
     
+    # New field to link follow-up tasks
+    related_activity = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='follow_up_tasks',
+        help_text="The activity this task is following up on."
+    )
+
     def debug_info(self):
         """Return a dictionary with debugging information about this activity"""
         subclass_models = ['emailactivity', 'callactivity', 'meetingactivity', 

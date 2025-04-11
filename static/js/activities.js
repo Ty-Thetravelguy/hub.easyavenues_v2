@@ -294,7 +294,6 @@ function loadActivityForm(activityType) {
  * Initialize form elements after loading
  */
 function initializeFormElements(activityType) {
-    console.log(`⚙️ Initializing form elements for ${activityType}...`);
     const formContainer = document.getElementById('activity-panel-form-container');
     if (!formContainer) {
         console.error('Form container not found for initialization');
@@ -306,12 +305,15 @@ function initializeFormElements(activityType) {
     if (form) {
         form.classList.add('activity-form', `${activityType}-form`);
         
-        // Initialize datepickers within the loaded form
+        // Initialize common elements
         initializeDateTimePickers(form);
         
-        // **Initialize Tom Select specifically for the recipient field in this form**
+        // Initialize type-specific elements
         if (activityType === 'email') {
             initializeRecipientSelectForForm(form);
+            initializeTinyMCEForForm(form);
+            // Add listener for follow-up task checkbox
+            setupFollowUpTaskToggle(form);
         }
         
         // Add submit handler
@@ -321,6 +323,29 @@ function initializeFormElements(activityType) {
         });
     } else {
         console.error('Form element not found inside container');
+    }
+}
+
+/**
+ * Sets up the toggle for showing/hiding follow-up task details in a form
+ */
+function setupFollowUpTaskToggle(formElement) {
+    const checkbox = formElement.querySelector('#create_follow_up_task');
+    const detailsDiv = formElement.querySelector('#follow_up_task_details');
+
+    if (checkbox && detailsDiv) {
+        console.log('Setting up follow-up task toggle listener.');
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                detailsDiv.style.display = 'block';
+                console.log('Follow-up task details shown.');
+            } else {
+                detailsDiv.style.display = 'none';
+                console.log('Follow-up task details hidden.');
+            }
+        });
+    } else {
+        console.warn('Could not find follow-up task checkbox or details div for toggle setup.');
     }
 }
 
@@ -764,32 +789,66 @@ function setupActivityCardHandlers() {
  * Initialize date and time pickers
  */
 function initializeDateTimePickers(form) {
-    // Find all date inputs that need datepicker
-    const dateInputs = form.querySelectorAll('input[data-datepicker]');
+    // Determine the search context: the provided form or the whole document
+    const searchContext = form || document;
+    const contextType = form ? 'Specific form' : 'Document';
+    console.log(`⚙️ Initializing DateTimePickers. Search context: ${contextType}`);
+
+    // --- Date Pickers --- 
+    const datePickerSelector = 'input[data-datepicker]';
+    const dateInputs = searchContext.querySelectorAll(datePickerSelector);
+    console.log(`   Found ${dateInputs.length} elements with selector '${datePickerSelector}' in ${contextType}`);
     
-    if (dateInputs.length && typeof flatpickr !== 'undefined') {
-        dateInputs.forEach(input => {
-            flatpickr(input, {
-                dateFormat: "Y-m-d",
-                allowInput: true
+    if (dateInputs.length > 0) {
+        if (typeof flatpickr !== 'undefined') {
+            dateInputs.forEach(input => {
+                console.log(`   Processing date input: #${input.id || input.name || 'no-id'}`);
+                // Check if flatpickr is already initialized
+                if (!input._flatpickr) {
+                    flatpickr(input, {
+                        dateFormat: "Y-m-d",
+                        altInput: true,
+                        altFormat: "F j, Y", // More user-friendly display format
+                        allowInput: true // Allows manual typing if needed
+                    });
+                    console.log(`     ✅ Flatpickr DATE initialized for: #${input.id || input.name || 'no-id'}`);
+                } else {
+                    console.log(`     ⚠️ Flatpickr DATE already initialized for: #${input.id || input.name || 'no-id'}`);
+                }
             });
-        });
+        } else {
+            console.warn('   ⚠️ Flatpickr library not loaded, cannot initialize date pickers.');
+        }
     }
+
+    // --- Time Pickers --- 
+    const timePickerSelector = 'input[data-timepicker]';
+    const timeInputs = searchContext.querySelectorAll(timePickerSelector);
+    console.log(`   Found ${timeInputs.length} elements with selector '${timePickerSelector}' in ${contextType}`);
     
-    // Find all time inputs that need timepicker
-    const timeInputs = form.querySelectorAll('input[data-timepicker]');
-    
-    if (timeInputs.length && typeof flatpickr !== 'undefined') {
-        timeInputs.forEach(input => {
-            flatpickr(input, {
-                enableTime: true,
-                noCalendar: true,
-                dateFormat: "H:i",
-                time_24hr: true,
-                allowInput: true
+    if (timeInputs.length > 0) {
+        if (typeof flatpickr !== 'undefined') {
+            timeInputs.forEach(input => {
+                console.log(`   Processing time input: #${input.id || input.name || 'no-id'}`);
+                // Check if flatpickr is already initialized
+                if (!input._flatpickr) {
+                    flatpickr(input, {
+                        enableTime: true,
+                        noCalendar: true,
+                        dateFormat: "H:i", // Use H:i for 24-hour format
+                        time_24hr: true,
+                        allowInput: true // Allows manual typing if needed
+                    });
+                    console.log(`     ✅ Flatpickr TIME initialized for: #${input.id || input.name || 'no-id'}`);
+                } else {
+                    console.log(`     ⚠️ Flatpickr TIME already initialized for: #${input.id || input.name || 'no-id'}`);
+                }
             });
-        });
+        } else {
+            console.warn('   ⚠️ Flatpickr library not loaded, cannot initialize time pickers.');
+        }
     }
+    console.log(`🏁 Finished DateTimePicker initialization for context: ${contextType}`);
 }
 
 // ======================================================
@@ -1298,4 +1357,60 @@ function insertText(elementId, text) {
 function getSelectedText(textarea) {
     if (!textarea) return '';
     return textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
+}
+
+/**
+ * Initialize TinyMCE for the email content textarea within a specific form
+ */
+function initializeTinyMCEForForm(formElement) {
+    const selectorId = 'email_content';
+    const textarea = formElement.querySelector(`#${selectorId}`);
+
+    if (!textarea) {
+        console.warn(`⚠️ TinyMCE target textarea (#${selectorId}) not found in the form.`);
+        return;
+    }
+
+    console.log(`🔍 Attempting to initialize TinyMCE for #${selectorId}...`);
+
+    // Check if TinyMCE library is loaded
+    if (typeof tinymce === 'undefined') {
+        console.error('❌ TinyMCE library not loaded.');
+        return;
+    }
+
+    // Remove previous instances if they exist for this ID to prevent issues
+    const existingEditor = tinymce.get(selectorId);
+    if (existingEditor) {
+        console.log(`   ⚠️ Removing existing TinyMCE instance for #${selectorId}.`);
+        existingEditor.remove();
+    }
+
+    // Initialize TinyMCE
+    tinymce.init({
+        selector: `#${selectorId}`,
+        plugins: 'autoresize link lists image media table wordcount',
+        toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | link image media table | removeformat',
+        menubar: false,
+        statusbar: true,
+        min_height: 250, // Set a minimum height
+        autoresize_bottom_margin: 20,
+        content_style: 'body { font-family: Roboto, sans-serif; font-size: 14px; }',
+        setup: function (editor) {
+            editor.on('init', function () {
+                console.log(`   ✅ TinyMCE initialized successfully for #${selectorId}`);
+            });
+            editor.on('change keyup', function () {
+                // Ensure the underlying textarea value is updated for form submission
+                editor.save(); 
+            });
+        }
+    }).then(editors => {
+        // Initialization promise resolved
+        if (!editors || editors.length === 0) {
+             console.error(`   ❌ TinyMCE initialization failed for #${selectorId}.`);
+        }
+    }).catch(error => {
+        console.error(`   ❌ Error during TinyMCE initialization for #${selectorId}:`, error);
+    });
 } 
