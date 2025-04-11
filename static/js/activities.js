@@ -319,6 +319,8 @@ function initializeFormElements(activityType) {
             // Use the same multi-select init function as email, just target a different ID
             initializeRecipientSelectForForm(form, '#meeting_attendees'); 
             setupFollowUpTaskToggle(form);
+        } else if (activityType === 'note') {
+            setupFollowUpTaskToggle(form); // Initialize follow-up toggle for notes
         }
         // Add other else if blocks for other activity types if needed
         

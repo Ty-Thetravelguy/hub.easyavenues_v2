@@ -587,9 +587,17 @@ class NoteActivity(Activity):
     """
     Model for note activities.
     """
+    subject = models.ForeignKey(
+        'NoteSubject', 
+        on_delete=models.SET_NULL, # Keep note even if subject is deleted
+        null=True, 
+        blank=True, # Allow notes without a subject
+        related_name='notes'
+    )
     content = models.TextField()
-    is_private = models.BooleanField(default=False)
-    note_outcome = models.CharField(max_length=255, null=True, blank=True)
+    is_private = models.BooleanField(default=False) # Represents 'Mark as Important'
+    # Removed note_outcome as it seemed unused/unnecessary
+    # note_outcome = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Note Activity'
@@ -807,3 +815,25 @@ class CompanyRelationship(models.Model):
 
     def __str__(self):
         return f"{self.from_company.company_name} → {self.relationship_type} → {self.to_company.company_name}"
+
+# +++ New Model for Note Subjects +++
+class NoteSubject(models.Model):
+    """Model to store predefined subjects for notes."""
+    name = models.CharField(
+        max_length=100, 
+        unique=True, 
+        help_text="The subject name (must be unique)."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    # Optional: Add created_by if needed
+    # created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_note_subjects')
+
+    class Meta:
+        verbose_name = "Note Subject"
+        verbose_name_plural = "Note Subjects"
+        ordering = ['name'] # Order alphabetically by default
+
+    def __str__(self):
+        return self.name
+# +++ End NoteSubject Model +++

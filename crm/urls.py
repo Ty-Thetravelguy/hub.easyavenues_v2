@@ -6,6 +6,7 @@ from .views import contact_views
 from .views import document_views
 from .views import travel_policy_views
 from .views import hubspot_views
+from .views import admin_views
 
 app_name = 'crm'
 
@@ -68,5 +69,28 @@ urlpatterns = [
     path('activity/waiver/', activity_views.log_waiver_activity, name='log_waiver_activity'),
     path('activity/task/', activity_views.log_task_activity, name='log_task_activity'),
     path('activity/details/<int:activity_id>/', activity_views.activity_details, name='activity_view'),
+    
+    # --- Admin/Settings Management --- 
+    path(
+        'manage/note-subjects/',
+        admin_views.NoteSubjectListView.as_view(),
+        name='manage_note_subject_list'
+    ),
+    path(
+        'manage/note-subjects/create/',
+        admin_views.NoteSubjectCreateView.as_view(),
+        name='manage_note_subject_create'
+    ),
+    path(
+        'manage/note-subjects/<int:pk>/update/',
+        admin_views.NoteSubjectUpdateView.as_view(),
+        name='manage_note_subject_update'
+    ),
+    path(
+        'manage/note-subjects/<int:pk>/delete/',
+        admin_views.NoteSubjectDeleteView.as_view(),
+        name='manage_note_subject_delete'
+    ),
+    # --- End Admin/Settings Management --- 
 ]
     

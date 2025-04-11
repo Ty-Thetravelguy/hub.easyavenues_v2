@@ -4,28 +4,35 @@
     <input type="hidden" name="company_id" value="{{ company.id }}">
     <input type="hidden" name="activity_type" value="note">
     
+    <!-- Removed Note Title - Using content as main body -->
+    <!-- 
     <div class="mb-3">
         <label for="note_title" class="form-label">Note Title</label>
         <input type="text" class="form-control" id="note_title" name="title" required>
-    </div>
+    </div> 
+    -->
     
+    <!-- Removed Date - Using performed_at from Activity model -->
+    <!--
     <div class="mb-3">
         <label for="note_date" class="form-label">Date</label>
         <input type="text" class="form-control datepicker" id="note_date" name="date" value="{{ today_date|date:'Y-m-d' }}" required>
     </div>
+    -->
     
+    <!-- Replaced Category with Subject Dropdown -->
     <div class="mb-3">
-        <label for="note_category" class="form-label">Category</label>
-        <select class="form-control" id="note_category" name="category">
-            <option value="general">General</option>
-            <option value="follow_up">Follow-up</option>
-            <option value="important">Important</option>
-            <option value="reminder">Reminder</option>
-            <option value="client_feedback">Client Feedback</option>
-            <option value="project_notes">Project Notes</option>
-        </select>
+        <label for="id_subject" class="form-label">Subject</label> 
+        {{ form.subject }} <!-- Render subject field from form -->
+        {% if form.subject.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.subject.errors }}
+            </div>
+        {% endif %}
     </div>
     
+    <!-- Removed Related Contacts - Handled by base Activity.contact if needed -->
+    <!-- 
     <div class="mb-3">
         <label for="note_related_contacts" class="form-label">Related Contacts</label>
         <select class="form-control select2-field" id="note_related_contacts" name="related_contacts" multiple>
@@ -35,18 +42,59 @@
         </select>
         <small class="form-text text-muted">Optional: Select any contacts this note is related to</small>
     </div>
+     -->
     
     <div class="mb-3">
-        <label for="note_content" class="form-label">Note Content</label>
-        <textarea class="form-control" id="note_content" name="content" rows="6" required></textarea>
+        <label for="id_content" class="form-label">Note Content</label>
+        {{ form.content }} <!-- Render content field from form -->
+         {% if form.content.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.content.errors }}
+            </div>
+        {% endif %}
     </div>
     
     <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="note_important" name="important" value="1">
-        <label class="form-check-label" for="note_important">
+        {{ form.is_private }} <!-- Render is_private checkbox from form -->
+        <label class="form-check-label" for="{{ form.is_private.id_for_label }}">
             <i class="fas fa-star text-warning"></i> Mark as Important
         </label>
+         {% if form.is_private.errors %}
+            <div class="invalid-feedback d-block">
+                {{ form.is_private.errors }}
+            </div>
+        {% endif %}
     </div>
+    
+    <!-- ADDED New Follow-up Task section -->
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="create_follow_up_task" id="create_follow_up_task">
+        <label class="form-check-label" for="create_follow_up_task">
+            Create Follow-up Task?
+        </label>
+    </div>
+    <div class="mb-3 ps-4" id="follow_up_task_details" style="display: none;">
+         <label for="follow_up_task_title" class="form-label form-label-sm">Task Title (Optional)</label>
+         <input type="text" name="follow_up_task_title" id="follow_up_task_title" class="form-control form-control-sm mb-2" placeholder="Defaults to: Follow up on note...">
+         
+         <div class="row mb-2">
+             <div class="col-sm-7">
+                <label for="follow_up_due_date" class="form-label form-label-sm">Due Date (Optional)</label>
+                <input type="text" name="follow_up_due_date" id="follow_up_due_date" class="form-control form-control-sm" 
+                       placeholder="Defaults to next day" data-datepicker>
+             </div>
+             <div class="col-sm-5">
+                <label for="follow_up_due_time" class="form-label form-label-sm">Due Time (Optional)</label>
+                <input type="text" name="follow_up_due_time" id="follow_up_due_time" class="form-control form-control-sm" 
+                       placeholder="Defaults to 09:00" data-timepicker>
+             </div>
+         </div>
+         
+         <label for="follow_up_task_notes" class="form-label form-label-sm">Notes (Optional)</label>
+         <textarea name="follow_up_task_notes" id="follow_up_task_notes" class="form-control form-control-sm" rows="2" 
+                   placeholder="Add brief notes for the task..."></textarea>
+    </div>
+    <!-- End Follow-up Task section -->
     
     <div class="d-grid">
         <button type="submit" class="btn btn-activity-note">

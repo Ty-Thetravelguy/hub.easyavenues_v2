@@ -9,17 +9,17 @@ from django.db.models import Q
 import logging
 from datetime import timedelta
 
-from crm.models import Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, CallActivity
+from crm.models import Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, CallActivity, MeetingActivity, NoteActivity
 from crm.forms import (
     EmailActivityForm, CallActivityForm, MeetingActivityForm, 
     NoteActivityForm, WaiverFavorActivityForm, ToDoTaskForm, DocumentActivityForm, 
-    StatusChangeActivityForm, PolicyUpdateActivityForm
+    StatusChangeActivityForm, PolicyUpdateActivityForm, TaskActivityForm
 )
 from django.contrib.auth import get_user_model
 
 @login_required
 def activity_form(request, activity_type):
-    """Render the appropriate activity form"""
+    """Render the appropriate activity form with its Django Form instance"""
     try:
         company_id = request.GET.get('company_id')
         if not company_id:
@@ -27,27 +27,48 @@ def activity_form(request, activity_type):
         
         company = get_object_or_404(Company, id=company_id)
         
-        # Get all users for task assignment
+        # Get all users for task assignment dropdown if needed (can be optimized later)
         User = get_user_model()
         users = User.objects.filter(is_active=True)
         
-        template_map = {
-            'email': 'crm/activities/email_form.html',
-            'call': 'crm/activities/call_form.html',
-            'meeting': 'crm/activities/meeting_form.html',
-            'note': 'crm/activities/note_form.html',
-            'waiver': 'crm/activities/waiver_form.html',
-            'task': 'crm/activities/task_form.html',
-        }
+        form = None
+        template_name = None
         
-        template_name = template_map.get(activity_type)
-        if not template_name:
+        # Map activity type to form class and template
+        if activity_type == 'email':
+            form = EmailActivityForm()
+            template_name = 'crm/activities/email_form.html'
+        elif activity_type == 'call':
+            form = CallActivityForm()
+            template_name = 'crm/activities/call_form.html'
+        elif activity_type == 'meeting':
+            form = MeetingActivityForm()
+            template_name = 'crm/activities/meeting_form.html'
+        elif activity_type == 'note':
+            form = NoteActivityForm() # Instantiate the Note form
+            template_name = 'crm/activities/note_form.html'
+        elif activity_type == 'waiver':
+            # Assuming WaiverFavorActivityForm is correct based on imports
+            form = WaiverFavorActivityForm() 
+            template_name = 'crm/activities/waiver_form.html'
+        elif activity_type == 'task':
+            # Ensure TaskActivityForm is imported and used
+            form = TaskActivityForm(initial={'assigned_to': request.user}) 
+            template_name = 'crm/activities/task_form.html'
+        # Add mappings for other activity types like 'document' if needed
+        # elif activity_type == 'document':
+        #     form = DocumentActivityForm()
+        #     template_name = 'crm/activities/document_form.html'
+            
+        if not template_name or form is None:
+            logging.warning(f"Invalid or unmapped activity type requested: {activity_type}")
             return JsonResponse({'error': f'Invalid activity type: {activity_type}'}, status=400)
         
         context = {
             'company': company,
             'today_date': timezone.now(),
-            'users': users,
+            'users': users, # Keep users for task form assignee dropdown
+            'form': form    # Add the instantiated form to the context
         }
         
         html = render_to_string(template_name, context, request)

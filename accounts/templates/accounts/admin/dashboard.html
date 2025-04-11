@@ -26,5 +26,27 @@
             </div>
         </div>
     </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Note Subjects</h5>
+                <p class="card-text">Manage predefined subjects used for CRM notes.</p>
+                <a href="{% url 'crm:manage_note_subject_list' %}" class="btn btn-primary-ea">
+                    <i class="fas fa-tags"></i> Manage Subjects
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Invoice References</h5>
+                <p class="card-text">Manage standard invoice reference options.</p>
+                <a href="{% url 'accounts:invoice_reference_list' %}" class="btn btn-primary-ea">
+                    <i class="fas fa-file-invoice-dollar"></i> Manage References
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %} 

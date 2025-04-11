@@ -10,17 +10,22 @@
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'users' %}active{% endif %}" href="{% url 'accounts:admin_user_list' %}">
-                            <i class="fas fa-users"></i> Users
+                            <i class="fas fa-users me-2"></i> Users
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'teams' %}active{% endif %}" href="{% url 'accounts:admin_team_list' %}">
-                            <i class="fas fa-users-cog"></i> Teams
+                            <i class="fas fa-users-cog me-2"></i> Teams
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'invoice_references' %}active{% endif %}" href="{% url 'accounts:admin_invoice_reference_list' %}">
-                            <i class="fas fa-file-invoice"></i> Invoice References
+                            <i class="fas fa-file-invoice me-2"></i> Invoice References
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'note_subjects' %}active{% endif %}" href="{% url 'crm:manage_note_subject_list' %}">
+                            <i class="fas fa-tags me-2"></i> Note Subjects
                         </a>
                     </li>
                 </ul>

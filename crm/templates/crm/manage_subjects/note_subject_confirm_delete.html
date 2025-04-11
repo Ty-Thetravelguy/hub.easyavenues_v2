@@ -1,0 +1,22 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load crispy_forms_tags %}
+
+{% block admin_title %}{{ page_title|default:"Confirm Delete" }}{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">Confirm Deletion</h5>
+    </div>
+    <div class="card-body">
+        <p>Are you sure you want to delete the note subject: <strong>"{{ object.name }}"</strong>?</p>
+        <p class="text-muted"><small>Deleting this subject might affect existing notes linked to it if not handled carefully (currently, the link will be set to NULL).</small></p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{% url 'crm:manage_note_subject_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

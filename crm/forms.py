@@ -5,7 +5,7 @@ from .models import (
     INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote,
     ClientTravelPolicy, Document, Activity, EmailActivity, CallActivity,
     MeetingActivity, NoteActivity, DocumentActivity, StatusChangeActivity,
-    PolicyUpdateActivity
+    PolicyUpdateActivity, NoteSubject, TaskActivity
 )
 from django.contrib.auth import get_user_model
 import datetime
@@ -668,19 +668,29 @@ class MeetingActivityForm(forms.ModelForm):
         return activity
 
 class NoteActivityForm(forms.ModelForm):
+    # Define subject field explicitly to control queryset and widget
+    subject = forms.ModelChoiceField(
+        queryset=NoteSubject.objects.all(), 
+        required=False, # Allow notes without a subject
+        empty_label="--- Select Subject ---  ", # Add a blank option
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
     class Meta:
         model = NoteActivity
+        # Removed note_outcome, added subject
+        # Also removed description, follow_up_date, follow_up_notes as they aren't in the template
         fields = [
-            'content', 'is_private', 'description',
-            'note_outcome', 'follow_up_date', 'follow_up_notes'
+            'subject', 'content', 'is_private'
         ]
         widgets = {
             'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'is_private': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'note_outcome': forms.TextInput(attrs={'class': 'form-control'}),
-            'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            # Removed widgets for fields no longer in use by this form
+            # 'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            # 'note_outcome': forms.TextInput(attrs={'class': 'form-control'}),
+            # 'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            # 'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
     def save(self, commit=True):
@@ -824,4 +834,111 @@ class ToDoTaskForm(forms.Form):
     to_do_task_message = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
-    ) 
+    )
+
+# +++ Form for NoteSubject +++
+class NoteSubjectForm(forms.ModelForm):
+    class Meta:
+        model = NoteSubject
+        fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter subject name'})
+        }
+        help_texts = {
+            'name': 'Subject must be unique.'
+        }
+# +++ End NoteSubjectForm +++ 
+
+# ADDED TaskActivityForm
+class TaskActivityForm(forms.ModelForm):
+    """Form for creating Task activities."""
+    # Use DateTimeInput for due_datetime
+    due_datetime = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+        label="Due Date & Time"
+    )
+    
+    assigned_to = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_active=True),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Assignee"
+    )
+
+    class Meta:
+        model = TaskActivity
+        fields = [
+            'title', 'description', 'due_datetime', 
+            'assigned_to', 'priority', 'status' 
+            # related_activity and performed_by will be set in the view
+            # company will be set in the view
+            # reminder_sent_at is internal
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Task Title'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Task details...'}),
+            'priority': forms.Select(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+class WaiverFavorActivityForm(forms.ModelForm):
+    class Meta:
+        model = Activity
+        fields = ['description', 'outcome', 'follow_up_date', 'follow_up_notes']
+        widgets = {
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'outcome': forms.TextInput(attrs={'class': 'form-control'}),
+            'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    # Additional fields for waiver/favor-specific data
+    subject = forms.CharField(max_length=255, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    waiver_type = forms.ChoiceField(
+        choices=[
+            ('waiver', 'Waiver'),
+            ('favor', 'Favor'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    value_amount = forms.DecimalField(
+        min_value=0,
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+    approved_by = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    contacts = forms.ModelMultipleChoiceField(
+        queryset=Contact.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-control'})
+    )
+    users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-control'})
+    )
+
+    def save(self, commit=True):
+        activity = super().save(commit=False)
+        activity.activity_type = 'waiver'
+        
+        # Store waiver/favor-specific data in the data JSONField
+        activity.data = {
+            'subject': self.cleaned_data['subject'],
+            'waiver_type': self.cleaned_data['waiver_type'],
+            'value_amount': str(self.cleaned_data['value_amount']),
+            'approved_by': self.cleaned_data['approved_by'].id,
+            'contacts': [contact.id for contact in self.cleaned_data['contacts']],
+            'users': [user.id for user in self.cleaned_data['users']],
+        }
+        
+        if commit:
+            activity.save()
+        
+        return activity 

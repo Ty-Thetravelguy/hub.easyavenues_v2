@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'formtools',
     'storages',
 
+    # Crispy Forms & Template Pack
+    'crispy_forms',
+    'crispy_bootstrap5',
 
     # Allauth
     "allauth",
@@ -81,6 +84,10 @@ MIDDLEWARE = [
     # Recently Viewed
     'users.middleware.RecentlyViewedMiddleware',
 ]
+
+# Add these settings for Crispy Forms
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 TINYMCE_DEFAULT_CONFIG = {
     'height': 200,

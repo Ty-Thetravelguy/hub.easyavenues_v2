@@ -1,0 +1,55 @@
+{% extends "accounts/admin/base_admin.html" %}
+{% load crispy_forms_tags %}
+
+{% block admin_title %}Manage Note Subjects{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Note Subjects</h5>
+        <a href="{% url 'crm:manage_note_subject_create' %}" class="btn btn-primary-ea btn-sm">
+            <i class="fas fa-plus me-1"></i> Add New Subject
+        </a>
+    </div>
+    <div class="card-body p-0">
+        {% if subjects %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Subject Name</th>
+                        <th>Created</th>
+                        <th>Updated</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in subjects %}
+                    <tr>
+                        <td>{{ subject.name }}</td>
+                        <td>{{ subject.created_at|date:"d M Y, H:i" }}</td>
+                        <td>{{ subject.updated_at|date:"d M Y, H:i" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'crm:manage_note_subject_update' subject.pk %}" class="btn btn-secondary-ea btn-sm me-1" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'crm:manage_note_subject_delete' subject.pk %}" class="btn btn-danger btn-sm" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center text-muted p-4">No note subjects found. Add one using the button above.</p>
+        {% endif %}
+    </div>
+    {% if is_paginated %}
+    <div class="card-footer">
+        {% include 'includes/pagination.html' with page_obj=page_obj %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
