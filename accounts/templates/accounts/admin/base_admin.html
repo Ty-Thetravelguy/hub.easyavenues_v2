@@ -24,11 +24,20 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'note_subjects' %}active{% endif %}" href="{% url 'crm:manage_note_subject_list' %}">
-                            <i class="fas fa-tags me-2"></i> Note Subjects
+                        <a class="nav-link {% if request.resolver_match.url_name == 'manage_note_subject_list' %}active{% endif %}" href="{% url 'crm:manage_note_subject_list' %}">
+                            <i class="fas fa-tags fa-fw me-2"></i> Note Subjects
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'manage_waiver_favour_type_list' %}active{% endif %}" href="{% url 'crm:manage_waiver_favour_type_list' %}">
+                            <i class="fas fa-handshake fa-fw me-2"></i> Waiver & Favour Types
                         </a>
                     </li>
                 </ul>
+                
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                    <span>User Management</span>
+                </h6>
             </div>
         </div>
 

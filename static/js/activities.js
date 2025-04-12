@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadActivitiesByType('all');
             
             // Also preload other activity types
-            const activityTypes = ['email', 'call', 'meeting', 'note', 'waiver', 'task'];
+            const activityTypes = ['email', 'call', 'meeting', 'note', 'waiver_favour', 'task'];
             for (const type of activityTypes) {
                 setTimeout(() => loadActivitiesByType(type), 500);
             }
@@ -105,7 +105,7 @@ function setupActivityTypeButtons() {
     const waiverButton = document.getElementById('log-waiver-btn');
     if (waiverButton) {
         waiverButton.addEventListener('click', function() {
-            openActivitySidePanel('waiver');
+            openActivitySidePanel('waiver_favour');
         });
     }
     
@@ -150,7 +150,7 @@ function setupTabActivationHandlers() {
                 loadActivitiesByType('note');
             } else if (tabId === '#waiver-activities') {
                 console.log('Loading waiver activities...');
-                loadActivitiesByType('waiver');
+                loadActivitiesByType('waiver_favour');
             } else if (tabId === '#task-activities') {
                 console.log('Loading task activities...');
                 loadActivitiesByType('task');
@@ -215,7 +215,7 @@ function updateSidePanelHeader(activityType) {
         'call': 'Log Call',
         'meeting': 'Log Meeting',
         'note': 'Log Note',
-        'waiver': 'Log Waiver/Favor',
+        'waiver_favour': 'Log Waiver & Favour',
         'task': 'Log Task'
     };
     
@@ -224,7 +224,7 @@ function updateSidePanelHeader(activityType) {
         'call': 'phone-alt',
         'meeting': 'users',
         'note': 'sticky-note',
-        'waiver': 'exclamation-triangle',
+        'waiver_favour': 'handshake',
         'task': 'tasks'
     };
     
@@ -232,7 +232,7 @@ function updateSidePanelHeader(activityType) {
     panelTitle.innerHTML = `<i class="fas fa-${iconMap[activityType] || 'file-alt'} me-2"></i> ${titleMap[activityType] || 'Log Activity'}`;
     
     // Add appropriate class for styling
-    panelTitle.className = 'offcanvas-title activity-header-' + activityType;
+    panelTitle.className = 'offcanvas-title activity-header-' + (activityType || 'default');
 }
 
 /**
@@ -321,6 +321,37 @@ function initializeFormElements(activityType) {
             setupFollowUpTaskToggle(form);
         } else if (activityType === 'note') {
             setupFollowUpTaskToggle(form); // Initialize follow-up toggle for notes
+        } else if (activityType === 'waiver_favour') {
+            // Initialize Tom Select for contacts
+            console.log('Initializing Tom Select for Waiver/Favour contacts...');
+            
+            // Force clean initialization of TomSelect
+            const contactSelector = form.querySelector('#waiver_favour_contacts');
+            if (contactSelector) {
+                // Manually initialize TomSelect for waiver form
+                if (typeof TomSelect !== 'undefined') {
+                    // Clear any existing instance
+                    if (contactSelector.tomselect) {
+                        contactSelector.tomselect.destroy();
+                    }
+                    
+                    // Initialize a new instance
+                    new TomSelect(contactSelector, {
+                        plugins: ['remove_button'],
+                        maxItems: null,
+                        valueField: 'value',
+                        labelField: 'text',
+                        searchField: ['text'],
+                        create: false
+                    });
+                    
+                    console.log('✅ TomSelect initialized for waiver_favour contacts');
+                } else {
+                    console.error('❌ TomSelect not available for waiver_favour contacts');
+                }
+            } else {
+                console.warn('⚠️ Contact selector (#waiver_favour_contacts) not found in the waiver form');
+            }
         }
         // Add other else if blocks for other activity types if needed
         
@@ -579,7 +610,24 @@ function submitActivityForm(form, activityType) {
     const formData = new FormData(form);
     
     // Use fetch to submit the form
-    fetch(form.action, {
+    let url = '';
+    switch (activityType) {
+        case 'email': url = form.action || '{% url "crm:log_email_activity" %}'; break;
+        case 'call': url = form.action || '{% url "crm:log_call_activity" %}'; break;
+        case 'meeting': url = form.action || '{% url "crm:log_meeting_activity" %}'; break;
+        case 'note': url = form.action || '{% url "crm:log_note_activity" %}'; break;
+        case 'waiver_favour': url = form.action || '{% url "crm:log_waiver_favour_activity" %}'; break;
+        case 'task': url = form.action || '{% url "crm:log_task_activity" %}'; break;
+        // Add other types here
+        default:
+            console.error(`Unknown activity type for submission: ${activityType}`);
+            showToast('Error', 'Unknown activity type.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Save';
+            return;
+    }
+    
+    fetch(url, {
         method: 'POST',
         body: formData,
         headers: {

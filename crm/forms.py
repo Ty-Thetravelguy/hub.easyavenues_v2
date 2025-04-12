@@ -5,7 +5,7 @@ from .models import (
     INDUSTRY_CHOICES, ClientInvoiceReference, CompanyRelationship, ContactNote,
     ClientTravelPolicy, Document, Activity, EmailActivity, CallActivity,
     MeetingActivity, NoteActivity, DocumentActivity, StatusChangeActivity,
-    PolicyUpdateActivity, NoteSubject, TaskActivity
+    PolicyUpdateActivity, NoteSubject, TaskActivity, WaiverFavourType, WaiverActivity
 )
 from django.contrib.auth import get_user_model
 import datetime
@@ -766,65 +766,99 @@ class PolicyUpdateActivityForm(forms.ModelForm):
         return instance
 
 class WaiverFavorActivityForm(forms.ModelForm):
-    class Meta:
-        model = Activity
-        fields = ['description', 'outcome', 'follow_up_date', 'follow_up_notes']
-        widgets = {
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'outcome': forms.TextInput(attrs={'class': 'form-control'}),
-            'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
-
-    # Additional fields for waiver/favor-specific data
-    subject = forms.CharField(max_length=255, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    waiver_type = forms.ChoiceField(
-        choices=[
-            ('waiver', 'Waiver'),
-            ('favor', 'Favor'),
-        ],
-        widget=forms.Select(attrs={'class': 'form-control'})
+    # Added ModelChoiceField for the new type ForeignKey
+    type = forms.ModelChoiceField(
+        queryset=WaiverFavourType.objects.all(),
+        required=True, # Matches blank=False on model field
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Type"
     )
-    value_amount = forms.DecimalField(
+
+    # Define fields for amount, approved_by, contacts, description etc.
+    # These fields are not automatically inherited because the Meta model is Activity
+    # We need to define them explicitly or change the Meta model to WaiverActivity
+    # Let's change Meta model to WaiverActivity for simplicity
+
+    # Keeping subject for now, might be replaced by Type name later?
+    subject = forms.CharField(
+        max_length=255, 
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        required=False, # Let's make subject optional if type exists
+        label="Subject (Optional)"
+    )
+
+    amount = forms.DecimalField(
         min_value=0,
         max_digits=10,
         decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    approved_by = forms.ModelChoiceField(
-        queryset=User.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    contacts = forms.ModelMultipleChoiceField(
-        queryset=Contact.objects.all(),
         required=False,
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'})
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'step': '0.01'
+        })
     )
-    users = forms.ModelMultipleChoiceField(
-        queryset=User.objects.all(),
-        required=False,
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'})
+    
+    reason = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3, 
+            'placeholder': 'Reason for waiver/favour...'
+        }),
+        required=False
     )
 
+    approved_by = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False, # Make optional? Depends on workflow
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    # Reverted contacts field to ModelMultipleChoiceField for proper rendering and TomSelect initialization
+    contacts = forms.ModelMultipleChoiceField(
+        queryset=Contact.objects.all(), # Queryset will be filtered dynamically if needed
+        required=False,
+        widget=forms.SelectMultiple(attrs={
+            'class': 'tom-select form-control',
+            'id': 'waiver_favour_contacts'
+        }),
+        label="Related Contacts"
+    )
+    
+    # Removed users field - assuming not needed
+    # users = forms.ModelMultipleChoiceField(...)
+
+    # Removed waiver_type ChoiceField
+    # waiver_type = forms.ChoiceField(...)
+    
+    # Removed value_amount - renamed to amount
+    # value_amount = forms.DecimalField(...)
+    
+    # Removed description, outcome, follow_up fields inherited from Activity Meta model
+    # Use 'reason' field instead of description?
+
+    class Meta:
+        model = WaiverActivity # Changed Meta model to WaiverActivity
+        fields = [
+            'type', 'subject', 'amount', 'reason', 'approved_by', 'contacts'
+            # Fields from Activity base model (like company, performed_by) are handled in the view
+        ]
+        # Removed widgets defined here if they are now defined explicitly above
+        # widgets = { ... } 
+
     def save(self, commit=True):
-        activity = super().save(commit=False)
-        activity.activity_type = 'waiver'
+        instance = super().save(commit=False)
+        instance.activity_type = 'waiver_favour'
         
-        # Store waiver/favor-specific data in the data JSONField
-        activity.data = {
-            'subject': self.cleaned_data['subject'],
-            'waiver_type': self.cleaned_data['waiver_type'],
-            'value_amount': str(self.cleaned_data['value_amount']),
-            'approved_by': self.cleaned_data['approved_by'].id,
-            'contacts': [contact.id for contact in self.cleaned_data['contacts']],
-            'users': [user.id for user in self.cleaned_data['users']],
-        }
+        # Store description from reason field
+        instance.description = self.cleaned_data.get('reason', '')
         
         if commit:
-            activity.save()
+            instance.save()
+            # Save contacts M2M relationship
+            if 'contacts' in self.cleaned_data:
+                self.save_m2m()
         
-        return activity
+        return instance
 
 class ToDoTaskForm(forms.Form):
     to_do_task_date = forms.DateField(
@@ -848,6 +882,20 @@ class NoteSubjectForm(forms.ModelForm):
             'name': 'Subject must be unique.'
         }
 # +++ End NoteSubjectForm +++ 
+
+# +++ Form for WaiverFavourType +++
+class WaiverFavourTypeForm(forms.ModelForm):
+    """Form for creating/editing Waiver & Favour Types."""
+    class Meta:
+        model = WaiverFavourType
+        fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter type name'})
+        }
+        help_texts = {
+            'name': 'Type name must be unique.'
+        }
+# +++ End WaiverFavourTypeForm +++
 
 # ADDED TaskActivityForm
 class TaskActivityForm(forms.ModelForm):
@@ -880,65 +928,4 @@ class TaskActivityForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Task details...'}),
             'priority': forms.Select(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
-        }
-
-class WaiverFavorActivityForm(forms.ModelForm):
-    class Meta:
-        model = Activity
-        fields = ['description', 'outcome', 'follow_up_date', 'follow_up_notes']
-        widgets = {
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'outcome': forms.TextInput(attrs={'class': 'form-control'}),
-            'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
-
-    # Additional fields for waiver/favor-specific data
-    subject = forms.CharField(max_length=255, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    waiver_type = forms.ChoiceField(
-        choices=[
-            ('waiver', 'Waiver'),
-            ('favor', 'Favor'),
-        ],
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    value_amount = forms.DecimalField(
-        min_value=0,
-        max_digits=10,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    approved_by = forms.ModelChoiceField(
-        queryset=User.objects.all(),
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-    contacts = forms.ModelMultipleChoiceField(
-        queryset=Contact.objects.all(),
-        required=False,
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'})
-    )
-    users = forms.ModelMultipleChoiceField(
-        queryset=User.objects.all(),
-        required=False,
-        widget=forms.SelectMultiple(attrs={'class': 'form-control'})
-    )
-
-    def save(self, commit=True):
-        activity = super().save(commit=False)
-        activity.activity_type = 'waiver'
-        
-        # Store waiver/favor-specific data in the data JSONField
-        activity.data = {
-            'subject': self.cleaned_data['subject'],
-            'waiver_type': self.cleaned_data['waiver_type'],
-            'value_amount': str(self.cleaned_data['value_amount']),
-            'approved_by': self.cleaned_data['approved_by'].id,
-            'contacts': [contact.id for contact in self.cleaned_data['contacts']],
-            'users': [user.id for user in self.cleaned_data['users']],
-        }
-        
-        if commit:
-            activity.save()
-        
-        return activity 
+        } 

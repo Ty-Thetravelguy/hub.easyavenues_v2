@@ -1,0 +1,22 @@
+{% extends 'accounts/admin/base_admin.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block admin_content %}
+<div class="container mt-4">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h2>{{ title }}</h2>
+        </div>
+        <div class="card-body">
+            <p>Are you sure you want to delete the Note Subject: <strong>"{{ subject.name }}"</strong>?</p>
+            <p class="text-danger">This action cannot be undone.</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                <a href="{% url 'crm:manage_note_subject_list' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

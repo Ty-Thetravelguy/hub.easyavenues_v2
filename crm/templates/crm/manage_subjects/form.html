@@ -1,0 +1,23 @@
+{% extends 'accounts/admin/base_admin.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title mb-4">{{ title }}</h5>
+        
+        <form method="post">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success">
+                    {% if object %}Update{% else %}Create{% endif %} Subject
+                </button>
+                <a href="{% url 'crm:manage_note_subject_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

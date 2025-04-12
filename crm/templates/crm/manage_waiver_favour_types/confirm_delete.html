@@ -1,0 +1,20 @@
+{% extends 'accounts/admin/base_admin.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title mb-4 text-danger">{{ title }}</h5>
+        
+        <p>Are you sure you want to delete the Waiver & Favour Type: <strong>"{{ type.name }}"</strong>?</p>
+        <p class="text-danger"><small>This action cannot be undone.</small></p>
+        
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <a href="{% url 'crm:manage_waiver_favour_type_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %} 

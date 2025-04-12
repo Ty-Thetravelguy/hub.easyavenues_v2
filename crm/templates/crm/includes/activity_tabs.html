@@ -30,41 +30,27 @@
         </div>
 
         <!-- Tab Navigation -->
-        <ul class="nav nav-tabs activity-nav-tabs mt-3" id="activityTabs" role="tablist">
+        <ul class="nav nav-tabs activity-tabs" id="activityTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#activity-overview" type="button" role="tab" aria-controls="activity-overview" aria-selected="true">
-                    <i class="fas fa-th-list me-1"></i> All
-                </button>
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-activities" type="button" role="tab" aria-controls="all-activities" aria-selected="true" data-activity-type="all">All</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email-activities" type="button" role="tab" aria-controls="email-activities" aria-selected="false">
-                    <i class="fas fa-envelope me-1"></i> Emails
-                </button>
+                <button class="nav-link" id="note-tab" data-bs-toggle="tab" data-bs-target="#note-activities" type="button" role="tab" aria-controls="note-activities" aria-selected="false" data-activity-type="note"><i class="fas fa-sticky-note"></i> Notes</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="call-tab" data-bs-toggle="tab" data-bs-target="#call-activities" type="button" role="tab" aria-controls="call-activities" aria-selected="false">
-                    <i class="fas fa-phone-alt me-1"></i> Calls
-                </button>
+                <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email-activities" type="button" role="tab" aria-controls="email-activities" aria-selected="false" data-activity-type="email"><i class="fas fa-envelope"></i> Emails</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="meeting-tab" data-bs-toggle="tab" data-bs-target="#meeting-activities" type="button" role="tab" aria-controls="meeting-activities" aria-selected="false">
-                    <i class="fas fa-users me-1"></i> Meetings
-                </button>
+                <button class="nav-link" id="call-tab" data-bs-toggle="tab" data-bs-target="#call-activities" type="button" role="tab" aria-controls="call-activities" aria-selected="false" data-activity-type="call"><i class="fas fa-phone"></i> Calls</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="note-tab" data-bs-toggle="tab" data-bs-target="#note-activities" type="button" role="tab" aria-controls="note-activities" aria-selected="false">
-                    <i class="fas fa-sticky-note me-1"></i> Notes
-                </button>
+                <button class="nav-link" id="meeting-tab" data-bs-toggle="tab" data-bs-target="#meeting-activities" type="button" role="tab" aria-controls="meeting-activities" aria-selected="false" data-activity-type="meeting"><i class="fas fa-users"></i> Meetings</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="waiver-tab" data-bs-toggle="tab" data-bs-target="#waiver-activities" type="button" role="tab" aria-controls="waiver-activities" aria-selected="false">
-                    <i class="fas fa-exclamation-triangle me-1"></i> Favors
-                </button>
+                <button class="nav-link" id="task-tab" data-bs-toggle="tab" data-bs-target="#task-activities" type="button" role="tab" aria-controls="task-activities" aria-selected="false" data-activity-type="task"><i class="fas fa-tasks"></i> Tasks</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="task-tab" data-bs-toggle="tab" data-bs-target="#task-activities" type="button" role="tab" aria-controls="task-activities" aria-selected="false">
-                    <i class="fas fa-tasks me-1"></i> Tasks
-                </button>
+                <button class="nav-link" id="waiver-tab" data-bs-toggle="tab" data-bs-target="#waiver-activities" type="button" role="tab" aria-controls="waiver-activities" aria-selected="false" data-activity-type="waiver_favour"><i class="fas fa-handshake"></i> Waivers & Favours</button>
             </li>
         </ul>
     </div>

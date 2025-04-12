@@ -1,8 +1,8 @@
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from ..models import NoteSubject
-from ..forms import NoteSubjectForm
+from ..models import NoteSubject, WaiverFavourType
+from ..forms import NoteSubjectForm, WaiverFavourTypeForm
 from django.contrib.messages.views import SuccessMessageMixin
 
 class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -68,4 +68,45 @@ class NoteSubjectDeleteView(StaffRequiredMixin, SuccessMessageMixin, DeleteView)
         context = super().get_context_data(**kwargs)
         context['page_title'] = 'Delete Note Subject'
         context['active_tab'] = 'note_subjects'
+        return context
+
+# --- Waiver & Favour Type Management Views ---
+
+class WaiverFavourTypeListView(StaffRequiredMixin, ListView):
+    model = WaiverFavourType
+    template_name = 'crm/manage_waiver_favour_types/list.html' # New template path
+    context_object_name = 'types'
+    paginate_by = 20
+
+class WaiverFavourTypeCreateView(StaffRequiredMixin, CreateView):
+    model = WaiverFavourType
+    form_class = WaiverFavourTypeForm
+    template_name = 'crm/manage_waiver_favour_types/form.html' # New template path
+    success_url = reverse_lazy('crm:manage_waiver_favour_type_list') # New URL name
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Create Waiver & Favour Type'
+        return context
+
+class WaiverFavourTypeUpdateView(StaffRequiredMixin, UpdateView):
+    model = WaiverFavourType
+    form_class = WaiverFavourTypeForm
+    template_name = 'crm/manage_waiver_favour_types/form.html' # New template path
+    success_url = reverse_lazy('crm:manage_waiver_favour_type_list') # New URL name
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Update Waiver & Favour Type'
+        return context
+
+class WaiverFavourTypeDeleteView(StaffRequiredMixin, DeleteView):
+    model = WaiverFavourType
+    template_name = 'crm/manage_waiver_favour_types/confirm_delete.html' # New template path
+    success_url = reverse_lazy('crm:manage_waiver_favour_type_list') # New URL name
+    context_object_name = 'type'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Delete Waiver & Favour Type'
         return context

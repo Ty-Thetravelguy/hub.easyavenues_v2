@@ -450,26 +450,26 @@ class Document(models.Model):
         # Call the parent delete method
         super().delete(*args, **kwargs)
 
+# Base Activity model
 class Activity(models.Model):
     """
     Base model for all activities and interactions with companies and contacts.
     """
-    ACTIVITY_TYPES = [
-        ('meeting', 'Meeting'),
-        ('call', 'Phone Call'),
+    ACTIVITY_TYPES = (
         ('email', 'Email'),
+        ('call', 'Call'),
+        ('meeting', 'Meeting'),
         ('note', 'Note'),
+        ('waiver_favour', 'Waiver & Favour'),
+        ('task', 'Task'),
         ('document', 'Document Upload'),
         ('status_change', 'Status Change'),
         ('policy_update', 'Policy Update'),
-        ('waiver', 'Waiver/Favor'),
-        ('task', 'Task'),
-        ('update', 'Update'),
-    ]
-
+        # Add other types here
+    )
+    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES, db_index=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='activities')
     contact = models.ForeignKey(Contact, on_delete=models.SET_NULL, related_name='activities', null=True, blank=True)
-    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES)
     description = models.TextField()
     performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     performed_at = models.DateTimeField(auto_now_add=True)
@@ -488,6 +488,9 @@ class Activity(models.Model):
         related_name='follow_up_tasks',
         help_text="The activity this task is following up on."
     )
+
+    def get_activity_type_display(self):
+        return dict(self.ACTIVITY_TYPES).get(self.activity_type, self.activity_type.capitalize())
 
     def debug_info(self):
         """Return a dictionary with debugging information about this activity"""
@@ -512,7 +515,7 @@ class Activity(models.Model):
         ordering = ['-performed_at']
 
     def __str__(self):
-        return f"{self.activity_type} with {self.company.company_name}"
+        return f"{self.get_activity_type_display()} with {self.company.company_name}"
 
 class EmailActivity(Activity):
     """
@@ -656,21 +659,36 @@ class PolicyUpdateActivity(Activity):
 
 class WaiverActivity(Activity):
     """
-    Model for waiver/favor activities.
+    Model for waiver/favour activities.
     """
-    waiver_type = models.CharField(max_length=50, choices=[
-        ('waiver', 'Fee Waiver'),
-        ('favor', 'Special Favor'),
-        ('exception', 'Policy Exception')
-    ])
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    reason = models.TextField()
+    reason = models.TextField(blank=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_waivers')
+    
+    # Added M2M for contacts
+    contacts = models.ManyToManyField(
+        'Contact',
+        related_name='waiver_favour_activities',
+        blank=True
+    )
+    
+    # Added ForeignKey to WaiverFavourType
+    type = models.ForeignKey(
+        'WaiverFavourType',
+        on_delete=models.SET_NULL, # Keep activity if type is deleted
+        null=True,
+        blank=False, # Make type mandatory for new waivers/favours?
+        related_name='waiver_favour_activities'
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.pk: # Set activity_type only on creation
+            self.activity_type = 'waiver_favour'
+        super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name = 'Waiver/Favor Activity'
-        verbose_name_plural = 'Waiver/Favor Activities'
-        ordering = ['-performed_at']
+        verbose_name = "Waiver & Favour Activity"
+        verbose_name_plural = "Waiver & Favour Activities"
 
 class TaskActivity(Activity):
     """
@@ -816,24 +834,57 @@ class CompanyRelationship(models.Model):
     def __str__(self):
         return f"{self.from_company.company_name} → {self.relationship_type} → {self.to_company.company_name}"
 
-# +++ New Model for Note Subjects +++
+# +++ Model for NoteSubject +++
 class NoteSubject(models.Model):
-    """Model to store predefined subjects for notes."""
-    name = models.CharField(
-        max_length=100, 
-        unique=True, 
-        help_text="The subject name (must be unique)."
-    )
+    name = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    # Optional: Add created_by if needed
-    # created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_note_subjects')
 
     class Meta:
+        ordering = ['name']
         verbose_name = "Note Subject"
         verbose_name_plural = "Note Subjects"
-        ordering = ['name'] # Order alphabetically by default
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        # Assuming an update view named 'manage_note_subject_update' exists
+        return reverse('crm:manage_note_subject_update', kwargs={'pk': self.pk})
 # +++ End NoteSubject Model +++
+
+# +++ Model for WaiverFavourType +++
+class WaiverFavourType(models.Model):
+    """Model to manage types for Waiver & Favour activities."""
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Waiver & Favour Type"
+        verbose_name_plural = "Waiver & Favour Types"
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        # This assumes we create an update view named 'manage_waiver_favour_type_update' later
+        # We will add this URL name in the urls.py step
+        return reverse('crm:manage_waiver_favour_type_update', kwargs={'pk': self.pk}) 
+# +++ End WaiverFavourType Model +++
+
+# Map activity types to their specific models
+# (Defined here after all Activity subclasses are declared)
+ACTIVITY_TYPE_MODELS = {
+    'email': EmailActivity,
+    'call': CallActivity,
+    'meeting': MeetingActivity,
+    'note': NoteActivity,
+    'waiver_favour': WaiverActivity,
+    'task': TaskActivity,
+    'document': DocumentActivity,
+    'status_change': StatusChangeActivity,
+    'policy_update': PolicyUpdateActivity,
+    # Add other activity types here if needed
+}

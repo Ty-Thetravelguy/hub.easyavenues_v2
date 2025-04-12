@@ -43,7 +43,7 @@ urlpatterns = [
     path('company/<int:company_id>/log/call/', activity_views.log_call_activity, name='log_call'),
     path('company/<int:company_id>/log/meeting/', activity_views.log_meeting_activity, name='log_meeting'),
     path('company/<int:company_id>/log/note/', activity_views.log_note_activity, name='log_note'),
-    path('company/<int:company_id>/log/waiver-favor/', activity_views.log_waiver_activity, name='log_waiver_favor'),
+    path('company/<int:company_id>/log/waiver-favor/', activity_views.log_waiver_favour_activity, name='log_waiver_favor'),
     
     # Activity Management - New routes using activity_views
     path('activity/<int:activity_id>/details/', activity_views.get_activity_details, name='activity_details'),
@@ -66,7 +66,7 @@ urlpatterns = [
     path('activity/call/', activity_views.log_call_activity, name='log_call_activity'),
     path('activity/meeting/', activity_views.log_meeting_activity, name='log_meeting_activity'),
     path('activity/note/', activity_views.log_note_activity, name='log_note_activity'),
-    path('activity/waiver/', activity_views.log_waiver_activity, name='log_waiver_activity'),
+    path('activity/waiver_favour/', activity_views.log_waiver_favour_activity, name='log_waiver_favour_activity'),
     path('activity/task/', activity_views.log_task_activity, name='log_task_activity'),
     path('activity/details/<int:activity_id>/', activity_views.activity_details, name='activity_view'),
     
@@ -90,6 +90,27 @@ urlpatterns = [
         'manage/note-subjects/<int:pk>/delete/',
         admin_views.NoteSubjectDeleteView.as_view(),
         name='manage_note_subject_delete'
+    ),
+    # --- Waiver & Favour Type URLs ---
+    path(
+        'manage/waiver-favour-types/',
+        admin_views.WaiverFavourTypeListView.as_view(),
+        name='manage_waiver_favour_type_list'
+    ),
+    path(
+        'manage/waiver-favour-types/create/',
+        admin_views.WaiverFavourTypeCreateView.as_view(),
+        name='manage_waiver_favour_type_create'
+    ),
+    path(
+        'manage/waiver-favour-types/<int:pk>/update/',
+        admin_views.WaiverFavourTypeUpdateView.as_view(),
+        name='manage_waiver_favour_type_update'
+    ),
+    path(
+        'manage/waiver-favour-types/<int:pk>/delete/',
+        admin_views.WaiverFavourTypeDeleteView.as_view(),
+        name='manage_waiver_favour_type_delete'
     ),
     # --- End Admin/Settings Management --- 
 ]

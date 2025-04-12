@@ -1,0 +1,32 @@
+<!-- Activity Panel Form -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="activitySidePanel" aria-labelledby="activitySidePanelLabel" style="width: 550px;"> <!-- Consider adjusting width if needed -->
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="activitySidePanelLabel">
+            <!-- Title set by JS: updateSidePanelHeader -->
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <!-- Loading indicator -->
+        <div id="activity-panel-loading" class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <!-- Form container -->
+        <div id="activity-panel-form-container" style="display: none;">
+            <!-- Form loaded here by JS: loadActivityForm -->
+        </div>
+    </div>
+</div>
+
+<!-- Buttons to trigger the side panel -->
+<div class="activity-buttons mb-3 d-flex flex-wrap gap-2">
+    <button class="btn btn-sm btn-activity-note" id="log-note-btn" data-activity-type="note"><i class="fas fa-sticky-note me-1"></i> Log Note</button>
+    <button class="btn btn-sm btn-activity-email" id="log-email-btn" data-activity-type="email"><i class="fas fa-envelope me-1"></i> Log Email</button>
+    <button class="btn btn-sm btn-activity-call" id="log-call-btn" data-activity-type="call"><i class="fas fa-phone me-1"></i> Log Call</button>
+    <button class="btn btn-sm btn-activity-meeting" id="log-meeting-btn" data-activity-type="meeting"><i class="fas fa-users me-1"></i> Log Meeting</button>
+    <button class="btn btn-sm btn-activity-task" id="log-task-btn" data-activity-type="task"><i class="fas fa-tasks me-1"></i> Log Task</button>
+    <button class="btn btn-sm btn-activity-waiver" id="log-waiver-btn" data-activity-type="waiver_favour"><i class="fas fa-handshake me-1"></i> Log Waiver & Favour</button> <!-- UPDATED: text, data-activity-type, icon -->
+    <!-- Add other buttons here -->
+</div> 

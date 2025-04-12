@@ -9,13 +9,20 @@ from django.db.models import Q
 import logging
 from datetime import timedelta
 
-from crm.models import Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, CallActivity, MeetingActivity, NoteActivity
+from crm.models import (
+    Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, 
+    CallActivity, MeetingActivity, NoteActivity, DocumentActivity, 
+    StatusChangeActivity, PolicyUpdateActivity
+)
 from crm.forms import (
     EmailActivityForm, CallActivityForm, MeetingActivityForm, 
     NoteActivityForm, WaiverFavorActivityForm, ToDoTaskForm, DocumentActivityForm, 
     StatusChangeActivityForm, PolicyUpdateActivityForm, TaskActivityForm
 )
 from django.contrib.auth import get_user_model
+
+# Get the User model
+User = get_user_model()
 
 @login_required
 def activity_form(request, activity_type):
@@ -28,7 +35,6 @@ def activity_form(request, activity_type):
         company = get_object_or_404(Company, id=company_id)
         
         # Get all users for task assignment dropdown if needed (can be optimized later)
-        User = get_user_model()
         users = User.objects.filter(is_active=True)
         
         form = None
@@ -47,8 +53,7 @@ def activity_form(request, activity_type):
         elif activity_type == 'note':
             form = NoteActivityForm() # Instantiate the Note form
             template_name = 'crm/activities/note_form.html'
-        elif activity_type == 'waiver':
-            # Assuming WaiverFavorActivityForm is correct based on imports
+        elif activity_type == 'waiver_favour':
             form = WaiverFavorActivityForm() 
             template_name = 'crm/activities/waiver_form.html'
         elif activity_type == 'task':
@@ -143,7 +148,6 @@ def log_email_activity(request):
         contacts = Contact.objects.filter(id__in=contact_recipient_ids)
         
         # Get user recipients
-        User = get_user_model()
         users = User.objects.filter(id__in=user_recipient_ids)
         
         # Get date and time, providing defaults
@@ -396,7 +400,6 @@ def log_meeting_activity(request):
                  pass 
         
         contacts = Contact.objects.filter(id__in=contact_attendee_ids)
-        User = get_user_model()
         users = User.objects.filter(id__in=user_attendee_ids)
         
         # Get date and time, providing defaults
@@ -551,52 +554,63 @@ def log_note_activity(request):
 
 @login_required
 @require_POST
-def log_waiver_activity(request):
-    """Log a waiver/favor activity"""
+def log_waiver_favour_activity(request):
+    """Log a waiver & favour activity"""
     company_id = request.POST.get('company_id')
     if not company_id:
         return JsonResponse({'success': False, 'message': 'No company ID provided'}, status=400)
     
-    company = get_object_or_404(Company, id=company_id)
-    
     try:
-        # Get contact
-        contact_id = request.POST.get('contact')
-        contact = get_object_or_404(Contact, id=contact_id) if contact_id else None
-        
-        # Create waiver activity
-        activity = WaiverActivity.objects.create(
-            company=company,
-            performed_by=request.user,
-            activity_type='waiver',
-            title=request.POST.get('title', ''),
-            description=request.POST.get('reason', ''),
-            waiver_type=request.POST.get('waiver_type', 'waiver'),
-            amount=request.POST.get('amount') if request.POST.get('amount') else None,
-            reason=request.POST.get('reason', ''),
-        )
-        
-        # Set approved_by if provided
-        if request.POST.get('approved_by'):
-            try:
-                approver = get_user_model().objects.get(id=request.POST.get('approved_by'))
-                activity.approved_by = approver
-                activity.save()
-            except get_user_model().DoesNotExist:
-                pass
-        
-        # Add contact
-        if contact:
-            activity.contact = contact
+        company = get_object_or_404(Company, id=company_id)
+    except ValueError:
+        return JsonResponse({'success': False, 'message': 'Invalid Company ID'}, status=400)
+    
+    # Create form with POST data and limit the contacts queryset to company contacts
+    form = WaiverFavorActivityForm(request.POST)
+    form.fields['contacts'].queryset = Contact.objects.filter(company=company)
+    form.fields['approved_by'].queryset = User.objects.filter(is_active=True)
+
+    if form.is_valid():
+        try:
+            # Save but don't commit to database yet
+            activity = form.save(commit=False)
+            activity.company = company
+            activity.performed_by = request.user
+            activity.activity_type = 'waiver_favour'
+            
+            # Set description from reason field
+            activity.description = form.cleaned_data.get('reason', '')
+            
+            # Save the activity to get an ID
             activity.save()
-        
+            
+            # Now save the many-to-many relationships
+            form.save_m2m()
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Waiver & Favour activity logged successfully',
+                'activity_id': activity.id
+            })
+        except Exception as e:
+            import traceback
+            logging.error(f"Error saving waiver/favour activity: {str(e)}")
+            logging.error(traceback.format_exc())
+            # Pass form errors back if possible, otherwise generic error
+            error_message = f'Error saving activity: {str(e)}'
+            return JsonResponse({'success': False, 'message': error_message}, status=500)
+    else:
+        # Form is invalid, return errors
+        # Simplified error handling for JSON response
+        error_dict = form.errors.as_json()
+        logging.warning(f"Waiver/Favour form validation failed: {error_dict}")
+        # Provide a user-friendly summary or first error
+        first_error = next(iter(form.errors.values()))[0] if form.errors else "Invalid data submitted."
         return JsonResponse({
-            'success': True,
-            'message': 'Waiver/favor activity logged successfully',
-            'activity_id': activity.id
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
+            'success': False, 
+            'message': f'Please correct the errors: {first_error}',
+            'errors': form.errors # Send detailed errors if needed by frontend
+        }, status=400)
 
 @login_required
 @require_POST
@@ -727,42 +741,51 @@ def get_activity_details(request, activity_id):
 
 @login_required
 def edit_activity(request, activity_id):
-    activity = get_object_or_404(Activity, id=activity_id)
-    
+    activity = get_object_or_404(Activity.objects.select_subclasses(), id=activity_id)
+    form_class = None
+    template_name = 'crm/edit_activity_form.html' # Or a specific one?
+
     # Determine the appropriate form class based on activity type
-    if activity.activity_type == 'email':
+    if isinstance(activity, EmailActivity):
         form_class = EmailActivityForm
-    elif activity.activity_type == 'call':
+    elif isinstance(activity, CallActivity):
         form_class = CallActivityForm
-    elif activity.activity_type == 'meeting':
+    elif isinstance(activity, MeetingActivity):
         form_class = MeetingActivityForm
-    elif activity.activity_type == 'note':
+    elif isinstance(activity, NoteActivity):
         form_class = NoteActivityForm
-    elif activity.activity_type == 'document':
+    elif isinstance(activity, DocumentActivity):
         form_class = DocumentActivityForm
-    elif activity.activity_type == 'status_change':
+    elif isinstance(activity, StatusChangeActivity):
         form_class = StatusChangeActivityForm
-    elif activity.activity_type == 'policy_update':
+    elif isinstance(activity, PolicyUpdateActivity):
         form_class = PolicyUpdateActivityForm
-    elif activity.activity_type == 'waiver':
+    elif isinstance(activity, WaiverActivity): # Check specific model type
         form_class = WaiverFavorActivityForm
+        activity.activity_type_check = 'waiver_favour' # Pass identifier for consistency if needed
+    elif isinstance(activity, TaskActivity):
+         form_class = TaskActivityForm
     else:
-        raise Http404("Invalid activity type")
-    
+        # Handle unknown type or generic Activity if needed
+        messages.error(request, f"Editing not supported for this activity type: {type(activity).__name__}")
+        return redirect('crm:company_detail', pk=activity.company.id)
+
     if request.method == 'POST':
+        # TODO: Review how follow-up task (ToDoTaskForm) is handled here, may need removal/update
         form = form_class(request.POST, request.FILES, instance=activity)
-        todo_form = ToDoTaskForm(request.POST)
-        if form.is_valid() and todo_form.is_valid():
+        # todo_form = ToDoTaskForm(request.POST) # Remove if follow-up is handled differently
+        if form.is_valid(): # Add check for todo_form.is_valid() if kept
             activity = form.save(commit=False)
-            activity.performed_by = request.user
+            # Ensure performed_by isn't overwritten if not editable
+            # activity.performed_by = request.user 
             activity.save()
             form.save_m2m()  # Save many-to-many relationships
             
-            # Handle follow-up task if provided
-            if todo_form.cleaned_data.get('to_do_task_date'):
-                activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
-                activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
-                activity.save()
+            # Remove old follow-up logic?
+            # if todo_form.cleaned_data.get('to_do_task_date'):
+            #     activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
+            #     activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
+            #     activity.save()
             
             messages.success(request, 'Activity updated successfully.')
             return redirect('crm:company_detail', pk=activity.company.id)
@@ -771,28 +794,28 @@ def edit_activity(request, activity_id):
     else:
         # Pre-populate the form with existing data
         initial_data = {}
-        if hasattr(activity, 'data') and activity.data:
-            initial_data.update(activity.data)
-            if 'todo' in activity.data:
-                todo_form = ToDoTaskForm(initial={
-                    'to_do_task_date': activity.data['todo']['date'],
-                    'to_do_task_message': activity.data['todo'].get('message', '')
-                })
-            else:
-                todo_form = ToDoTaskForm()
-        else:
-            todo_form = ToDoTaskForm()
+        # Remove old data field handling if fields are now direct model fields
+        # if hasattr(activity, 'data') and activity.data:
+        #     initial_data.update(activity.data)
+        #     # Handle old follow-up data?
+        #     if 'todo' in activity.data:
+        #         todo_form = ToDoTaskForm(initial={...})
+        #     else:
+        #         todo_form = ToDoTaskForm()
+        # else:
+        #     todo_form = ToDoTaskForm()
         
         form = form_class(instance=activity, initial=initial_data)
-    
+        # todo_form = ToDoTaskForm() # Instantiate blank if not pre-filled
+
     context = {
         'form': form,
-        'todo_form': todo_form,
+        # 'todo_form': todo_form, # Remove if not used
         'activity': activity,
         'company': activity.company,
-        'title': f'Edit {activity.get_activity_type_display()} Activity'
+        'title': f'Edit {activity.get_activity_type_display()} Activity' # This should update automatically if model verbose name changes
     }
-    return render(request, 'crm/activity_form.html', context)
+    return render(request, template_name, context)
 
 @login_required
 def delete_activity(request, activity_id):
@@ -862,7 +885,6 @@ def search_recipients(request):
             })
         
         # Search users
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         
         user_query = Q(first_name__icontains=search_term) | \
