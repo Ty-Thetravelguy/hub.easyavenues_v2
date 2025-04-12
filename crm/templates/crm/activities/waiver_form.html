@@ -15,22 +15,26 @@
                 {{ form.type.errors|striptags }}
             </div>
         {% endif %}
-        <small class="form-text text-muted">Select the type of waiver or favour. 
-            <a href="{% url 'crm:manage_waiver_favour_type_list' %}" target="_blank" class="text-decoration-none small">
-                <i class="fas fa-cog me-1"></i>Manage Types
-            </a>
-        </small> 
+        <small class="form-text text-muted">Select the type of waiver or favour.</small> 
     </div>
 
-    <!-- Subject (Optional) -->
+    <!-- Related Contacts (TomSelect) -->
     <div class="mb-3">
-        <label for="{{ form.subject.id_for_label }}" class="form-label">{{ form.subject.label }}</label>
-        {{ form.subject }}
-        {% if form.subject.errors %}
-            <div class="invalid-feedback d-block">
-                {{ form.subject.errors|striptags }}
-            </div>
-        {% endif %}
+      <label for="waiver_favour_contacts" class="form-label">Related Contacts</label>
+      <select 
+          name="contacts" 
+          id="waiver_favour_contacts" 
+          class="form-control tom-select" 
+          multiple 
+          placeholder="Type to search contacts..."
+          data-company-id="{{ company.id }}">
+      </select>
+      {% if form.contacts.errors %}
+          <div class="invalid-feedback d-block">
+              {{ form.contacts.errors|striptags }}
+          </div>
+      {% endif %}
+      <small class="form-text text-muted">Type to search for contacts by name or email</small>
     </div>
 
     <!-- Amount -->
@@ -69,26 +73,7 @@
         {% endif %}
     </div>
     
-    <!-- Related Contacts (TomSelect) -->
-    <div class="mb-3">
-        <label for="waiver_favour_contacts" class="form-label">Related Contacts</label>
-        <select 
-            name="contacts" 
-            id="waiver_favour_contacts" 
-            class="tom-select" 
-            multiple 
-            data-company-id="{{ company.id }}">
-            {% for contact in company.contacts.all %}
-                <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
-            {% endfor %}
-        </select>
-        {% if form.contacts.errors %}
-            <div class="invalid-feedback d-block">
-                {{ form.contacts.errors|striptags }}
-            </div>
-        {% endif %}
-        <small class="form-text text-muted">Select contacts related to this waiver/favour.</small>
-    </div>
+
     
     <div class="d-grid mt-4">
         <button type="submit" class="btn btn-activity-waiver">

@@ -22,21 +22,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const activitiesTab = document.getElementById('activities');
     
     if (companyIdField && activitiesTab) {
-        console.log('Company page detected, will load activities...');
+        console.log('Company page detected, will load initial activities...');
         
         // Check if we're on the activities tab or another tab
         const activitiesTabLink = document.getElementById('activities-tab');
         
-        // Initial load of all activities
+        // Initial load ONLY for the default active tab ('all')
         setTimeout(function() {
             console.log('Initial load of activities...');
-            loadActivitiesByType('all');
-            
-            // Also preload other activity types
-            const activityTypes = ['email', 'call', 'meeting', 'note', 'waiver_favour', 'task'];
-            for (const type of activityTypes) {
-                setTimeout(() => loadActivitiesByType(type), 500);
-            }
+            loadActivitiesByType('all'); 
+            // REMOVED preloading loop for other specific tabs
+            // const activityTypes = ['email', 'call', 'meeting', 'note', 'waiver_favour', 'task'];
+            // for (const type of activityTypes) {
+            //     setTimeout(() => loadActivitiesByType(type), 500);
+            // }
         }, 500);
         
         // Manual trigger for activities tab
@@ -62,6 +61,7 @@ function initializeActivityTabs() {
     setupActivityTypeButtons();
     
     // Setup tab activation handlers to load data
+    // This will also handle loading the default 'all' tab content
     setupTabActivationHandlers();
 }
 
@@ -122,52 +122,56 @@ function setupActivityTypeButtons() {
  * Setup tab activation handlers to load data
  */
 function setupTabActivationHandlers() {
-    // Listen for bootstrap tab show events
-    const activityTabs = document.querySelectorAll('[data-bs-toggle="tab"]');
-    
-    console.log(`Found ${activityTabs.length} tabs with data-bs-toggle="tab"`);
-    
-    activityTabs.forEach(tab => {
-        const tabTarget = tab.getAttribute('href');
-        console.log(`Tab target: ${tabTarget}`);
-        
-        tab.addEventListener('shown.bs.tab', function(event) {
-            const tabId = event.target.getAttribute('href');
-            console.log(`Tab activated: ${tabId}`);
-            
-            // Load data based on which tab was activated
-            if (tabId === '#email-activities') {
-                console.log('Loading email activities...');
-                loadActivitiesByType('email');
-            } else if (tabId === '#call-activities') {
-                console.log('Loading call activities...');
-                loadActivitiesByType('call');
-            } else if (tabId === '#meeting-activities') {
-                console.log('Loading meeting activities...');
-                loadActivitiesByType('meeting');
-            } else if (tabId === '#note-activities') {
-                console.log('Loading note activities...');
-                loadActivitiesByType('note');
-            } else if (tabId === '#waiver-activities') {
-                console.log('Loading waiver activities...');
-                loadActivitiesByType('waiver_favour');
-            } else if (tabId === '#task-activities') {
-                console.log('Loading task activities...');
-                loadActivitiesByType('task');
-            } else if (tabId === '#activity-overview') {
-                console.log('Loading all activities...');
-                loadActivitiesByType('all');
-            } else if (tabId === '#activities') {
-                console.log('Activities main tab activated, loading all activities...');
-                loadActivitiesByType('all');
-            }
-        });
+    const activityTabsContainer = document.querySelector('.activity-tabs');
+    if (!activityTabsContainer) {
+        console.warn("Activity tabs container (.activity-tabs) not found.");
+        return;
+    }
+
+    // Use event delegation on the container
+    activityTabsContainer.addEventListener('click', function(event) {
+        // Check if the clicked element is a tab button
+        const tabButton = event.target.closest('button[data-bs-toggle="tab"]');
+        if (!tabButton) return; // Exit if the click wasn't on a tab button
+
+        // Get the activity type from the data attribute
+        const activityType = tabButton.dataset.activityType;
+        if (!activityType) {
+            console.warn("Clicked tab button is missing data-activity-type attribute.");
+            return;
+        }
+
+        console.log(`Tab button clicked: ${activityType}`);
+
+        // Load activities for the clicked tab's type
+        // We add a small delay to ensure the tab pane is visible before loading
+        setTimeout(() => {
+            console.log(`Loading activities for type: ${activityType}`);
+            loadActivitiesByType(activityType);
+        }, 150); // 150ms delay
     });
-    
-    // Also check for direct navigation to the activities tab
-    if (window.location.hash === '#activities') {
-        console.log('Direct navigation to #activities detected');
-        setTimeout(() => loadActivitiesByType('all'), 500);
+
+    // Find active tab on page load and load activities for it
+    const activeTab = activityTabsContainer.querySelector('.nav-link.active');
+    if (activeTab && activeTab.dataset.activityType) {
+        console.log(`Found active tab on page load: ${activeTab.dataset.activityType}`);
+        // Trigger click on the active tab to load its content
+        activeTab.click();
+    } else {
+        // Fallback: Load 'all' activities if no active tab is found
+        console.log('No active tab found, defaulting to "all" activities');
+        loadActivitiesByType('all');
+    }
+
+    // Handle direct navigation with hash
+    if (window.location.hash) {
+        const targetTabButton = document.querySelector(`button[data-bs-target="${window.location.hash}"]`);
+        if (targetTabButton && targetTabButton.dataset.activityType) {
+            const initialActivityType = targetTabButton.dataset.activityType;
+            console.log(`Direct navigation to tab detected, loading type: ${initialActivityType}`);
+            // Trigger a click on the tab button
+            targetTabButton.click();
+        }
     }
 }
 
@@ -322,36 +326,22 @@ function initializeFormElements(activityType) {
         } else if (activityType === 'note') {
             setupFollowUpTaskToggle(form); // Initialize follow-up toggle for notes
         } else if (activityType === 'waiver_favour') {
-            // Initialize Tom Select for contacts
-            console.log('Initializing Tom Select for Waiver/Favour contacts...');
+            // Use the standard recipient select function with contacts_only=true
+            console.log('Setting up TomSelect for Waiver/Favour contacts (contacts only)...');
             
-            // Force clean initialization of TomSelect
-            const contactSelector = form.querySelector('#waiver_favour_contacts');
-            if (contactSelector) {
-                // Manually initialize TomSelect for waiver form
-                if (typeof TomSelect !== 'undefined') {
-                    // Clear any existing instance
-                    if (contactSelector.tomselect) {
-                        contactSelector.tomselect.destroy();
-                    }
-                    
-                    // Initialize a new instance
-                    new TomSelect(contactSelector, {
-                        plugins: ['remove_button'],
-                        maxItems: null,
-                        valueField: 'value',
-                        labelField: 'text',
-                        searchField: ['text'],
-                        create: false
-                    });
-                    
-                    console.log('✅ TomSelect initialized for waiver_favour contacts');
-                } else {
-                    console.error('❌ TomSelect not available for waiver_favour contacts');
+            // Use the same method as for email recipients, but with contacts_only=true
+            // This reuses the proven code path that searches properly
+            initializeRecipientSelectForForm(form, '#waiver_favour_contacts', true);
+            
+            // Additionally, trigger the loading of initial contacts immediately
+            setTimeout(() => {
+                const selectElement = form.querySelector('#waiver_favour_contacts');
+                if (selectElement && selectElement.tomselect) {
+                    console.log("Loading initial contacts for waiver_favour form...");
+                    // Load initial results with empty search to show some options
+                    selectElement.tomselect.load('');
                 }
-            } else {
-                console.warn('⚠️ Contact selector (#waiver_favour_contacts) not found in the waiver form');
-            }
+            }, 100);
         }
         // Add other else if blocks for other activity types if needed
         
@@ -392,8 +382,9 @@ function setupFollowUpTaskToggle(formElement) {
  * Initialize recipient/attendee selection with Tom Select for a specific form
  * @param {HTMLElement} formElement - The form containing the select.
  * @param {string} [selectorId='#email_recipients'] - The ID of the select element.
+ * @param {boolean} [contactsOnly=false] - Whether to only include contacts (no users).
  */
-function initializeRecipientSelectForForm(formElement, selectorId = '#email_recipients') {
+function initializeRecipientSelectForForm(formElement, selectorId = '#email_recipients', contactsOnly = false) {
     // Only run if Tom Select is available
     if (typeof TomSelect === 'undefined') {
         console.error('❌ Tom Select not available');
@@ -415,84 +406,125 @@ function initializeRecipientSelectForForm(formElement, selectorId = '#email_reci
         return;
     }
     
+    console.log(`Setting up TomSelect for ${selectorId} with company ID: ${companyId}`);
+    
     // Prevent re-initialization
     if (selector.tomselect) {
         console.log(`Tom Select already initialized for ${selectorId}.`);
         return;
     }
     
+    // Determine if this is for waiver_favour form which needs ID transformation
+    const isWaiverForm = selectorId === '#waiver_favour_contacts';
+    
     // Initialize Tom Select
     const tomSelectInstance = new TomSelect(selector, {
         plugins: ['remove_button'],
         maxItems: null, // Allow multiple items
-        valueField: 'id',
+        valueField: isWaiverForm ? 'id' : 'id', // Changed to always use 'id' for simplicity
         labelField: 'text',
         searchField: ['text', 'email'], 
         create: false,
-        placeholder: 'Type to search for contacts or users...',
+        placeholder: contactsOnly ? 'Type to search for contacts...' : 'Type to search for contacts or users...',
         load: function(query, callback) {
-             if (!query.length || query.length < 2) return callback();
+            // Allow empty queries for initial load of contacts (especially for waiver_favour form)
+            // but set a lower limit (5) for empty queries to avoid loading too many results
+            const minLength = query.length ? 2 : 0;
+            if (query.length < minLength) {
+                if (query.length === 0 && isWaiverForm) {
+                    // For waiver form with empty query, load some initial contacts
+                    console.log(`Loading initial contacts for ${selectorId} with empty query`);
+                } else {
+                    return callback();
+                }
+            }
+            
+            console.log(`🔍 TomSelect search: "${query}" for ${selectorId} (company ID: ${companyId})`);
             this.loading = true;
+            
             const url = '/crm/api/search-recipients/';
-            const params = new URLSearchParams({ q: query, company_id: companyId });
+            const params = new URLSearchParams({ 
+                q: query, 
+                company_id: companyId,
+                contacts_only: contactsOnly ? '1' : '0',
+                // Request limited results for empty queries
+                limit: query.length ? '10' : '5'
+            });
+            
             fetch(`${url}?${params.toString()}`)
                 .then(response => response.json())
                 .then(json => {
                     this.loading = false;
-                    if (json.results) {
-                        callback(json.results);
-                    } else {
-                        console.error('Invalid JSON response from server', json);
-                        callback();
+                    console.log(`✅ Search results received for "${query}":`, json);
+                    
+                    // If contacts_only parameter isn't supported by the backend, filter here
+                    let results = json.results || [];
+                    
+                    if (contactsOnly) {
+                        const beforeCount = results.length;
+                        results = results.filter(item => item.type === 'contact');
+                        console.log(`Filtered ${beforeCount} results to ${results.length} contacts only`);
                     }
+                    
+                    // For waiver form, transform the IDs to just the numeric part
+                    if (isWaiverForm) {
+                        results = results.map(item => {
+                            if (item.id && item.id.startsWith('contact_')) {
+                                const numericId = item.id.replace('contact_', '');
+                                return {...item, id: numericId};
+                            }
+                            return item;
+                        });
+                        console.log(`Transformed IDs for waiver form:`, results);
+                    }
+                    
+                    callback(results);
                 })
                 .catch(error => {
-                    console.error(`Error fetching recipients/attendees for ${selectorId}:`, error);
+                    console.error(`❌ Error fetching data for ${selectorId}:`, error);
                     this.loading = false;
                     callback();
                 });
         },
         render: {
-             option: function(data, escape) {
+            option: function(data, escape) {
                 const icon = data.type === 'contact' ? 'user-tie' : 'user';
                 const email = data.email ? `<small class="text-muted ms-2">(${escape(data.email)})</small>` : '';
                 return `<div class="tom-select-result d-flex align-items-center">
-                         <i class="fas fa-${icon} me-2"></i>
-                         <div>
-                           <span>${escape(data.text)}</span>
-                           ${email}
-                         </div>
-                       </div>`;
+                        <i class="fas fa-${icon} me-2"></i>
+                        <div>
+                        <span>${escape(data.text)}</span>
+                        ${email}
+                        </div>
+                    </div>`;
             },
             item: function(data, escape) {
                 const icon = data.type === 'contact' ? 'user-tie' : 'user';
-                 return `<div class="d-flex align-items-center">
-                         <i class="fas fa-${icon} me-2"></i>
-                         <span>${escape(data.text)}</span>
-                       </div>`;
+                return `<div class="d-flex align-items-center">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <span>${escape(data.text)}</span>
+                    </div>`;
             },
             no_results: function(data, escape) {
                 return '<div class="no-results p-2">No results found for "' + escape(data.input) + '"</div>';
             }
         },
         onItemAdd: (value, $item) => { 
-            console.log(`✅ onItemAdd triggered! Value: ${value} for ${selectorId}`);
+            console.log(`✅ Item added! Value: ${value} for ${selectorId}`);
             try {
                 const wrapper = selector.tomselect?.wrapper;
                 const controlInput = wrapper?.querySelector('.ts-control input');
                 if (controlInput) {
                     controlInput.value = '';
-                    console.log(`   Control input value cleared directly via DOM traversal for ${selectorId}.`);
-                } else {
-                    console.warn(`   Could not find control input via DOM traversal for ${selectorId}.`);
+                    console.log(`Control input value cleared for ${selectorId}`);
                 }
             } catch (e) {
-                console.error(`   Error clearing input via DOM traversal for ${selectorId}:`, e);
+                console.error(`Error clearing input for ${selectorId}:`, e);
             }
         }
     });
     
-    console.log(`✅ Tom Select (Multi) initialized for ${selectorId} in the loaded form.`);
+    console.log(`✅ Tom Select initialized for ${selectorId}. Contacts only: ${contactsOnly}`);
 }
 
 /**
@@ -695,19 +727,35 @@ function loadActivitiesByType(activityType) {
         return;
     }
     
-    // Determine which container to update
+    // Determine which container to update based on activity type
     let container;
     
     if (activityType === 'all') {
         container = document.getElementById('all-activities-list');
+    } else if (activityType === 'email') {
+        container = document.getElementById('email-activities-list');
+    } else if (activityType === 'call') {
+        container = document.getElementById('call-activities-list');
+    } else if (activityType === 'meeting') {
+        container = document.getElementById('meeting-activities-list');
+    } else if (activityType === 'note') {
+        container = document.getElementById('note-activities-list');
+    } else if (activityType === 'waiver_favour') {
+        container = document.getElementById('waiver-activities-list');
+    } else if (activityType === 'task') {
+        container = document.getElementById('task-activities-list');
     } else {
-        container = document.getElementById(`${activityType}-activities-list`);
+        console.error(`Unknown activity type: ${activityType}`);
+        return;
     }
     
     if (!container) {
         console.error(`Container for ${activityType} activities not found`);
         return;
     }
+    
+    // Log what we're doing
+    console.log(`Loading activities of type "${activityType}" into container #${container.id}`);
     
     // Clear any existing content completely
     while (container.firstChild) {
@@ -723,80 +771,44 @@ function loadActivitiesByType(activityType) {
     `;
     container.appendChild(loadingDiv);
     
-    // First try loading activities from the JSON endpoint
-    const jsonUrl = `/crm/company/${companyId}/activities-json/?type=${activityType}&_=${new Date().getTime()}`;
-    console.log(`Loading activities from JSON: ${jsonUrl}`);
+    // Build URL for fetching activities - include timestamp to prevent caching
+    const url = `/crm/company/${companyId}/activities/?type=${activityType}&_=${new Date().getTime()}`;
     
-    fetch(jsonUrl)
+    // Fetch activities
+    fetch(url)
         .then(response => {
-            console.log(`JSON response status: ${response.status} ${response.statusText}`);
+            console.log(`Response status: ${response.status} ${response.statusText}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            return response.json();
+            return response.text();
         })
-        .then(data => {
-            console.log(`Received JSON data with ${data.count} activities`);
-            
-            if (data.status === 'success') {
-                // Clear container completely
-                while (container.firstChild) {
-                    container.removeChild(container.firstChild);
-                }
-                
-                // Render activities from JSON data
-                const activitiesHtml = renderActivitiesFromJson(data);
-                container.innerHTML = activitiesHtml;
-                console.log('Successfully rendered activities from JSON');
-            } else {
-                throw new Error(`Error in JSON response: ${data.message || 'Unknown error'}`);
+        .then(html => {
+            console.log(`Received HTML response (${html.length} characters) for ${activityType}`);
+            if (!html || html.trim().length < 10) {
+                throw new Error('Response is empty or too short');
             }
+            
+            // Clear container and update with new content
+            while (container.firstChild) { 
+                container.removeChild(container.firstChild); 
+            }
+            container.innerHTML = html;
+            console.log(`Successfully updated ${activityType} container with activities`);
         })
         .catch(error => {
-            console.error('Error loading activities from JSON:', error);
-            console.log('Falling back to HTML endpoint...');
+            console.error(`Error loading ${activityType} activities:`, error);
             
-            // Fallback to original HTML endpoint
-            const htmlUrl = `/crm/company/${companyId}/activities/?type=${activityType}&_=${new Date().getTime()}`;
-            
-            fetch(htmlUrl)
-                .then(response => {
-                    console.log(`HTML response status: ${response.status} ${response.statusText}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(html => {
-                    console.log(`Received HTML response (${html.length} characters)`);
-                    
-                    if (!html || html.trim().length < 10) {
-                        throw new Error('Response is empty or too short');
-                    }
-                    
-                    // Clear container completely
-                    while (container.firstChild) {
-                        container.removeChild(container.firstChild);
-                    }
-                    
-                    container.innerHTML = html;
-                    console.log('Successfully updated container with HTML response');
-                })
-                .catch(htmlError => {
-                    console.error('Error loading activities from HTML endpoint:', htmlError);
-                    
-                    // Clear container completely
-                    while (container.firstChild) {
-                        container.removeChild(container.firstChild);
-                    }
-                    
-                    container.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Error loading activities: ${htmlError.message}
-                        </div>
-                    `;
-                });
+            // Clear container and show error
+            while (container.firstChild) { 
+                container.removeChild(container.firstChild); 
+            }
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error loading activities: ${error.message}
+                </div>
+            `;
         });
 }
 

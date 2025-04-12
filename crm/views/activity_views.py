@@ -831,14 +831,38 @@ def search_recipients(request):
     logger = logging.getLogger(__name__)
     
     # Get parameters with fallbacks
-    search_term = request.GET.get('q', '').strip().lower()  # Changed from 'term' to 'q' to match Tom Select
+    search_term = request.GET.get('q', '').strip().lower()
     company_id = request.GET.get('company_id', '')
+    contacts_only = request.GET.get('contacts_only', '0') == '1'
+    limit = int(request.GET.get('limit', '10'))  # Add limit parameter with default 10
+    
+    logger.info(f"Search recipients: term='{search_term}', company_id='{company_id}', contacts_only={contacts_only}, limit={limit}")
     
     # Initialize results list
     results = []
     
     try:
-        # Check search term length
+        # Special case for empty search term - return a few contacts for the company
+        # This is useful for initially populating the dropdown
+        if not search_term and company_id and company_id.isdigit():
+            logger.info(f"Empty search term, returning initial contacts for company {company_id}")
+            # Get most recently updated contacts for the company
+            contacts = Contact.objects.filter(company_id=company_id).order_by('-updated_at')[:limit]
+            
+            # Format contact results
+            for contact in contacts:
+                results.append({
+                    'id': f"contact_{contact.id}",
+                    'text': f"{contact.first_name} {contact.last_name}",
+                    'email': getattr(contact, 'email', ''),
+                    'company': contact.company.company_name if contact.company else '',
+                    'type': 'contact'
+                })
+            
+            logger.info(f"Returning {len(results)} initial contacts")
+            return JsonResponse({'results': results})
+        
+        # Regular search when term has 2+ characters
         if len(search_term) < 2:
             return JsonResponse({'results': []})
         
@@ -865,14 +889,15 @@ def search_recipients(request):
             contacts = Contact.objects.filter(contact_query, company_id=company_id)
             
             # If no contacts found for this company, search across all companies instead
-            if contacts.count() == 0:
+            if contacts.count() == 0 and not contacts_only:
+                logger.info(f"No contacts found for company {company_id}, searching all companies")
                 contacts = Contact.objects.filter(contact_query)
         else:
             # No company specified, search all contacts
             contacts = Contact.objects.filter(contact_query)
             
-        # For better performance, limit to top 10 results
-        contacts = contacts[:10]
+        # For better performance, limit results
+        contacts = contacts[:limit]
         
         # Format contact results
         for contact in contacts:
@@ -884,32 +909,35 @@ def search_recipients(request):
                 'type': 'contact'
             })
         
-        # Search users
-        User = get_user_model()
+        # Only search users if not limited to contacts
+        if not contacts_only:
+            # Search users
+            User = get_user_model()
+            
+            user_query = Q(first_name__icontains=search_term) | \
+                        Q(last_name__icontains=search_term) | \
+                        Q(email__icontains=search_term)
+            
+            # Also search for full name matches
+            if len(name_parts) > 1:
+                for i in range(len(name_parts) - 1):
+                    first_part = name_parts[i]
+                    last_part = name_parts[i+1]
+                    user_query |= (Q(first_name__icontains=first_part) & Q(last_name__icontains=last_part))
+            
+            users = User.objects.filter(user_query, is_active=True)
+            users = users[:limit]  # Use the limit parameter
+            
+            # Format user results
+            for user in users:
+                results.append({
+                    'id': f"user_{user.id}",
+                    'text': f"{user.first_name} {user.last_name}",
+                    'email': user.email,
+                    'type': 'user'
+                })
         
-        user_query = Q(first_name__icontains=search_term) | \
-                    Q(last_name__icontains=search_term) | \
-                    Q(email__icontains=search_term)
-        
-        # Also search for full name matches
-        if len(name_parts) > 1:
-            for i in range(len(name_parts) - 1):
-                first_part = name_parts[i]
-                last_part = name_parts[i+1]
-                user_query |= (Q(first_name__icontains=first_part) & Q(last_name__icontains=last_part))
-        
-        users = User.objects.filter(user_query, is_active=True)
-        users = users[:10]  # Limit to top 10 results
-        
-        # Format user results
-        for user in users:
-            results.append({
-                'id': f"user_{user.id}",
-                'text': f"{user.first_name} {user.last_name}",
-                'email': user.email,
-                'type': 'user'
-            })
-        
+        logger.info(f"Search results: {len(results)} items found")
         return JsonResponse({'results': results})
         
     except Exception as e:

@@ -4,22 +4,7 @@
     <input type="hidden" name="company_id" value="{{ company.id }}">
     <input type="hidden" name="activity_type" value="note">
     
-    <!-- Removed Note Title - Using content as main body -->
-    <!-- 
-    <div class="mb-3">
-        <label for="note_title" class="form-label">Note Title</label>
-        <input type="text" class="form-control" id="note_title" name="title" required>
-    </div> 
-    -->
-    
-    <!-- Removed Date - Using performed_at from Activity model -->
-    <!--
-    <div class="mb-3">
-        <label for="note_date" class="form-label">Date</label>
-        <input type="text" class="form-control datepicker" id="note_date" name="date" value="{{ today_date|date:'Y-m-d' }}" required>
-    </div>
-    -->
-    
+   
     <!-- Replaced Category with Subject Dropdown -->
     <div class="mb-3">
         <label for="id_subject" class="form-label">Subject</label> 
@@ -31,18 +16,6 @@
         {% endif %}
     </div>
     
-    <!-- Removed Related Contacts - Handled by base Activity.contact if needed -->
-    <!-- 
-    <div class="mb-3">
-        <label for="note_related_contacts" class="form-label">Related Contacts</label>
-        <select class="form-control select2-field" id="note_related_contacts" name="related_contacts" multiple>
-            {% for contact in company.contact_set.all %}
-                <option value="{{ contact.id }}">{{ contact.full_name }}</option>
-            {% endfor %}
-        </select>
-        <small class="form-text text-muted">Optional: Select any contacts this note is related to</small>
-    </div>
-     -->
     
     <div class="mb-3">
         <label for="id_content" class="form-label">Note Content</label>
