@@ -27,10 +27,6 @@
                 </a>
             </div>
         </div>
-        <div class="row mb-2">
-            <div class="col-md-3 fw-bold">Description:</div>
-            <div class="col-md-9">{{ activity.description }}</div>
-        </div>
     </div>
 
     <!-- Type-specific activity details -->
@@ -59,7 +55,7 @@
                 <div class="col-md-3 fw-bold">Content:</div>
                 <div class="col-md-9">
                     <div class="border p-3 bg-light">
-                        {{ activity_details.body|linebreaks }}
+                        {{ activity_details.body|safe }}
                     </div>
                 </div>
             </div>

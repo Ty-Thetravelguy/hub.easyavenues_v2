@@ -24,7 +24,9 @@
                             {% endif %}
                             
                             <span class="activity-description">
-                                {% if activity.is_system_activity %}
+                                {% if activity.activity_type == 'email' and activity.emailactivity %}
+                                    Subject: {{ activity.emailactivity.subject|default:"(No subject)" }}
+                                {% elif activity.is_system_activity %}
                                     {{ activity.description|truncatechars:120 }}
                                 {% else %}
                                     {{ activity.description|truncatechars:120 }}
