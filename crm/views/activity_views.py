@@ -715,6 +715,7 @@ def get_activity_details(request, activity_id):
             'type': activity.activity_type,
             'description': activity.description,
             'performed_at': activity.performed_at.isoformat(),
+            'is_system_activity': activity.is_system_activity,
             'performed_by': {
                 'id': activity.performed_by.id if activity.performed_by else None,
                 'name': activity.performed_by.get_full_name() if activity.performed_by else 'System'
@@ -725,19 +726,70 @@ def get_activity_details(request, activity_id):
             }
         }
         
-        # Add activity-specific data from the data JSONField
-        if activity.data:
+        # For specific activity types, add more details
+        if activity.activity_type == 'email' and hasattr(activity, 'emailactivity'):
+            email_activity = activity.emailactivity
+            response_data.update({
+                'subject': email_activity.subject,
+                'body': email_activity.body,
+                'recipients': ', '.join([c.get_full_name() for c in email_activity.contact_recipients.all()]) if hasattr(email_activity, 'contact_recipients') else ''
+            })
+        elif activity.activity_type == 'call' and hasattr(activity, 'callactivity'):
+            call_activity = activity.callactivity
+            response_data.update({
+                'contact_name': call_activity.contact.get_full_name() if call_activity.contact else 'N/A',
+                'duration': call_activity.duration,
+                'summary': call_activity.summary
+            })
+        elif activity.activity_type == 'meeting' and hasattr(activity, 'meetingactivity'):
+            meeting_activity = activity.meetingactivity
+            response_data.update({
+                'meeting_date': meeting_activity.meeting_date.isoformat() if meeting_activity.meeting_date else None,
+                'start_time': meeting_activity.start_time.strftime('%H:%M') if meeting_activity.start_time else None,
+                'end_time': meeting_activity.end_time.strftime('%H:%M') if meeting_activity.end_time else None,
+                'location': meeting_activity.location,
+                'attendees': ', '.join([c.get_full_name() for c in meeting_activity.attendees.all()]) if hasattr(meeting_activity, 'attendees') else '',
+                'notes': meeting_activity.notes
+            })
+        elif activity.activity_type == 'note' and hasattr(activity, 'noteactivity'):
+            note_activity = activity.noteactivity
+            response_data.update({
+                'content': note_activity.content
+            })
+        elif activity.activity_type == 'waiver_favour' and hasattr(activity, 'waiveractivity'):
+            waiver_activity = activity.waiveractivity
+            response_data.update({
+                'waiver_type': waiver_activity.waiver_type,
+                'value_amount': waiver_activity.value_amount,
+                'reason': waiver_activity.reason,
+                'contact_name': ', '.join([c.get_full_name() for c in waiver_activity.contacts.all()]) if hasattr(waiver_activity, 'contacts') else '',
+                'approved_by': waiver_activity.approved_by.get_full_name() if waiver_activity.approved_by else 'N/A'
+            })
+        elif activity.activity_type == 'task' and hasattr(activity, 'taskactivity'):
+            task_activity = activity.taskactivity
+            response_data.update({
+                'title': task_activity.title,
+                'status': task_activity.status,
+                'priority': task_activity.priority,
+                'due_date': task_activity.due_date.isoformat() if task_activity.due_date else None
+            })
+        
+        # Add activity-specific data from the data JSONField if it exists
+        if hasattr(activity, 'data') and activity.data:
             response_data.update(activity.data)
         
         return JsonResponse({
             'status': 'success',
             'data': response_data
         })
-    except Activity.DoesNotExist:
+    except Exception as e:
+        import traceback
+        logging.error(f"Error in get_activity_details: {str(e)}")
+        logging.error(traceback.format_exc())
         return JsonResponse({
             'status': 'error',
-            'message': 'Activity not found'
-        }, status=404)
+            'message': f'Error loading activity details: {str(e)}'
+        }, status=500)
 
 @login_required
 def edit_activity(request, activity_id):

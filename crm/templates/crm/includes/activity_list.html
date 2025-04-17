@@ -1,6 +1,6 @@
 {% load humanize %}
 
-<div class="activity-list-simple">
+<div class="activity-list">
     {% if activities %}
         <div class="alert alert-info mb-3">
             Found {{ activities|length }} activities of type "{{ activity_type }}"
@@ -8,13 +8,38 @@
         
         <ul class="list-group">
             {% for activity in activities %}
-                <li class="list-group-item">
-                    <div>
-                        <strong>Type:</strong> {{ activity.activity_type }} 
-                        {% if activity.description %}
-                            <br><strong>Description:</strong> {{ activity.description|truncatechars:100 }}
-                        {% endif %}
-                        <br><strong>Date:</strong> {{ activity.performed_at|date:"M d, Y" }}
+                <li class="list-group-item {% if activity.is_system_activity %}system-activity{% else %}manual-activity{% endif %}" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#activityDetailModal" 
+                    data-activity-id="{{ activity.id }}"
+                    role="button">
+                    
+                    <div class="d-flex w-100 justify-content-between">
+                        <div>
+                            {% if activity.is_system_activity %}
+                                <span class="badge bg-secondary me-2">System</span>
+                            {% else %}
+                                <span class="badge bg-primary me-2">{{ activity.get_activity_type_display }}</span>
+                            {% endif %}
+                            
+                            <span class="activity-description">
+                                {% if activity.is_system_activity %}
+                                    {{ activity.description|truncatechars:120 }}
+                                {% else %}
+                                    {{ activity.description|truncatechars:120 }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <small class="text-muted ms-2">{{ activity.performed_at|naturaltime }}</small>
+                    </div>
+                    
+                    <div class="mt-2 text-muted">
+                        <small>
+                            <i class="far fa-clock me-1"></i> {{ activity.performed_at|date:"M d, Y, H:i" }}
+                            {% if activity.performed_by %}
+                                <i class="far fa-user ms-3 me-1"></i> {{ activity.performed_by.get_full_name }}
+                            {% endif %}
+                        </small>
                     </div>
                 </li>
             {% endfor %}
@@ -24,4 +49,49 @@
             No activities found for type "{{ activity_type }}"
         </div>
     {% endif %}
-</div> 
+</div>
+
+<!-- Activity Detail Modal (Will be initialized via Bootstrap JS) -->
+<div class="modal fade" id="activityDetailModal" tabindex="-1" aria-labelledby="activityDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activityDetailModalLabel">Activity Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="activity-detail-loading" class="text-center my-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="activity-detail-content" style="display: none;">
+                    <!-- Content will be loaded via AJAX -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .system-activity {
+        background-color: #f8f9fa;
+        border-left: 3px solid #6c757d;
+    }
+    
+    .manual-activity {
+        border-left: 3px solid #0d6efd;
+    }
+    
+    .list-group-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .list-group-item:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+</style> 

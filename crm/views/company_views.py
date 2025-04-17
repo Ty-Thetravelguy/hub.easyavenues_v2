@@ -114,6 +114,67 @@ class CompanyUpdateView(LoginRequiredMixin, UpdateView):
             })
         
         return context
+        
+    def form_valid(self, form):
+        # Get original company data before saving
+        original_company = Company.objects.get(pk=self.object.pk)
+        
+        # Save the form
+        response = super().form_valid(form)
+        
+        # Get updated company
+        updated_company = self.object
+        
+        # Track changes
+        changes = []
+        
+        # Compare fields and record changes
+        if original_company.company_name != updated_company.company_name:
+            changes.append(f"Name changed from '{original_company.company_name}' to '{updated_company.company_name}'")
+            
+        if original_company.industry != updated_company.industry:
+            changes.append(f"Industry changed from '{original_company.industry}' to '{updated_company.industry}'")
+            
+        if original_company.street_address != updated_company.street_address:
+            changes.append(f"Street Address changed from '{original_company.street_address}' to '{updated_company.street_address}'")
+            
+        if original_company.city != updated_company.city:
+            changes.append(f"City changed from '{original_company.city}' to '{updated_company.city}'")
+            
+        if original_company.state_province != updated_company.state_province:
+            changes.append(f"State/Province changed from '{original_company.state_province}' to '{updated_company.state_province}'")
+            
+        if original_company.postal_code != updated_company.postal_code:
+            changes.append(f"Postal Code changed from '{original_company.postal_code}' to '{updated_company.postal_code}'")
+            
+        if original_company.country != updated_company.country:
+            changes.append(f"Country changed from '{original_company.country}' to '{updated_company.country}'")
+            
+        if original_company.phone_number != updated_company.phone_number:
+            changes.append(f"Phone Number changed from '{original_company.phone_number}' to '{updated_company.phone_number}'")
+            
+        if original_company.email != updated_company.email:
+            changes.append(f"Email changed from '{original_company.email}' to '{updated_company.email}'")
+            
+        if original_company.description != updated_company.description:
+            changes.append(f"Description was updated")
+            
+        if original_company.linkedin_social_page != updated_company.linkedin_social_page:
+            changes.append(f"LinkedIn page was updated")
+        
+        # Only log if there were actual changes
+        if changes:
+            # Create activity record for the update
+            Activity.objects.create(
+                company=updated_company,
+                activity_type='update',
+                description=f"Company {updated_company.company_name} was updated:\n" + "\n".join(f"• {change}" for change in changes),
+                performed_by=self.request.user,
+                is_system_activity=True
+            )
+        
+        messages.success(self.request, f"{self.object.company_name} has been updated successfully.")
+        return response
 
 class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
     template_name = 'crm/company_wizard_form.html'
@@ -241,6 +302,15 @@ class CompanyCreateWizardView(LoginRequiredMixin, SessionWizardView):
             else:
                 SupplierProfile.objects.create(company=company, **profile_data)
 
+            # Log system activity for company creation
+            Activity.objects.create(
+                company=company,
+                activity_type='status_change',
+                description=f"Company {company.company_name} was created",
+                performed_by=self.request.user,
+                is_system_activity=True
+            )
+
             messages.success(self.request, f"Successfully created {company.company_name}")
             return redirect('crm:company_detail', pk=company.pk)
         except Exception as e:
@@ -313,23 +383,42 @@ def manage_company_relationships(request, company_id):
             ).first()
             
             if existing_relationship:
-                # If relationship exists but was marked inactive, reactivate it
-                if not existing_relationship.is_active:
-                    existing_relationship.is_active = True
-                    existing_relationship.description = form.cleaned_data['description']
-                    existing_relationship.save()
-                    messages.success(request, f"Relationship with {to_company.company_name} has been reactivated.")
+                if existing_relationship.is_active:
+                    messages.warning(request, f"This relationship with {to_company.company_name} already exists.")
                 else:
-                    messages.warning(request, f"Relationship with {to_company.company_name} as {dict(CompanyRelationship.RELATIONSHIP_TYPES)[relationship_type]} already exists.")
+                    # Reactivate the existing relationship
+                    existing_relationship.is_active = True
+                    existing_relationship.save()
+                    messages.success(request, f"Reactivated relationship with {to_company.company_name}.")
+                    
+                    # Create activity record for relationship reactivation
+                    Activity.objects.create(
+                        company=company,
+                        activity_type='update',
+                        description=f"Reactivated {relationship_type} relationship with {to_company.company_name}",
+                        performed_by=request.user,
+                        is_system_activity=True
+                    )
             else:
                 # Create new relationship
-                relationship = form.save(commit=False)
-                relationship.from_company = company
-                relationship.created_by = request.user
-                relationship.save()
-                messages.success(request, f"Relationship with {relationship.to_company.company_name} added successfully.")
+                relationship = CompanyRelationship.objects.create(
+                    from_company=company,
+                    to_company=to_company,
+                    relationship_type=relationship_type,
+                    created_by=request.user
+                )
+                messages.success(request, f"Added {to_company.company_name} as a {relationship_type}.")
+                
+                # Create activity record for new relationship
+                Activity.objects.create(
+                    company=company,
+                    activity_type='update',
+                    description=f"Added {relationship_type} relationship with {to_company.company_name}",
+                    performed_by=request.user,
+                    is_system_activity=True
+                )
             
-            return redirect('crm:manage_company_relationships', company_id=company.id)
+            return redirect('crm:manage_company_relationships', company_id=company_id)
     else:
         form = CompanyRelationshipForm(from_company=company)
     
@@ -337,10 +426,10 @@ def manage_company_relationships(request, company_id):
         'company': company,
         'form': form,
         'relationships_from': relationships_from,
-        'relationships_to': relationships_to,
+        'relationships_to': relationships_to
     }
     
-    return render(request, 'crm/manage_company_relationships.html', context)
+    return render(request, 'crm/company_relationships.html', context)
 
 @login_required
 def delete_company_relationship(request, relationship_id):
@@ -351,6 +440,15 @@ def delete_company_relationship(request, relationship_id):
     # Check if the user has permission (could add more checks)
     relationship.is_active = False
     relationship.save()
+    
+    # Create activity record for relationship deletion
+    Activity.objects.create(
+        company=relationship.from_company,
+        activity_type='update',
+        description=f"Removed {relationship.relationship_type} relationship with {relationship.to_company.company_name}",
+        performed_by=request.user,
+        is_system_activity=True
+    )
     
     messages.success(request, f"Relationship with {relationship.to_company.company_name} has been removed.")
     return redirect('crm:manage_company_relationships', company_id=company_id) 

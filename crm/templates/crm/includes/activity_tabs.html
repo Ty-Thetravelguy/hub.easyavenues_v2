@@ -4,28 +4,33 @@
     <div class="activity-tabs-header mb-3">
         <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
-                <i class="fas fa-history text-primary me-2"></i>
+                <i class="fas fa-history text-primary me-2 ms-2"></i>
                 Activities
             </h5>
-            <div class="activity-tab-buttons">
-                <button id="log-email-btn" class="btn btn-sm btn-activity-email">
-                    <i class="fas fa-envelope me-1"></i> Email
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle me-2 mt-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-plus-circle me-1"></i> Log Activity
                 </button>
-                <button id="log-call-btn" class="btn btn-sm btn-activity-call">
-                    <i class="fas fa-phone-alt me-1"></i> Call
-                </button>
-                <button id="log-meeting-btn" class="btn btn-sm btn-activity-meeting">
-                    <i class="fas fa-users me-1"></i> Meeting
-                </button>
-                <button id="log-note-btn" class="btn btn-sm btn-activity-note">
-                    <i class="fas fa-sticky-note me-1"></i> Note
-                </button>
-                <button id="log-waiver-btn" class="btn btn-sm btn-activity-waiver">
-                    <i class="fas fa-exclamation-triangle me-1"></i> Favor
-                </button>
-                <button id="log-task-btn" class="btn btn-sm btn-activity-task">
-                    <i class="fas fa-tasks me-1"></i> Task
-                </button>
+                <ul class="dropdown-menu">
+                    <li><button id="log-email-btn" class="dropdown-item btn-activity-email">
+                        <i class="fas fa-envelope me-1"></i> Email
+                    </button></li>
+                    <li><button id="log-call-btn" class="dropdown-item btn-activity-call">
+                        <i class="fas fa-phone-alt me-1"></i> Call
+                    </button></li>
+                    <li><button id="log-meeting-btn" class="dropdown-item btn-activity-meeting">
+                        <i class="fas fa-users me-1"></i> Meeting
+                    </button></li>
+                    <li><button id="log-note-btn" class="dropdown-item btn-activity-note">
+                        <i class="fas fa-sticky-note me-1"></i> Note
+                    </button></li>
+                    <li><button id="log-waiver-btn" class="dropdown-item btn-activity-waiver">
+                        <i class="fas fa-handshake me-1"></i> Favor
+                    </button></li>
+                    <li><button id="log-task-btn" class="dropdown-item btn-activity-task">
+                        <i class="fas fa-tasks me-1"></i> Task
+                    </button></li>
+                </ul>
             </div>
         </div>
 
