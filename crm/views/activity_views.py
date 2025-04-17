@@ -705,91 +705,67 @@ def activity_list_template(request):
 
 @login_required
 def get_activity_details(request, activity_id):
-    """API endpoint to get activity details as JSON"""
+    """API endpoint to get activity details as HTML fragment for modal"""
     try:
-        activity = get_object_or_404(Activity, id=activity_id)
+        # Add debug logging
+        logging.info(f"get_activity_details called for activity_id: {activity_id}")
         
-        # Prepare the response data
-        response_data = {
-            'id': activity.id,
-            'type': activity.activity_type,
-            'description': activity.description,
-            'performed_at': activity.performed_at.isoformat(),
-            'is_system_activity': activity.is_system_activity,
-            'performed_by': {
-                'id': activity.performed_by.id if activity.performed_by else None,
-                'name': activity.performed_by.get_full_name() if activity.performed_by else 'System'
-            },
-            'company': {
-                'id': activity.company.id,
-                'name': activity.company.company_name
-            }
+        activity = get_object_or_404(Activity, id=activity_id)
+        logging.info(f"Activity found: {activity.id}, type: {activity.activity_type}")
+        
+        # Get the specific activity type instance
+        activity_details = None
+        if hasattr(activity, f"{activity.activity_type}activity"):
+            activity_details = getattr(activity, f"{activity.activity_type}activity")
+            logging.info(f"Activity details found for type: {activity.activity_type}")
+        else:
+            logging.warning(f"No {activity.activity_type}activity attribute found on activity {activity.id}")
+        
+        context = {
+            'activity': activity,
+            'activity_details': activity_details,
         }
         
-        # For specific activity types, add more details
-        if activity.activity_type == 'email' and hasattr(activity, 'emailactivity'):
-            email_activity = activity.emailactivity
-            response_data.update({
-                'subject': email_activity.subject,
-                'body': email_activity.body,
-                'recipients': ', '.join([c.get_full_name() for c in email_activity.contact_recipients.all()]) if hasattr(email_activity, 'contact_recipients') else ''
-            })
-        elif activity.activity_type == 'call' and hasattr(activity, 'callactivity'):
-            call_activity = activity.callactivity
-            response_data.update({
-                'contact_name': call_activity.contact.get_full_name() if call_activity.contact else 'N/A',
-                'duration': call_activity.duration,
-                'summary': call_activity.summary
-            })
-        elif activity.activity_type == 'meeting' and hasattr(activity, 'meetingactivity'):
-            meeting_activity = activity.meetingactivity
-            response_data.update({
-                'meeting_date': meeting_activity.meeting_date.isoformat() if meeting_activity.meeting_date else None,
-                'start_time': meeting_activity.start_time.strftime('%H:%M') if meeting_activity.start_time else None,
-                'end_time': meeting_activity.end_time.strftime('%H:%M') if meeting_activity.end_time else None,
-                'location': meeting_activity.location,
-                'attendees': ', '.join([c.get_full_name() for c in meeting_activity.attendees.all()]) if hasattr(meeting_activity, 'attendees') else '',
-                'notes': meeting_activity.notes
-            })
-        elif activity.activity_type == 'note' and hasattr(activity, 'noteactivity'):
-            note_activity = activity.noteactivity
-            response_data.update({
-                'content': note_activity.content
-            })
-        elif activity.activity_type == 'waiver_favour' and hasattr(activity, 'waiveractivity'):
-            waiver_activity = activity.waiveractivity
-            response_data.update({
-                'waiver_type': waiver_activity.waiver_type,
-                'value_amount': waiver_activity.value_amount,
-                'reason': waiver_activity.reason,
-                'contact_name': ', '.join([c.get_full_name() for c in waiver_activity.contacts.all()]) if hasattr(waiver_activity, 'contacts') else '',
-                'approved_by': waiver_activity.approved_by.get_full_name() if waiver_activity.approved_by else 'N/A'
-            })
-        elif activity.activity_type == 'task' and hasattr(activity, 'taskactivity'):
-            task_activity = activity.taskactivity
-            response_data.update({
-                'title': task_activity.title,
-                'status': task_activity.status,
-                'priority': task_activity.priority,
-                'due_date': task_activity.due_date.isoformat() if task_activity.due_date else None
-            })
+        # Log the template that will be used
+        template_path = 'crm/includes/activity_detail_fragment.html'
+        logging.info(f"Rendering template: {template_path}")
         
-        # Add activity-specific data from the data JSONField if it exists
-        if hasattr(activity, 'data') and activity.data:
-            response_data.update(activity.data)
+        # Return HTML fragment instead of JSON
+        html_content = render_to_string(template_path, context, request)
+        logging.info(f"HTML rendered, length: {len(html_content)}")
         
-        return JsonResponse({
-            'status': 'success',
-            'data': response_data
-        })
+        if request.GET.get('format') == 'json':
+            # For backward compatibility with any code that still expects JSON
+            logging.info("Returning JSON response with HTML content")
+            return JsonResponse({
+                'status': 'success',
+                'html': html_content
+            })
+        else:
+            # Return just the HTML fragment
+            logging.info("Returning direct HTML response")
+            return HttpResponse(html_content)
+            
+    except Activity.DoesNotExist:
+        logging.error(f"Activity with id {activity_id} not found")
+        error_html = f"""
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Activity not found
+            </div>
+        """
+        return HttpResponse(error_html, status=404)
     except Exception as e:
         import traceback
         logging.error(f"Error in get_activity_details: {str(e)}")
         logging.error(traceback.format_exc())
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Error loading activity details: {str(e)}'
-        }, status=500)
+        error_html = f"""
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error loading activity details: {str(e)}
+            </div>
+        """
+        return HttpResponse(error_html, status=500)
 
 @login_required
 def edit_activity(request, activity_id):

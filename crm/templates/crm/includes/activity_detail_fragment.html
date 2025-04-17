@@ -1,0 +1,253 @@
+<!-- Activity Detail Fragment - Used for rendering in modal -->
+<div class="activity-detail">
+    <!-- Header with activity type and date -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            {% if activity.is_system_activity %}
+                <span class="badge bg-secondary me-2">System</span>
+            {% else %}
+                <span class="badge bg-primary me-2">{{ activity.get_activity_type_display }}</span>
+            {% endif %}
+            {% if activity.performed_by %}
+                <span class="text-muted">by {{ activity.performed_by.get_full_name }}</span>
+            {% else %}
+                <span class="text-muted">by System</span>
+            {% endif %}
+        </div>
+        <small class="text-muted">{{ activity.performed_at|date:"M d, Y, H:i" }}</small>
+    </div>
+
+    <!-- Common activity details -->
+    <div class="mb-4">
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Company:</div>
+            <div class="col-md-9">
+                <a href="{% url 'crm:company_detail' pk=activity.company.id %}">
+                    {{ activity.company.company_name }}
+                </a>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Description:</div>
+            <div class="col-md-9">{{ activity.description }}</div>
+        </div>
+    </div>
+
+    <!-- Type-specific activity details -->
+    {% if activity.activity_type == 'email' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Email Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Subject:</div>
+                <div class="col-md-9">{{ activity_details.subject }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Recipients:</div>
+                <div class="col-md-9">
+                    {% if activity_details.contact_recipients.exists %}
+                        <ul class="list-unstyled mb-0">
+                            {% for recipient in activity_details.contact_recipients.all %}
+                                <li>{{ recipient.get_full_name }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <em>No recipients recorded</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Content:</div>
+                <div class="col-md-9">
+                    <div class="border p-3 bg-light">
+                        {{ activity_details.body|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'call' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Call Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Contact:</div>
+                <div class="col-md-9">
+                    {% if activity_details.contact %}
+                        <a href="{% url 'crm:contact_detail' pk=activity_details.contact.id %}">
+                            {{ activity_details.contact.get_full_name }}
+                        </a>
+                    {% else %}
+                        <em>No contact recorded</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Duration:</div>
+                <div class="col-md-9">{{ activity_details.duration }} minutes</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Summary:</div>
+                <div class="col-md-9">{{ activity_details.summary|linebreaks }}</div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'meeting' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Meeting Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Date:</div>
+                <div class="col-md-9">{{ activity_details.meeting_date|date:"M d, Y" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Time:</div>
+                <div class="col-md-9">
+                    {% if activity_details.start_time %}
+                        {{ activity_details.start_time|time:"H:i" }}
+                        {% if activity_details.end_time %}
+                            - {{ activity_details.end_time|time:"H:i" }}
+                        {% endif %}
+                    {% else %}
+                        <em>No time specified</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Location:</div>
+                <div class="col-md-9">{{ activity_details.location|default:"No location specified" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Attendees:</div>
+                <div class="col-md-9">
+                    {% if activity_details.attendees.exists %}
+                        <ul class="list-unstyled mb-0">
+                            {% for attendee in activity_details.attendees.all %}
+                                <li>{{ attendee.get_full_name }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <em>No attendees recorded</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Notes:</div>
+                <div class="col-md-9">{{ activity_details.notes|linebreaks }}</div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'note' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Note Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Content:</div>
+                <div class="col-md-9">
+                    <div class="border p-3 bg-light">
+                        {{ activity_details.content|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'waiver_favour' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Waiver/Favor Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Type:</div>
+                <div class="col-md-9">{{ activity_details.waiver_type }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Value Amount:</div>
+                <div class="col-md-9">{{ activity_details.value_amount }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Reason:</div>
+                <div class="col-md-9">{{ activity_details.reason|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Contacts:</div>
+                <div class="col-md-9">
+                    {% if activity_details.contacts.exists %}
+                        <ul class="list-unstyled mb-0">
+                            {% for contact in activity_details.contacts.all %}
+                                <li>{{ contact.get_full_name }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <em>No contacts recorded</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Approved By:</div>
+                <div class="col-md-9">
+                    {% if activity_details.approved_by %}
+                        {{ activity_details.approved_by.get_full_name }}
+                    {% else %}
+                        <span class="text-warning">Pending approval</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'task' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Task Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Title:</div>
+                <div class="col-md-9">{{ activity_details.title }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Status:</div>
+                <div class="col-md-9">
+                    {% if activity_details.status == 'not_started' %}
+                        <span class="badge bg-secondary">Not Started</span>
+                    {% elif activity_details.status == 'in_progress' %}
+                        <span class="badge bg-info">In Progress</span>
+                    {% elif activity_details.status == 'completed' %}
+                        <span class="badge bg-success">Completed</span>
+                    {% elif activity_details.status == 'cancelled' %}
+                        <span class="badge bg-danger">Cancelled</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Priority:</div>
+                <div class="col-md-9">
+                    {% if activity_details.priority == 'low' %}
+                        <span class="badge bg-success">Low</span>
+                    {% elif activity_details.priority == 'medium' %}
+                        <span class="badge bg-warning text-dark">Medium</span>
+                    {% elif activity_details.priority == 'high' %}
+                        <span class="badge bg-danger">High</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Due Date:</div>
+                <div class="col-md-9">
+                    {% if activity_details.due_datetime %}
+                        {{ activity_details.due_datetime|date:"M d, Y, H:i" }}
+                    {% else %}
+                        <em>No due date specified</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Assigned To:</div>
+                <div class="col-md-9">
+                    {% if activity_details.assigned_to %}
+                        {{ activity_details.assigned_to.get_full_name }}
+                    {% else %}
+                        <em>Not assigned</em>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Action buttons -->
+    <div class="mt-4 text-end">
+        {% if not activity.is_system_activity %}
+            <a href="{% url 'crm:edit_activity' activity_id=activity.id %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <button type="button" class="btn btn-sm btn-danger delete-activity-btn" data-activity-id="{{ activity.id }}">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        {% endif %}
+    </div>
+</div> 

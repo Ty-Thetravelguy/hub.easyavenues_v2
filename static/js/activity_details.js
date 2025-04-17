@@ -1,328 +1,156 @@
 // Activity Details Module
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the activity details modal functionality
-    initActivityDetailsModal();
+    console.log('Activity details module loaded - VERSION 7'); // Version marker to confirm new code is loaded
+    
+    // Add special handling for modal close button clicks
+    document.addEventListener('click', function(e) {
+        // Check if the clicked element is a modal close button
+        if (e.target.closest('.modal .btn-close') || 
+            (e.target.closest('.modal .btn-secondary') && 
+             e.target.closest('.modal-footer'))) {
+            
+            console.log('Modal close button clicked - managing focus');
+            
+            // Prevent default button behavior
+            e.preventDefault();
+            
+            // First move focus outside the modal
+            document.querySelector('body').setAttribute('tabindex', '-1');
+            document.querySelector('body').focus();
+            
+            // Then close the modal after a tiny delay to ensure focus has moved
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('activityDetailModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            }, 10);
+        }
+    });
+    
+    // Add focus management for modal events
+    const activityModal = document.getElementById('activityDetailModal');
+    if (activityModal) {
+        // When modal is about to be hidden
+        activityModal.addEventListener('hide.bs.modal', function(event) {
+            console.log('Modal hide event - fixing focus management');
+            
+            // Ensure no element inside the modal has focus
+            const activeElement = document.activeElement;
+            if (this.contains(activeElement)) {
+                // Move focus to body
+                document.body.setAttribute('tabindex', '-1');
+                document.body.focus();
+            }
+        });
+        
+        // After modal is hidden
+        activityModal.addEventListener('hidden.bs.modal', function(event) {
+            console.log('Modal hidden completely');
+            // Remove the tabindex from body when done
+            document.body.removeAttribute('tabindex');
+        });
+    }
+    
+    // Use event delegation to handle clicks on activity items that are loaded dynamically
+    document.addEventListener('click', function(e) {
+        // Find the closest activity list item ancestor of the clicked element
+        const activityItem = e.target.closest('.activity-list .list-group-item');
+        if (!activityItem) return; // Not clicking on an activity item
+        
+        const activityId = activityItem.getAttribute('data-activity-id');
+        console.log('Activity item clicked via delegation:', activityId);
+        
+        // Show modal manually
+        const modal = document.getElementById('activityDetailModal');
+        if (!modal) {
+            console.error('Modal element not found');
+            return;
+        }
+            
+        // Only prevent default if we're handling the click
+        e.preventDefault();
+        
+        console.log('Opening modal for activity:', activityId);
+        
+        // Let Bootstrap handle the modal
+        const bsModal = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
+        
+        // Show loading indicator
+        const loadingElement = document.getElementById('activity-detail-loading');
+        const contentElement = document.getElementById('activity-detail-content');
+        
+        if (loadingElement) loadingElement.style.display = 'block';
+        if (contentElement) {
+            contentElement.style.display = 'none';
+            // Clear previous content to avoid confusion
+            contentElement.innerHTML = '';
+        }
+        
+        // Fetch activity details
+        fetchActivityDetailsSimple(activityId);
+        
+        // Show the modal
+        bsModal.show();
+    });
 });
 
 /**
- * Initialize activity details modal
+ * Simplified version of fetch function to directly get activity details
  */
-function initActivityDetailsModal() {
-    // Get the modal element
-    const modal = document.getElementById('activityDetailModal');
-    if (!modal) return;
+function fetchActivityDetailsSimple(activityId) {
+    if (!activityId) {
+        console.error('No activity ID provided');
+        return;
+    }
     
-    // Add event listener for when the modal is shown
-    modal.addEventListener('show.bs.modal', function(event) {
-        // Get the activity ID from the clicked element
-        const button = event.relatedTarget;
-        const activityId = button.getAttribute('data-activity-id');
-        
-        if (activityId) {
-            // Show loading indicator
-            document.getElementById('activity-detail-loading').style.display = 'block';
-            document.getElementById('activity-detail-content').style.display = 'none';
-            
-            // Fetch the activity details
-            fetchActivityDetails(activityId);
-        }
-    });
-}
-
-/**
- * Fetch activity details from the server
- * @param {string} activityId - The ID of the activity to fetch
- */
-function fetchActivityDetails(activityId) {
-    fetch(`/crm/activity/${activityId}/details/json/`)
+    console.log('Fetching activity details for ID:', activityId);
+    
+    // Use the URL pattern from urls.py
+    const url = `/crm/activity/${activityId}/details/`;
+    
+    fetch(url)
         .then(response => {
+            console.log('Response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            return response.json();
+            return response.text();
         })
-        .then(data => {
-            // Hide loading indicator and show content
-            document.getElementById('activity-detail-loading').style.display = 'none';
-            const contentElement = document.getElementById('activity-detail-content');
-            contentElement.style.display = 'block';
+        .then(html => {
+            console.log('Received HTML, length:', html.length);
             
-            // Display activity details
-            if (data.status === 'success') {
-                renderActivityDetails(data.data);
-            } else {
-                contentElement.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        ${data.message || 'Error loading activity details'}
-                    </div>
-                `;
+            // Update modal content
+            const contentElement = document.getElementById('activity-detail-content');
+            const loadingElement = document.getElementById('activity-detail-loading');
+            
+            if (loadingElement) loadingElement.style.display = 'none';
+            if (contentElement) {
+                contentElement.style.display = 'block';
+                contentElement.innerHTML = html;
+                
+                // Set up any delete buttons or other interactive elements
+                setupDeleteButtonListeners();
             }
         })
         .catch(error => {
             console.error('Error fetching activity details:', error);
             
-            // Hide loading indicator and show error
-            document.getElementById('activity-detail-loading').style.display = 'none';
-            document.getElementById('activity-detail-content').style.display = 'block';
-            document.getElementById('activity-detail-content').innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Error loading activity details: ${error.message}
-                </div>
-            `;
-        });
-}
-
-/**
- * Render activity details in the modal
- * @param {Object} activity - The activity data from the server
- */
-function renderActivityDetails(activity) {
-    const contentElement = document.getElementById('activity-detail-content');
-    
-    // Set the modal title based on whether it's a system or manual activity
-    const modalTitle = document.getElementById('activityDetailModalLabel');
-    if (modalTitle) {
-        if (activity.is_system_activity) {
-            modalTitle.innerHTML = `<i class="fas fa-cog me-2"></i> System Activity`;
-        } else {
-            modalTitle.innerHTML = `<i class="fas fa-clipboard-list me-2"></i> ${getActivityTypeDisplay(activity.type)}`;
-        }
-    }
-    
-    // Build the activity details HTML
-    let detailsHTML = '';
-    
-    // Add specific content based on activity type
-    if (activity.is_system_activity) {
-        // For system activities, focus on the description which contains the changes
-        detailsHTML += `
-            <div class="card mb-3">
-                <div class="card-header bg-light">
-                    <strong>System Update</strong>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">${formatSystemActivityDescription(activity.description)}</p>
-                </div>
-            </div>
-        `;
-    } else {
-        // Add type-specific fields for manual activities
-        detailsHTML += renderManualActivityDetails(activity);
-    }
-    
-    // Add common metadata for all activity types
-    detailsHTML += `
-        <div class="card mb-3">
-            <div class="card-header bg-light">
-                <strong>Activity Details</strong>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Date & Time:</strong> ${formatDateTime(activity.performed_at)}</p>
-                        <p><strong>Type:</strong> ${getActivityTypeDisplay(activity.type)}</p>
+            // Show error in modal
+            const contentElement = document.getElementById('activity-detail-content');
+            const loadingElement = document.getElementById('activity-detail-loading');
+            
+            if (loadingElement) loadingElement.style.display = 'none';
+            if (contentElement) {
+                contentElement.style.display = 'block';
+                contentElement.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading activity details: ${error.message}
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Performed By:</strong> ${activity.performed_by?.name || 'System'}</p>
-                        <p><strong>Company:</strong> ${activity.company?.name || 'N/A'}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    contentElement.innerHTML = detailsHTML;
-}
-
-/**
- * Format a system activity description with proper formatting for change lists
- * @param {string} description - The system activity description
- * @returns {string} HTML-formatted description
- */
-function formatSystemActivityDescription(description) {
-    if (!description) return 'No description available';
-    
-    // Check if the description has bullet points (changes)
-    if (description.includes('•')) {
-        // Split by newlines and format as a list
-        const parts = description.split('\n');
-        let formattedDesc = '';
-        
-        // The first line is the main description
-        if (parts.length > 0) {
-            formattedDesc = `<p>${parts[0]}</p>`;
-        }
-        
-        // The rest are changes
-        if (parts.length > 1) {
-            formattedDesc += '<ul class="mb-0">';
-            for (let i = 1; i < parts.length; i++) {
-                if (parts[i].trim()) {
-                    formattedDesc += `<li>${parts[i].trim().replace('• ', '')}</li>`;
-                }
+                `;
             }
-            formattedDesc += '</ul>';
-        }
-        
-        return formattedDesc;
-    }
-    
-    // If no bullet points, just return the formatted description
-    return description.replace(/\n/g, '<br>');
-}
-
-/**
- * Render manual activity details based on activity type
- * @param {Object} activity - The activity data from the server
- * @returns {string} HTML content for manual activity details
- */
-function renderManualActivityDetails(activity) {
-    let detailsHTML = '';
-    
-    switch (activity.type) {
-        case 'email':
-            detailsHTML += `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Email Details</strong>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Subject:</strong> ${activity.subject || 'N/A'}</p>
-                        <p><strong>Recipients:</strong> ${activity.recipients || 'N/A'}</p>
-                        <div class="mt-3">
-                            <strong>Content:</strong>
-                            <div class="p-3 bg-light rounded mt-2">${activity.body || activity.description || 'No content'}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            break;
-            
-        case 'call':
-            detailsHTML += `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Call Details</strong>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Contact:</strong> ${activity.contact_name || 'N/A'}</p>
-                        <p><strong>Duration:</strong> ${activity.duration || 'N/A'}</p>
-                        <div class="mt-3">
-                            <strong>Summary:</strong>
-                            <div class="p-3 bg-light rounded mt-2">${activity.summary || activity.description || 'No summary'}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            break;
-            
-        case 'meeting':
-            detailsHTML += `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Meeting Details</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>Date:</strong> ${activity.meeting_date || 'N/A'}</p>
-                                <p><strong>Time:</strong> ${activity.start_time || 'N/A'} - ${activity.end_time || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Location:</strong> ${activity.location || 'N/A'}</p>
-                                <p><strong>Attendees:</strong> ${activity.attendees || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <strong>Notes:</strong>
-                            <div class="p-3 bg-light rounded mt-2">${activity.notes || activity.description || 'No notes'}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            break;
-            
-        case 'note':
-            detailsHTML += `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Note Details</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="p-3 bg-light rounded">${activity.content || activity.description || 'No content'}</div>
-                    </div>
-                </div>
-            `;
-            break;
-            
-        case 'waiver_favour':
-            detailsHTML += `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Waiver & Favour Details</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>Type:</strong> ${activity.waiver_type || 'N/A'}</p>
-                                <p><strong>Value:</strong> ${activity.value_amount ? '£' + activity.value_amount : 'N/A'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Contact:</strong> ${activity.contact_name || 'N/A'}</p>
-                                <p><strong>Approved By:</strong> ${activity.approved_by || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <strong>Reason:</strong>
-                            <div class="p-3 bg-light rounded mt-2">${activity.reason || activity.description || 'No reason provided'}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            break;
-            
-        case 'task':
-            detailsHTML += `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Task Details</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>Title:</strong> ${activity.title || 'N/A'}</p>
-                                <p><strong>Status:</strong> ${activity.status || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Due Date:</strong> ${activity.due_date || 'N/A'}</p>
-                                <p><strong>Priority:</strong> ${activity.priority || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <strong>Description:</strong>
-                            <div class="p-3 bg-light rounded mt-2">${activity.description || 'No description'}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            break;
-            
-        default:
-            detailsHTML += `
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <strong>Activity Details</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="p-3 bg-light rounded">${activity.description || 'No details available'}</div>
-                    </div>
-                </div>
-            `;
-    }
-    
-    return detailsHTML;
+        });
 }
 
 /**
@@ -362,5 +190,31 @@ function formatDateTime(isoString) {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
+    });
+}
+
+// Keep the original functions for compatibility
+function initActivityDetailsModal() {
+    console.log('Original initActivityDetailsModal called - this is no longer used');
+}
+
+function fetchActivityDetails(activityId) {
+    console.log('Original fetchActivityDetails called with ID:', activityId);
+    fetchActivityDetailsSimple(activityId);
+}
+
+function setupDeleteButtonListeners() {
+    console.log('Setting up delete button listeners');
+    const deleteButtons = document.querySelectorAll('.delete-activity-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const activityId = this.getAttribute('data-activity-id');
+            
+            if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
+                // Redirect to the delete URL
+                window.location.href = `/crm/activity/${activityId}/delete/`;
+            }
+        });
     });
 } 
