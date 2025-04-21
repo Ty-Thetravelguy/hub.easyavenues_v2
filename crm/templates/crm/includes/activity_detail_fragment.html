@@ -157,12 +157,20 @@
                 </div>
             </div>
             <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Call Purpose:</div>
+                <div class="col-md-9">{{ activity_details.summary|default:"(No purpose specified)"|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Duration:</div>
                 <div class="col-md-9">{{ activity_details.duration }} minutes</div>
             </div>
             <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Summary:</div>
-                <div class="col-md-9">{{ activity_details.summary|linebreaks }}</div>
+                <div class="col-md-3 fw-bold">Call Outcome:</div>
+                <div class="col-md-9">{{ activity_details.call_outcome|default:"(No outcome recorded)"|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Call Summary:</div>
+                <div class="col-md-9">{{ activity.description|linebreaks }}</div>
             </div>
         </div>
     {% elif activity.activity_type == 'meeting' %}
@@ -192,10 +200,13 @@
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Attendees:</div>
                 <div class="col-md-9">
-                    {% if activity_details.attendees.exists %}
+                    {% if activity_details.contact_attendees.exists or activity_details.user_attendees.exists %}
                         <ul class="list-unstyled mb-0">
-                            {% for attendee in activity_details.attendees.all %}
-                                <li>{{ attendee.get_full_name }}</li>
+                            {% for attendee in activity_details.contact_attendees.all %}
+                                <li>{{ attendee.get_full_name }} (Contact)</li>
+                            {% endfor %}
+                            {% for attendee in activity_details.user_attendees.all %}
+                                <li>{{ attendee.get_full_name }} (User)</li>
                             {% endfor %}
                         </ul>
                     {% else %}
@@ -211,6 +222,21 @@
     {% elif activity.activity_type == 'note' %}
         <div class="mt-4">
             <h6 class="border-bottom pb-2">Note Details</h6>
+            {% if activity_details.is_important %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-star me-2"></i> This note is marked as Important
+                </div>
+            {% endif %}
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Subject:</div>
+                <div class="col-md-9">
+                    {% if activity_details.subject %}
+                        {{ activity_details.subject.name }}
+                    {% else %}
+                        <em>No subject</em>
+                    {% endif %}
+                </div>
+            </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Content:</div>
                 <div class="col-md-9">
@@ -225,15 +251,27 @@
             <h6 class="border-bottom pb-2">Waiver/Favor Details</h6>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Type:</div>
-                <div class="col-md-9">{{ activity_details.waiver_type }}</div>
+                <div class="col-md-9">
+                    {% if activity_details.type %}
+                        {{ activity_details.type.name }}
+                    {% else %}
+                        <em>No type specified</em>
+                    {% endif %}
+                </div>
             </div>
             <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Value Amount:</div>
-                <div class="col-md-9">{{ activity_details.value_amount }}</div>
+                <div class="col-md-3 fw-bold">Amount:</div>
+                <div class="col-md-9">
+                    {% if activity_details.amount %}
+                        £{{ activity_details.amount }}
+                    {% else %}
+                        <em>No amount specified</em>
+                    {% endif %}
+                </div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Reason:</div>
-                <div class="col-md-9">{{ activity_details.reason|linebreaks }}</div>
+                <div class="col-md-9">{{ activity_details.reason|default:"No reason provided"|linebreaks }}</div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Contacts:</div>
@@ -255,7 +293,7 @@
                     {% if activity_details.approved_by %}
                         {{ activity_details.approved_by.get_full_name }}
                     {% else %}
-                        <span class="text-warning">Pending approval</span>
+                        <span class="text-success">No approval needed</span>
                     {% endif %}
                 </div>
             </div>

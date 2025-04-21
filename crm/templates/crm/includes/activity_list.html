@@ -26,6 +26,17 @@
                             <span class="activity-description">
                                 {% if activity.activity_type == 'email' and activity.emailactivity %}
                                     Subject: {{ activity.emailactivity.subject|default:"(No subject)" }}
+                                {% elif activity.activity_type == 'call' and activity.callactivity %}
+                                    Call Purpose: {{ activity.callactivity.summary|default:"(No purpose)" }}
+                                {% elif activity.activity_type == 'note' and activity.noteactivity %}
+                                    {% if activity.noteactivity.is_important %}
+                                        <i class="fas fa-star text-warning me-1" title="Important Note"></i>
+                                    {% endif %}
+                                    {% if activity.noteactivity.subject %}
+                                        Subject: {{ activity.noteactivity.subject.name }}
+                                    {% else %}
+                                        Note: (No subject)
+                                    {% endif %}
                                 {% elif activity.is_system_activity %}
                                     {{ activity.description|truncatechars:120 }}
                                 {% else %}
@@ -97,4 +108,17 @@
     .list-group-item:hover {
         background-color: rgba(0, 123, 255, 0.05);
     }
-</style> 
+</style>
+
+{% if activity_details.contact_attendees.exists or activity_details.user_attendees.exists %}
+    <ul class="list-unstyled mb-0">
+        {% for attendee in activity_details.contact_attendees.all %}
+            <li>{{ attendee.get_full_name }} (Contact)</li>
+        {% endfor %}
+        {% for attendee in activity_details.user_attendees.all %}
+            <li>{{ attendee.get_full_name }} (User)</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <em>No attendees recorded</em>
+{% endif %} 

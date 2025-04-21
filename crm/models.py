@@ -598,7 +598,16 @@ class NoteActivity(Activity):
         related_name='notes'
     )
     content = models.TextField()
-    is_private = models.BooleanField(default=False) # Represents 'Mark as Important'
+    is_important = models.BooleanField(
+        default=False,
+        db_column='is_private',  # Keeps the same column name in the database for compatibility
+        help_text="Mark this note as important"
+    )
+    # Property for backwards compatibility
+    @property
+    def is_private(self):
+        return self.is_important
+    
     # Removed note_outcome as it seemed unused/unnecessary
     # note_outcome = models.CharField(max_length=255, null=True, blank=True)
 

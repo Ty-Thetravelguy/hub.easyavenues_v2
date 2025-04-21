@@ -28,13 +28,13 @@
     </div>
     
     <div class="form-check mb-3">
-        {{ form.is_private }} <!-- Render is_private checkbox from form -->
-        <label class="form-check-label" for="{{ form.is_private.id_for_label }}">
+        {{ form.is_important }} <!-- Render is_important checkbox from form -->
+        <label class="form-check-label" for="{{ form.is_important.id_for_label }}">
             <i class="fas fa-star text-warning"></i> Mark as Important
         </label>
-         {% if form.is_private.errors %}
+         {% if form.is_important.errors %}
             <div class="invalid-feedback d-block">
-                {{ form.is_private.errors }}
+                {{ form.is_important.errors }}
             </div>
         {% endif %}
     </div>

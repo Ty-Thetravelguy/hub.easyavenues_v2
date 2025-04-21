@@ -317,25 +317,29 @@ def log_call_activity(request):
         performed_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
         
         # Import the right models
-        from crm.models import CallActivity, TaskActivity # Add TaskActivity
+        from crm.models import CallActivity, TaskActivity
         
-        # Create call activity - set performed_at explicitly
+        # Create call activity with all fields
+        # Field mappings:
+        # - call_purpose (form) -> summary (database)
+        # - call_summary (form) -> description (database)
         activity = CallActivity.objects.create(
             company=company,
             performed_by=request.user,
             activity_type='call',
-            performed_at=performed_datetime, # Use parsed datetime
-            # description will be set below
+            performed_at=performed_datetime,
             call_type='Outbound' if bool(request.POST.get('outbound')) else 'Inbound',
             duration=int(request.POST.get('duration', 0)),
-            summary=request.POST.get('purpose', ''),
-            call_outcome=request.POST.get('outcome', ''),
-            contact=contact # Assign contact directly
+            # Get 'call_purpose' parameter (falling back to 'purpose' for backwards compatibility)
+            summary=request.POST.get('call_purpose', request.POST.get('purpose', '')),
+            call_outcome=request.POST.get('call_outcome', request.POST.get('outcome', '')),
+            contact=contact
         )
         
-        # Save notes to description separately
-        activity.description = request.POST.get('notes', '')
-        activity.save(update_fields=['description']) # Update only description
+        # Save call_summary to description separately
+        # Get 'call_summary' parameter (falling back to 'notes' for backwards compatibility)
+        activity.description = request.POST.get('call_summary', request.POST.get('notes', ''))
+        activity.save(update_fields=['description'])
         
         # --- Create Follow-up Task if requested --- 
         if request.POST.get('create_follow_up_task'):
@@ -542,6 +546,17 @@ def log_note_activity(request):
         if contact_ids:
             contact = get_object_or_404(Contact, id=contact_ids[0])
         
+        # Get subject if provided
+        subject_id = request.POST.get('subject')
+        subject = None
+        if subject_id:
+            from crm.models import NoteSubject
+            try:
+                subject = NoteSubject.objects.get(id=subject_id)
+            except (NoteSubject.DoesNotExist, ValueError):
+                # If subject doesn't exist, we'll continue without it
+                pass
+        
         # Import the right model
         from crm.models import NoteActivity
         
@@ -552,14 +567,60 @@ def log_note_activity(request):
             activity_type='note',
             description=request.POST.get('content', ''),
             content=request.POST.get('content', ''),
-            is_private=False,
-            note_outcome=None
+            is_important=request.POST.get('is_important') == 'on',
+            subject=subject
         )
         
         # Set contact if provided
         if contact:
             activity.contact = contact
             activity.save()
+            
+        # Create follow-up task if requested
+        if request.POST.get('create_follow_up_task'):
+            try:
+                from crm.models import TaskActivity
+                
+                task_title = request.POST.get('follow_up_task_title', '').strip()
+                if not task_title:
+                    default_title = f"Follow up on note: {activity.content[:50]}..." if len(activity.content) > 50 else f"Follow up on note: {activity.content}"
+                    task_title = default_title[:255]
+                    
+                due_date_str = request.POST.get('follow_up_due_date', '')
+                try:
+                    due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else timezone.now().date() + timedelta(days=1)
+                    if due_date < timezone.now().date():
+                         due_date = timezone.now().date() + timedelta(days=1) 
+                except ValueError:
+                    due_date = timezone.now().date() + timedelta(days=1)
+                    
+                due_time_str = request.POST.get('follow_up_due_time', '')
+                try:
+                    due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time() if due_time_str else timezone.datetime.min.time().replace(hour=9)
+                except ValueError:
+                    due_time = timezone.datetime.min.time().replace(hour=9)
+                    
+                naive_followup_datetime = timezone.datetime.combine(due_date, due_time)
+                due_datetime = timezone.make_aware(naive_followup_datetime, timezone.get_current_timezone())
+                
+                task_notes = request.POST.get('follow_up_task_notes', '').strip()
+                base_description = f"Follow-up task automatically created for Note Activity ID: {activity.id}"
+                task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
+                
+                TaskActivity.objects.create(
+                    company=activity.company,
+                    performed_by=request.user,
+                    activity_type='task',
+                    title=task_title,
+                    description=task_description,
+                    due_datetime=due_datetime,
+                    assigned_to=request.user,
+                    status='not_started',
+                    priority='medium',
+                    related_activity=activity
+                )
+            except Exception as task_error:
+                logging.error(f"Error creating follow-up task for note {activity.id}: {task_error}", exc_info=True)
         
         return JsonResponse({
             'success': True,
@@ -738,7 +799,15 @@ def get_activity_details(request, activity_id):
         activity_details = None
         document = None
         
-        if hasattr(activity, f"{activity.activity_type}activity"):
+        # Handle special cases for activity types with naming mismatches
+        if activity.activity_type == 'waiver_favour':
+            # For waiver_favour activities, check for waiveractivity
+            if hasattr(activity, 'waiveractivity'):
+                activity_details = activity.waiveractivity
+                logging.info(f"Found waiver activity details for ID: {activity.id}")
+            else:
+                logging.warning(f"No waiveractivity attribute found on activity {activity.id}")
+        elif hasattr(activity, f"{activity.activity_type}activity"):
             activity_details = getattr(activity, f"{activity.activity_type}activity")
             logging.info(f"Activity details found for type: {activity.activity_type}")
             

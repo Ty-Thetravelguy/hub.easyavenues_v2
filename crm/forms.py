@@ -620,20 +620,24 @@ class CallActivityForm(forms.ModelForm):
         widgets = {
             'call_type': forms.Select(attrs={'class': 'form-control'}),
             'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
-            'summary': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'call_outcome': forms.TextInput(attrs={'class': 'form-control'}),
+            'summary': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Call purpose'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Call summary'}),
+            'call_outcome': forms.Select(attrs={'class': 'form-control'}),
             'scheduled_for': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+        labels = {
+            'summary': 'Call Purpose',
+            'description': 'Call Summary',
+            'call_outcome': 'Call Outcome',
+        }
 
     def save(self, commit=True):
-        activity = super().save(commit=False)
-        activity.activity_type = 'call'
+        instance = super().save(commit=False)
         if commit:
-            activity.save()
-        return activity
+            instance.save()
+        return instance
 
 class MeetingActivityForm(forms.ModelForm):
     class Meta:
@@ -678,19 +682,16 @@ class NoteActivityForm(forms.ModelForm):
 
     class Meta:
         model = NoteActivity
-        # Removed note_outcome, added subject
-        # Also removed description, follow_up_date, follow_up_notes as they aren't in the template
+        # Renamed is_private to is_important, and ensure all references are updated
         fields = [
-            'subject', 'content', 'is_private'
+            'subject', 'content', 'is_important'
         ]
         widgets = {
             'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'is_private': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            # Removed widgets for fields no longer in use by this form
-            # 'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            # 'note_outcome': forms.TextInput(attrs={'class': 'form-control'}),
-            # 'follow_up_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            # 'follow_up_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'is_important': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'is_important': 'Mark as Important',
         }
 
     def save(self, commit=True):
