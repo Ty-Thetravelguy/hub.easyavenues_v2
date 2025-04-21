@@ -725,12 +725,22 @@ def log_task_activity(request):
     company = get_object_or_404(Company, id=company_id)
     
     try:
-        # Get related contacts
-        contact_ids = request.POST.getlist('related_contacts')
+        # Get related contacts - now handling prefixed IDs from Tom Select
+        related_contacts_ids = request.POST.getlist('related_contacts')
+        logging.info(f"Task activity - related contact IDs from form: {related_contacts_ids}")
+        
+        # Separate contact and user recipients (similar to email activity)
+        contact_recipient_ids = []
+        
+        for recipient_id in related_contacts_ids:
+            if recipient_id.startswith('contact_'):
+                contact_recipient_ids.append(recipient_id.replace('contact_', ''))
+        
+        # Get first contact to set as primary contact (TaskActivity has a single contact field)
         contact = None
-        if contact_ids:
-            # Just use the first contact for now since TaskActivity has a single contact field
-            contact = get_object_or_404(Contact, id=contact_ids[0])
+        if contact_recipient_ids:
+            contact = get_object_or_404(Contact, id=contact_recipient_ids[0])
+            logging.info(f"Task activity - using primary contact: {contact.get_full_name()}")
         
         # Get assignee
         assignee_id = request.POST.get('assignee')
@@ -741,6 +751,24 @@ def log_task_activity(request):
         else:
             assignee = None
         
+        # Get and parse the due date and time
+        due_date_str = request.POST.get('due_date', '')
+        due_time_str = request.POST.get('due_time', '')
+        
+        try:
+            due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else timezone.now().date()
+        except ValueError:
+            due_date = timezone.now().date()  # Default to today if format is wrong
+            
+        try:
+            due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time() if due_time_str else timezone.datetime.min.time().replace(hour=9)
+        except ValueError:
+            due_time = timezone.datetime.min.time().replace(hour=9)  # Default to 9:00 AM if format is wrong
+            
+        # Combine date and time into a datetime object with timezone
+        naive_datetime = timezone.datetime.combine(due_date, due_time)
+        due_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+        
         # Create task activity
         activity = TaskActivity.objects.create(
             company=company,
@@ -748,7 +776,7 @@ def log_task_activity(request):
             activity_type='task',
             title=request.POST.get('title', ''),
             description=request.POST.get('description', ''),
-            due_date=request.POST.get('due_date') or timezone.now().date(),
+            due_datetime=due_datetime,  # Now using due_datetime with proper combined values
             priority=request.POST.get('priority', 'medium'),
             status=request.POST.get('status', 'not_started'),
             assigned_to=assignee

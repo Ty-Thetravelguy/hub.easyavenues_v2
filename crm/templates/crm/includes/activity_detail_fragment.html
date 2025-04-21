@@ -311,6 +311,10 @@
                 <div class="col-md-9">{{ activity_details.title }}</div>
             </div>
             <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Description:</div>
+                <div class="col-md-9">{{ activity_details.description|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Status:</div>
                 <div class="col-md-9">
                     {% if activity_details.status == 'not_started' %}

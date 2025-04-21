@@ -337,6 +337,11 @@ function initializeFormElements(activityType) {
             if (sendEmailDiv) {
                 sendEmailDiv.style.display = 'block';
             }
+        } else if (activityType === 'task') {
+            console.log("Initializing task form elements");
+            
+            // Initialize the contacts/users TomSelect
+            initializeRecipientSelectForForm(form, '#task_related_contacts', false);
         }
         // Add other else if blocks for other activity types if needed
         
@@ -597,6 +602,59 @@ function initializeCallContactSelect(formElement) {
     });
     
     console.log(`✅ Tom Select (Single) initialized for #call_contact in the loaded form.`);
+}
+
+/**
+ * Initialize TinyMCE for rich text editing in a specific form
+ * @param {HTMLElement} formElement - The form containing the textarea to initialize with TinyMCE
+ */
+function initializeTinyMCEForForm(formElement) {
+    // Only run if TinyMCE is available
+    if (typeof tinymce === 'undefined') {
+        console.error('❌ TinyMCE not available');
+        return;
+    }
+
+    // Find the textarea element(s) to initialize
+    const textareas = formElement.querySelectorAll('textarea.rich-text-editor');
+    if (!textareas || textareas.length === 0) {
+        console.warn('⚠️ No rich text editor textarea found in the form');
+        return;
+    }
+    
+    console.log(`Initializing TinyMCE for ${textareas.length} textareas in form`);
+    
+    // Initialize TinyMCE for each textarea found
+    textareas.forEach((textarea, index) => {
+        // Generate a unique ID if one doesn't exist
+        if (!textarea.id) {
+            textarea.id = `richtext-editor-${Date.now()}-${index}`;
+        }
+        
+        // Check if this textarea is already initialized
+        if (tinymce.get(textarea.id)) {
+            console.log(`TinyMCE already initialized for textarea with ID: ${textarea.id}`);
+            return;
+        }
+        
+        // Initialize TinyMCE with appropriate configuration
+        tinymce.init({
+            selector: `#${textarea.id}`,
+            height: 250,
+            menubar: false,
+            plugins: 'lists link autolink',
+            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
+            setup: function(editor) {
+                // Add any additional setup here if needed
+                editor.on('change', function() {
+                    editor.save(); // Save content back to textarea on change
+                });
+            }
+        });
+        
+        console.log(`✅ TinyMCE initialized for textarea with ID: ${textarea.id}`);
+    });
 }
 
 /**

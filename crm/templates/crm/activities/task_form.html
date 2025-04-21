@@ -44,20 +44,26 @@
         </select>
     </div>
     
-    <div class="mb-3">
-        <label for="task_due_date" class="form-label">Due Date</label>
-        <input type="text" class="form-control datepicker" id="task_due_date" name="due_date" required>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="task_due_date" class="form-label">Due Date</label>
+            <input type="text" class="form-control" id="task_due_date" name="due_date" 
+                   required data-datepicker>
+        </div>
+        <div class="col-md-6">
+            <label for="task_due_time" class="form-label">Due Time</label>
+            <input type="text" class="form-control" id="task_due_time" name="due_time" 
+                   value="09:00" required data-timepicker>
+            <small class="form-text text-muted">Use 24-hour format (e.g., 14:30)</small>
+        </div>
     </div>
     
     <div class="mb-3">
-        <label for="task_related_contacts" class="form-label">Related Contact</label>
-        <select class="form-control select2-field" id="task_related_contacts" name="related_contacts">
-            <option value="">Select a Contact</option>
-            {% for contact in company.contact_set.all %}
-                <option value="{{ contact.id }}">{{ contact.first_name }} {{ contact.last_name }}</option>
-            {% endfor %}
+        <label for="task_related_contacts" class="form-label">Related Contacts/Users</label>
+        <select class="form-control tom-select" id="task_related_contacts" name="related_contacts" multiple data-company-id="{{ company.id }}">
+            <!-- Options will be loaded via Tom Select -->
         </select>
-        <small class="form-text text-muted">Select a single contact to associate with this task</small>
+        <small class="form-text text-muted">Type to search for contacts or users by name or email</small>
     </div>
     
     <div class="d-grid">
@@ -85,6 +91,39 @@
             day = day < 10 ? '0' + day : day;
             
             dueDateField.value = `${year}-${month}-${day}`;
+        }
+        
+        // Initialize TomSelect for the related contacts/users field
+        const taskForm = document.querySelector('.task-form');
+        if (taskForm && typeof initializeRecipientSelectForForm === 'function') {
+            console.log("Initializing TomSelect for task form directly");
+            initializeRecipientSelectForForm(taskForm, '#task_related_contacts', false);
+        } else {
+            console.log("Will rely on the initializeFormElements function to initialize TomSelect");
+        }
+        
+        // Ensure date and time pickers are initialized
+        if (typeof initializeDateTimePickers === 'function') {
+            console.log("Initializing date/time pickers for task form directly");
+            initializeDateTimePickers(taskForm);
+        } else if (typeof flatpickr !== 'undefined') {
+            // Fallback direct initialization if initializeDateTimePickers is not available
+            console.log("Using flatpickr directly to initialize pickers");
+            flatpickr("#task_due_date", {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "F j, Y",
+                allowInput: true
+            });
+            
+            flatpickr("#task_due_time", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i",
+                time_24hr: true,
+                allowInput: true,
+                defaultDate: "09:00"
+            });
         }
     });
 </script> 
