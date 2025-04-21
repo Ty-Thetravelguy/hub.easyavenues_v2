@@ -177,21 +177,16 @@
         <div class="mt-4">
             <h6 class="border-bottom pb-2">Meeting Details</h6>
             <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Date:</div>
-                <div class="col-md-9">{{ activity_details.meeting_date|date:"M d, Y" }}</div>
+                <div class="col-md-3 fw-bold">Title:</div>
+                <div class="col-md-9">{{ activity_details.title|default:"No title specified" }}</div>
             </div>
             <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Time:</div>
-                <div class="col-md-9">
-                    {% if activity_details.start_time %}
-                        {{ activity_details.start_time|time:"H:i" }}
-                        {% if activity_details.end_time %}
-                            - {{ activity_details.end_time|time:"H:i" }}
-                        {% endif %}
-                    {% else %}
-                        <em>No time specified</em>
-                    {% endif %}
-                </div>
+                <div class="col-md-3 fw-bold">Date & Time:</div>
+                <div class="col-md-9">{{ activity.performed_at|date:"M d, Y, H:i" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Duration:</div>
+                <div class="col-md-9">{{ activity_details.duration }} minutes</div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Location:</div>
@@ -215,9 +210,19 @@
                 </div>
             </div>
             <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Notes:</div>
-                <div class="col-md-9">{{ activity_details.notes|linebreaks }}</div>
+                <div class="col-md-3 fw-bold">Agenda:</div>
+                <div class="col-md-9">{{ activity_details.agenda|default:"No agenda specified"|linebreaks }}</div>
             </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Meeting Minutes:</div>
+                <div class="col-md-9">{{ activity_details.minutes|linebreaks }}</div>
+            </div>
+            {% if activity_details.meeting_outcome %}
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Outcome:</div>
+                <div class="col-md-9">{{ activity_details.meeting_outcome }}</div>
+            </div>
+            {% endif %}
         </div>
     {% elif activity.activity_type == 'note' %}
         <div class="mt-4">

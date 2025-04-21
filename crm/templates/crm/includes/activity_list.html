@@ -28,6 +28,8 @@
                                     Subject: {{ activity.emailactivity.subject|default:"(No subject)" }}
                                 {% elif activity.activity_type == 'call' and activity.callactivity %}
                                     Call Purpose: {{ activity.callactivity.summary|default:"(No purpose)" }}
+                                {% elif activity.activity_type == 'meeting' and activity.meetingactivity %}
+                                    Meeting: {{ activity.meetingactivity.title|default:"(No title)" }}
                                 {% elif activity.activity_type == 'note' and activity.noteactivity %}
                                     {% if activity.noteactivity.is_important %}
                                         <i class="fas fa-star text-warning me-1" title="Important Note"></i>
