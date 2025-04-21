@@ -133,6 +133,7 @@ def log_email_activity(request):
     try:
         # Get recipient IDs
         recipient_ids = request.POST.getlist('recipients')
+        logging.info(f"Email activity - recipient_ids from form: {recipient_ids}")
         
         # Separate contact and user recipients
         contact_recipient_ids = []
@@ -144,11 +145,16 @@ def log_email_activity(request):
             elif recipient_id.startswith('user_'):
                 user_recipient_ids.append(recipient_id.replace('user_', ''))
         
+        logging.info(f"Email activity - processed contact_recipient_ids: {contact_recipient_ids}")
+        logging.info(f"Email activity - processed user_recipient_ids: {user_recipient_ids}")
+        
         # Get contact recipients
         contacts = Contact.objects.filter(id__in=contact_recipient_ids)
+        logging.info(f"Email activity - found contacts: {list(contacts.values_list('id', 'first_name', 'last_name'))}")
         
         # Get user recipients
         users = User.objects.filter(id__in=user_recipient_ids)
+        logging.info(f"Email activity - found users: {list(users.values_list('id', 'first_name', 'last_name'))}")
         
         # Get date and time, providing defaults
         email_date_str = request.POST.get('date', '')
@@ -182,11 +188,25 @@ def log_email_activity(request):
         
         # Add recipients as related contacts if the model supports it
         if hasattr(activity, 'contact_recipients'):
-            activity.contact_recipients.add(*contacts)
+            logging.info(f"Email activity {activity.id} - adding {len(contacts)} contacts to contact_recipients")
+            try:
+                activity.contact_recipients.add(*contacts)
+                # Verify contacts were added
+                added_contacts = activity.contact_recipients.all()
+                logging.info(f"Email activity {activity.id} - verified added contacts: {list(added_contacts.values_list('id', 'first_name', 'last_name'))}")
+            except Exception as e:
+                logging.error(f"Error adding contact recipients: {str(e)}")
         
         # Add user recipients if the model supports it
         if hasattr(activity, 'user_recipients'):
-            activity.user_recipients.add(*users)
+            logging.info(f"Email activity {activity.id} - adding {len(users)} users to user_recipients")
+            try:
+                activity.user_recipients.add(*users)
+                # Verify users were added
+                added_users = activity.user_recipients.all()
+                logging.info(f"Email activity {activity.id} - verified added users: {list(added_users.values_list('id', 'first_name', 'last_name'))}")
+            except Exception as e:
+                logging.error(f"Error adding user recipients: {str(e)}")
         
         # --- Create Follow-up Task if requested --- 
         if request.POST.get('create_follow_up_task'):
@@ -710,20 +730,89 @@ def get_activity_details(request, activity_id):
         # Add debug logging
         logging.info(f"get_activity_details called for activity_id: {activity_id}")
         
+        # Get the activity with its subclass
         activity = get_object_or_404(Activity, id=activity_id)
         logging.info(f"Activity found: {activity.id}, type: {activity.activity_type}")
         
         # Get the specific activity type instance
         activity_details = None
+        document = None
+        
         if hasattr(activity, f"{activity.activity_type}activity"):
             activity_details = getattr(activity, f"{activity.activity_type}activity")
             logging.info(f"Activity details found for type: {activity.activity_type}")
+            
+            # Add debug for email activity recipients
+            if activity.activity_type == 'email' and activity_details:
+                try:
+                    # Prefetch related recipient data for EmailActivity
+                    from django.db.models import Prefetch
+                    from crm.models import Contact, EmailActivity
+                    
+                    # Re-query with prefetch_related for better performance
+                    activity_details = EmailActivity.objects.filter(id=activity_details.id).prefetch_related(
+                        'contact_recipients', 'user_recipients'
+                    ).first()
+                    
+                    # Debug counts
+                    contact_recipients_count = activity_details.contact_recipients.count() if activity_details else 0
+                    user_recipients_count = activity_details.user_recipients.count() if activity_details else 0
+                    
+                    logging.info(f"Email activity {activity.id} has {contact_recipients_count} contact recipients and {user_recipients_count} user recipients")
+                    
+                    # List the actual recipients for debugging
+                    contact_recipients = []
+                    if activity_details:
+                        contact_recipients = list(activity_details.contact_recipients.all().values_list('id', 'first_name', 'last_name'))
+                    
+                    logging.info(f"Contact recipients: {contact_recipients}")
+                    
+                    # Check if the exists() method works as expected
+                    exists_result = activity_details.contact_recipients.exists() if activity_details else False
+                    logging.info(f"activity_details.contact_recipients.exists() returns: {exists_result}")
+                    
+                except Exception as e:
+                    logging.error(f"Error debugging email recipients: {str(e)}")
         else:
-            logging.warning(f"No {activity.activity_type}activity attribute found on activity {activity.id}")
+            # For document activities, try to find the document from the description
+            found_document = False
+            if activity.activity_type == 'document' and activity.is_system_activity:
+                from crm.models import Document
+                
+                # Parse document title from description
+                # Formats like: "Uploaded document: Contract.pdf", "Updated document: Invoice.xlsx", etc.
+                import re
+                match = re.search(r'(?:Uploaded|Updated|Deleted|Downloaded) document: (.+)$', activity.description)
+                
+                if match:
+                    document_title = match.group(1)
+                    logging.info(f"Parsed document title from description: {document_title}")
+                    
+                    # Try to find the document (the most recent one with this title for this company)
+                    try:
+                        document = Document.objects.filter(
+                            company=activity.company,
+                            title=document_title
+                        ).order_by('-uploaded_at').first()
+                        
+                        if document:
+                            logging.info(f"Found document: {document.id} - {document.title}")
+                            found_document = True
+                        else:
+                            logging.warning(f"No document found with title: {document_title}")
+                    except Exception as doc_err:
+                        logging.error(f"Error finding document: {str(doc_err)}")
+            
+            # Only log a warning if we couldn't find the document by other means
+            if activity.activity_type == 'document' and activity.is_system_activity and not found_document:
+                logging.warning(f"No {activity.activity_type}activity attribute found on activity {activity.id} and couldn't find document from description")
+            elif not (activity.activity_type == 'document' and activity.is_system_activity):
+                logging.warning(f"No {activity.activity_type}activity attribute found on activity {activity.id}")
         
         context = {
             'activity': activity,
             'activity_details': activity_details,
+            'document': document,
         }
         
         # Log the template that will be used

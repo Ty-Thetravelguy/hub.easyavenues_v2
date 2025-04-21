@@ -35,15 +35,18 @@
             <h6 class="border-bottom pb-2">Email Details</h6>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Subject:</div>
-                <div class="col-md-9">{{ activity_details.subject }}</div>
+                <div class="col-md-9">{{ activity_details.subject|default:"(No subject)" }}</div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Recipients:</div>
                 <div class="col-md-9">
-                    {% if activity_details.contact_recipients.exists %}
+                    {% if activity_details.contact_recipients.exists or activity_details.user_recipients.exists %}
                         <ul class="list-unstyled mb-0">
                             {% for recipient in activity_details.contact_recipients.all %}
-                                <li>{{ recipient.get_full_name }}</li>
+                                <li>{{ recipient.get_full_name }} (Contact)</li>
+                            {% endfor %}
+                            {% for user in activity_details.user_recipients.all %}
+                                <li>{{ user.get_full_name }} (User)</li>
                             {% endfor %}
                         </ul>
                     {% else %}
@@ -52,13 +55,91 @@
                 </div>
             </div>
             <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Date:</div>
+                <div class="col-md-9">{{ activity_details.email_date|date:"M d, Y" }} at {{ activity_details.email_time|time:"H:i" }}</div>
+            </div>
+            <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Content:</div>
                 <div class="col-md-9">
                     <div class="border p-3 bg-light">
-                        {{ activity_details.body|safe }}
+                        {{ activity_details.body|safe|default:"(No content)" }}
                     </div>
                 </div>
             </div>
+        </div>
+    {% elif activity.activity_type == 'document' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Document Details</h6>
+            
+            {% if activity_details %}
+                <!-- For non-system document activities with linked DocumentActivity -->
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Document:</div>
+                    <div class="col-md-9">
+                        {% if activity_details.document %}
+                            <a href="{% url 'crm:document_detail' document_id=activity_details.document.id %}">
+                                {{ activity_details.document.title }}
+                            </a>
+                        {% else %}
+                            <em>Document not found</em>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Action:</div>
+                    <div class="col-md-9">{{ activity_details.action }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Outcome:</div>
+                    <div class="col-md-9">{{ activity_details.document_outcome|default:"No outcome recorded"|linebreaks }}</div>
+                </div>
+            {% elif document %}
+                <!-- For system document activities with looked-up document -->
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Document:</div>
+                    <div class="col-md-9">
+                        <a href="{% url 'crm:document_detail' document_id=document.id %}">
+                            {{ document.title }}
+                        </a>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Type:</div>
+                    <div class="col-md-9">{{ document.get_document_type_display }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Version:</div>
+                    <div class="col-md-9">{{ document.version|default:"Not specified" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Description:</div>
+                    <div class="col-md-9">{{ document.description|default:"No description"|linebreaks }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Action:</div>
+                    <div class="col-md-9">
+                        {% if "Uploaded" in activity.description %}
+                            Uploaded
+                        {% elif "Updated" in activity.description %}
+                            Updated
+                        {% elif "Deleted" in activity.description %}
+                            Deleted
+                        {% elif "Downloaded" in activity.description %}
+                            Downloaded
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            {{ activity.description|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     {% elif activity.activity_type == 'call' %}
         <div class="mt-4">
