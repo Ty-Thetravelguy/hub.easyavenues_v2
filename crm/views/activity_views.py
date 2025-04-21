@@ -646,52 +646,73 @@ def log_waiver_favour_activity(request):
     except ValueError:
         return JsonResponse({'success': False, 'message': 'Invalid Company ID'}, status=400)
     
-    # Create form with POST data and limit the contacts queryset to company contacts
-    form = WaiverFavorActivityForm(request.POST)
-    form.fields['contacts'].queryset = Contact.objects.filter(company=company)
-    form.fields['approved_by'].queryset = User.objects.filter(is_active=True)
-
-    if form.is_valid():
-        try:
-            # Save but don't commit to database yet
-            activity = form.save(commit=False)
-            activity.company = company
-            activity.performed_by = request.user
-            activity.activity_type = 'waiver_favour'
+    try:
+        # Get contacts (handle multiple, prefixed IDs) similar to meeting activity
+        contact_input_ids = request.POST.getlist('contacts')
+        contact_ids = []
+        for contact_id in contact_input_ids:
+            if contact_id.startswith('contact_'):
+                contact_ids.append(contact_id.replace('contact_', ''))
+            elif contact_id.isdigit(): # Allow plain IDs for robustness
+                contact_ids.append(contact_id)
+                
+        # Get contacts queryset
+        contacts = Contact.objects.filter(id__in=contact_ids, company=company)
+        
+        # Get type if provided
+        type_id = request.POST.get('type')
+        waiver_type = None
+        if type_id:
+            from crm.models import WaiverFavourType
+            try:
+                waiver_type = WaiverFavourType.objects.get(id=type_id)
+            except (WaiverFavourType.DoesNotExist, ValueError):
+                # If type doesn't exist, we'll continue without it
+                pass
+        
+        # Get approved_by if provided
+        approved_by_id = request.POST.get('approved_by')
+        approved_by = None
+        if approved_by_id and approved_by_id != '':
+            try:
+                approved_by = get_user_model().objects.get(id=approved_by_id)
+            except (get_user_model().DoesNotExist, ValueError):
+                # If user doesn't exist, we'll continue without it
+                pass
+        
+        # Import the right model
+        from crm.models import WaiverActivity
+        
+        # Create waiver activity
+        activity = WaiverActivity.objects.create(
+            company=company,
+            performed_by=request.user,
+            activity_type='waiver_favour',
+            description=request.POST.get('reason', ''),
+            reason=request.POST.get('reason', ''),
+            amount=request.POST.get('amount') if request.POST.get('amount') else None,
+            approved_by=approved_by,
+            type=waiver_type
+        )
+        
+        # Add contacts
+        if contacts:
+            activity.contacts.add(*contacts)
             
-            # Set description from reason field
-            activity.description = form.cleaned_data.get('reason', '')
+        # Save changes
+        activity.save()
             
-            # Save the activity to get an ID
-            activity.save()
-            
-            # Now save the many-to-many relationships
-            form.save_m2m()
-
-            return JsonResponse({
-                'success': True,
-                'message': 'Waiver & Favour activity logged successfully',
-                'activity_id': activity.id
-            })
-        except Exception as e:
-            import traceback
-            logging.error(f"Error saving waiver/favour activity: {str(e)}")
-            logging.error(traceback.format_exc())
-            # Pass form errors back if possible, otherwise generic error
-            error_message = f'Error saving activity: {str(e)}'
-            return JsonResponse({'success': False, 'message': error_message}, status=500)
-    else:
-        # Form is invalid, return errors
-        # Simplified error handling for JSON response
-        error_dict = form.errors.as_json()
-        logging.warning(f"Waiver/Favour form validation failed: {error_dict}")
-        # Provide a user-friendly summary or first error
-        first_error = next(iter(form.errors.values()))[0] if form.errors else "Invalid data submitted."
         return JsonResponse({
-            'success': False, 
-            'message': f'Please correct the errors: {first_error}',
-            'errors': form.errors # Send detailed errors if needed by frontend
-        }, status=400)
+            'success': True,
+            'message': 'Waiver & Favour activity logged successfully',
+            'activity_id': activity.id
+        })
+    except Exception as e:
+        import traceback
+        logging.error(f"Error saving waiver/favour activity: {str(e)}")
+        logging.error(traceback.format_exc())
+        error_message = f'Error saving activity: {str(e)}'
+        return JsonResponse({'success': False, 'message': error_message}, status=500)
 
 @login_required
 @require_POST

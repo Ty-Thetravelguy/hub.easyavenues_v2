@@ -326,22 +326,17 @@ function initializeFormElements(activityType) {
         } else if (activityType === 'note') {
             setupFollowUpTaskToggle(form); // Initialize follow-up toggle for notes
         } else if (activityType === 'waiver_favour') {
-            // Use the standard recipient select function with contacts_only=true
-            console.log('Setting up TomSelect for Waiver/Favour contacts (contacts only)...');
+            console.log("Initializing waiver/favour form elements");
             
-            // Use the same method as for email recipients, but with contacts_only=true
-            // This reuses the proven code path that searches properly
             initializeRecipientSelectForForm(form, '#waiver_favour_contacts', true);
+
+            // No need to initialize the hidden field, it's handled by the form directly
             
-            // Additionally, trigger the loading of initial contacts immediately
-            setTimeout(() => {
-                const selectElement = form.querySelector('#waiver_favour_contacts');
-                if (selectElement && selectElement.tomselect) {
-                    console.log("Loading initial contacts for waiver_favour form...");
-                    // Load initial results with empty search to show some options
-                    selectElement.tomselect.load('');
-                }
-            }, 100);
+            // Show the Send Email checkbox only for the waiver form
+            const sendEmailDiv = form.querySelector('.send-email-option');
+            if (sendEmailDiv) {
+                sendEmailDiv.style.display = 'block';
+            }
         }
         // Add other else if blocks for other activity types if needed
         
@@ -414,29 +409,19 @@ function initializeRecipientSelectForForm(formElement, selectorId = '#email_reci
         return;
     }
     
-    // Determine if this is for waiver_favour form which needs ID transformation
-    const isWaiverForm = selectorId === '#waiver_favour_contacts';
-    
     // Initialize Tom Select
     const tomSelectInstance = new TomSelect(selector, {
         plugins: ['remove_button'],
         maxItems: null, // Allow multiple items
-        valueField: isWaiverForm ? 'id' : 'id', // Changed to always use 'id' for simplicity
+        valueField: 'id',
         labelField: 'text',
         searchField: ['text', 'email'], 
         create: false,
         placeholder: contactsOnly ? 'Type to search for contacts...' : 'Type to search for contacts or users...',
         load: function(query, callback) {
-            // Allow empty queries for initial load of contacts (especially for waiver_favour form)
-            // but set a lower limit (5) for empty queries to avoid loading too many results
-            const minLength = query.length ? 2 : 0;
-            if (query.length < minLength) {
-                if (query.length === 0 && isWaiverForm) {
-                    // For waiver form with empty query, load some initial contacts
-                    console.log(`Loading initial contacts for ${selectorId} with empty query`);
-                } else {
-                    return callback();
-                }
+            // Only allow non-empty queries with minimum length of 2
+            if (query.length < 2) {
+                return callback();
             }
             
             console.log(`🔍 TomSelect search: "${query}" for ${selectorId} (company ID: ${companyId})`);
@@ -447,8 +432,7 @@ function initializeRecipientSelectForForm(formElement, selectorId = '#email_reci
                 q: query, 
                 company_id: companyId,
                 contacts_only: contactsOnly ? '1' : '0',
-                // Request limited results for empty queries
-                limit: query.length ? '10' : '5'
+                limit: '10'
             });
             
             fetch(`${url}?${params.toString()}`)
@@ -464,18 +448,6 @@ function initializeRecipientSelectForForm(formElement, selectorId = '#email_reci
                         const beforeCount = results.length;
                         results = results.filter(item => item.type === 'contact');
                         console.log(`Filtered ${beforeCount} results to ${results.length} contacts only`);
-                    }
-                    
-                    // For waiver form, transform the IDs to just the numeric part
-                    if (isWaiverForm) {
-                        results = results.map(item => {
-                            if (item.id && item.id.startsWith('contact_')) {
-                                const numericId = item.id.replace('contact_', '');
-                                return {...item, id: numericId};
-                            }
-                            return item;
-                        });
-                        console.log(`Transformed IDs for waiver form:`, results);
                     }
                     
                     callback(results);
@@ -1127,433 +1099,49 @@ function formatActivityDetails(activityType, data) {
         contentHtml = `
             <div class="mb-3">
                 <strong>Note:</strong>
-                <div class="p-3 bg-light rounded">${data.content || 'No content'}</div>
+                <div class="p-3 bg-light rounded">${data.data.content || 'No content'}</div>
             </div>
         `;
     } else if (activityType === 'meeting') {
         contentHtml = `
             <div class="mb-3">
-                <strong>Title:</strong> ${data.data.title || 'N/A'}
+                <strong>Meeting:</strong> ${data.data.subject || 'N/A'}
             </div>
             <div class="mb-3">
-                <strong>Date:</strong> ${data.data.date || 'N/A'}
+                <strong>Attendees:</strong> ${data.data.attendee_names ? data.data.attendee_names.join(', ') : 'No attendees'}
             </div>
             <div class="mb-3">
-                <strong>Time:</strong> ${data.data.start_time || 'N/A'} - ${data.data.end_time || 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Location:</strong> ${data.data.location || 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Attendees:</strong> ${data.data.attendee_names ? data.data.attendee_names.join(', ') : 'None specified'}
-            </div>
-            <div class="mb-3">
-                <strong>Notes:</strong>
-                <div class="p-3 bg-light rounded">${data.data.notes || 'No notes'}</div>
+                <strong>Summary:</strong>
+                <div class="p-3 bg-light rounded">${data.data.summary || 'No summary'}</div>
             </div>
         `;
-    } else if (activityType === 'exception') {
+    } else if (activityType === 'waiver_favour') {
         contentHtml = `
             <div class="mb-3">
-                <strong>Type:</strong> ${data.data.exception_type ? data.data.exception_type.replace('_', ' ').toUpperCase() : 'N/A'}
+                <strong>Waiver/Favor:</strong> ${data.data.subject || 'N/A'}
             </div>
             <div class="mb-3">
-                <strong>Value:</strong> ${data.data.value_amount ? '£' + data.data.value_amount : 'N/A'}
+                <strong>Recipients:</strong> ${data.data.recipient_names ? data.data.recipient_names.join(', ') : 'No recipients'}
             </div>
             <div class="mb-3">
-                <strong>For Contact:</strong> ${data.data.contact_name || 'N/A'}
+                <strong>Summary:</strong>
+                <div class="p-3 bg-light rounded">${data.data.summary || 'No summary'}</div>
+            </div>
+        `;
+    } else if (activityType === 'task') {
+        contentHtml = `
+            <div class="mb-3">
+                <strong>Task:</strong> ${data.data.subject || 'N/A'}
             </div>
             <div class="mb-3">
-                <strong>Approved By:</strong> ${data.data.approved_by ? data.data.approved_by.replace('_', ' ').toUpperCase() : 'N/A'}
+                <strong>Description:</strong> ${data.data.description || 'No description'}
             </div>
             <div class="mb-3">
-                <strong>Description:</strong>
-                <div class="p-3 bg-light rounded">${data.data.description || 'No description'}</div>
+                <strong>Due Date:</strong> ${data.data.due_date ? data.data.due_date : 'No due date'}
             </div>
         `;
     }
-    
-    // Add meta information
-    contentHtml += `
-        <div class="mt-4 pt-3 border-top text-muted small">
-            <div><i class="far fa-clock me-1"></i> ${data.performed_at}</div>
-            <div><i class="far fa-user me-1"></i> ${data.performed_by}</div>
-        </div>
-    `;
     
     return contentHtml;
 }
 */
-
-/**
- * Setup edit button on activity details modal - DISABLED FOR NEW ACTIVITY UI
- */
-/*
-function setupEditButton() {
-    const editButton = document.getElementById('activity-edit-btn');
-    if (!editButton) return;
-    
-    editButton.addEventListener('click', function() {
-        // Code to handle edit functionality
-        if (!currentActivityId) return;
-        
-        // Redirect to edit page or show edit form
-        window.location.href = `/crm/activity/${currentActivityId}/edit/`;
-    });
-}
-*/
-
-/**
- * Setup delete button on activity details modal - DISABLED FOR NEW ACTIVITY UI
- */
-/*
-function setupDeleteButton() {
-    const deleteButton = document.getElementById('activity-delete-btn');
-    if (!deleteButton) return;
-    
-    deleteButton.addEventListener('click', function() {
-        if (!currentActivityId) return;
-        
-        if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
-            // Send delete request
-            jQuery.ajax({
-                url: '/crm/activity/' + currentActivityId + '/delete/',
-                type: 'POST',
-                data: {
-                    csrfmiddlewaretoken: getCsrfToken()
-                },
-                success: function(response) {
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('activity-details-modal'));
-                    if (modal) {
-                        modal.hide();
-                    }
-                    
-                    // Show success message
-                    showMessage('Activity deleted successfully.');
-                    
-                    // Refresh activity list if on company detail page
-                    if (window.location.pathname.includes('/company/')) {
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 500);
-                    }
-                },
-                error: function() {
-                    showMessage('Error deleting activity.', 'danger');
-                }
-            });
-        }
-    });
-}
-*/
-
-// ======================================================
-// Activity Filtering
-// ======================================================
-
-/**
- * Initialize activity filtering
- */
-function initializeActivityFiltering() {
-    const filterForm = document.getElementById('activity-filter-form');
-    if (!filterForm) return;
-    
-    // Add event listeners to form controls
-    const typeFilters = document.querySelectorAll('input[name="activity_type"]');
-    const dateFilter = document.getElementById('date-filter');
-    
-    // Add change event listeners
-    typeFilters.forEach(filter => {
-        filter.addEventListener('change', filterActivities);
-    });
-    
-    if (dateFilter) {
-        dateFilter.addEventListener('change', filterActivities);
-    }
-    
-    // Initial filtering
-    filterActivities();
-}
-
-/**
- * Filter activities based on selected filters
- */
-function filterActivities() {
-    const activities = document.querySelectorAll('.activity-item');
-    if (!activities.length) return;
-    
-    // Get selected filters
-    const selectedTypes = Array.from(
-        document.querySelectorAll('input[name="activity_type"]:checked')
-    ).map(input => input.value);
-    
-    const dateFilter = document.getElementById('date-filter');
-    const dateValue = dateFilter ? dateFilter.value : 'all';
-    
-    let visibleCount = 0;
-    
-    // Filter activities
-    activities.forEach(activity => {
-        const activityType = activity.dataset.activityType;
-        const activityDate = new Date(activity.dataset.activityDate);
-        let typeMatch = selectedTypes.length === 0 || selectedTypes.includes(activityType);
-        let dateMatch = true;
-        
-        // Apply date filtering
-        if (dateValue === 'today') {
-            const today = new Date();
-            dateMatch = activityDate.toDateString() === today.toDateString();
-        } else if (dateValue === 'week') {
-            const today = new Date();
-            const weekAgo = new Date();
-            weekAgo.setDate(today.getDate() - 7);
-            dateMatch = activityDate >= weekAgo;
-        } else if (dateValue === 'month') {
-            const today = new Date();
-            const monthAgo = new Date();
-            monthAgo.setMonth(today.getMonth() - 1);
-            dateMatch = activityDate >= monthAgo;
-        }
-        
-        // Show/hide based on filter match
-        if (typeMatch && dateMatch) {
-            activity.style.display = '';
-            visibleCount++;
-        } else {
-            activity.style.display = 'none';
-        }
-    });
-    
-    // Show/hide empty state message
-    const emptyState = document.getElementById('activities-empty-state');
-    if (emptyState) {
-        emptyState.style.display = visibleCount === 0 ? '' : 'none';
-    }
-}
-
-// ======================================================
-// To-Do functionality
-// ======================================================
-
-/**
- * Initialize To-Do toggles
- */
-function initializeToDoToggles() {
-    const todoToggles = document.querySelectorAll('.todo-complete-toggle');
-    
-    todoToggles.forEach(toggle => {
-        toggle.addEventListener('change', function() {
-            const todoId = this.dataset.todoId;
-            const isComplete = this.checked;
-            
-            // Send AJAX request to update todo status
-            jQuery.ajax({
-                url: '/crm/todo/' + todoId + '/toggle/',
-                type: 'POST',
-                data: {
-                    is_complete: isComplete,
-                    csrfmiddlewaretoken: getCsrfToken()
-                },
-                success: function(response) {
-                    // Update UI
-                    const todoItem = document.querySelector(`.todo-item[data-todo-id="${todoId}"]`);
-                    if (todoItem) {
-                        if (isComplete) {
-                            todoItem.classList.add('completed');
-                        } else {
-                            todoItem.classList.remove('completed');
-                        }
-                    }
-                    
-                    // Show success message
-                    showMessage(response.message || 'To-do updated successfully.');
-                },
-                error: function() {
-                    // Revert checkbox state on error
-                    toggle.checked = !isComplete;
-                    showMessage('Error updating to-do status.', 'danger');
-                }
-            });
-        });
-    });
-}
-
-// ======================================================
-// Recipient selection and forms
-// ======================================================
-
-/**
- * Initialize recipient selection with Tom Select
- */
-function initializeRecipientSelect() {
-    // Only run if Tom Select is available
-    if (typeof TomSelect === 'undefined') {
-        console.error('❌ Tom Select not available');
-        return;
-    }
-
-    const recipientSelectors = document.querySelectorAll('.tom-select');
-    
-    recipientSelectors.forEach(selector => {
-        // Get company ID from the form or data attribute
-        const companyId = selector.closest('form')?.querySelector('input[name="company_id"]')?.value || 
-                          selector.dataset.companyId || 
-                          document.getElementById('company_id')?.value;
-        
-        if (!companyId) {
-            console.warn('⚠️ No company ID found for recipient selector');
-            return;
-        }
-        
-        // Initialize Tom Select
-        const tomSelect = new TomSelect(selector, {
-            plugins: ['remove_button'],
-            maxItems: null,
-            valueField: 'id',
-            labelField: 'text',
-            searchField: ['text'],
-            create: false,
-            placeholder: 'Search for contacts or users...',
-            load: function(query, callback) {
-                // Show loading indicator
-                this.loading = true;
-                
-                // Build URL with parameters
-                const url = '/crm/api/search-recipients/';
-                const params = new URLSearchParams({
-                    q: query,
-                    company_id: companyId
-                });
-                
-                // Fetch results
-                fetch(`${url}?${params.toString()}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(json => {
-                        this.loading = false;
-                        callback(json.results);
-                    })
-                    .catch(error => {
-                        console.error('Error fetching recipients:', error);
-                        this.loading = false;
-                        callback();
-                    });
-            },
-            render: {
-                option: function(data, escape) {
-                    const icon = data.type === 'contact' ? 'user-tie' : 'user';
-                    const email = data.email ? `<small class="text-muted ms-2">(${escape(data.email)})</small>` : '';
-                    return `<div class="tom-select-result">
-                             <i class="fas fa-${icon} me-2"></i>
-                             <span>${escape(data.text)}</span>
-                             ${email}
-                           </div>`;
-                },
-                item: function(data, escape) {
-                    return `<div>${escape(data.text)}</div>`;
-                },
-                no_results: function(data, escape) {
-                    return `<div class="no-results">No results found for "${escape(data.input)}"</div>`;
-                }
-            },
-            onLoad: function() {
-                // This is called after the load function completes
-                console.log('Recipients loaded successfully');
-            },
-            onDropdownOpen: function() {
-                // Focus the search input when dropdown opens
-                this.focus();
-            }
-        });
-        
-        // Log initialization
-        console.log(`Tom Select initialized for ${selector.id || 'recipient selector'}`);
-    });
-}
-
-/**
- * Insert text at cursor position or replace selection
- */
-function insertText(elementId, text) {
-    const textarea = document.getElementById(elementId);
-    if (!textarea) return;
-    
-    const startPos = textarea.selectionStart;
-    const endPos = textarea.selectionEnd;
-    const scrollTop = textarea.scrollTop;
-    
-    textarea.value = textarea.value.substring(0, startPos) + text + textarea.value.substring(endPos, textarea.value.length);
-    textarea.focus();
-    textarea.selectionStart = startPos + text.length;
-    textarea.selectionEnd = startPos + text.length;
-    textarea.scrollTop = scrollTop;
-}
-
-/**
- * Get selected text from textarea
- */
-function getSelectedText(textarea) {
-    if (!textarea) return '';
-    return textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-}
-
-/**
- * Initialize TinyMCE for the email content textarea within a specific form
- */
-function initializeTinyMCEForForm(formElement) {
-    const selectorId = 'email_content';
-    const textarea = formElement.querySelector(`#${selectorId}`);
-
-    if (!textarea) {
-        console.warn(`⚠️ TinyMCE target textarea (#${selectorId}) not found in the form.`);
-        return;
-    }
-
-    console.log(`🔍 Attempting to initialize TinyMCE for #${selectorId}...`);
-
-    // Check if TinyMCE library is loaded
-    if (typeof tinymce === 'undefined') {
-        console.error('❌ TinyMCE library not loaded.');
-        return;
-    }
-
-    // Remove previous instances if they exist for this ID to prevent issues
-    const existingEditor = tinymce.get(selectorId);
-    if (existingEditor) {
-        console.log(`   ⚠️ Removing existing TinyMCE instance for #${selectorId}.`);
-        existingEditor.remove();
-    }
-
-    // Initialize TinyMCE
-    tinymce.init({
-        selector: `#${selectorId}`,
-        plugins: 'autoresize link lists image media table wordcount',
-        toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | link image media table | removeformat',
-        menubar: false,
-        statusbar: true,
-        min_height: 250, // Set a minimum height
-        autoresize_bottom_margin: 20,
-        content_style: 'body { font-family: Roboto, sans-serif; font-size: 14px; }',
-        setup: function (editor) {
-            editor.on('init', function () {
-                console.log(`   ✅ TinyMCE initialized successfully for #${selectorId}`);
-            });
-            editor.on('change keyup', function () {
-                // Ensure the underlying textarea value is updated for form submission
-                editor.save(); 
-            });
-        }
-    }).then(editors => {
-        // Initialization promise resolved
-        if (!editors || editors.length === 0) {
-             console.error(`   ❌ TinyMCE initialization failed for #${selectorId}.`);
-        }
-    }).catch(error => {
-        console.error(`   ❌ Error during TinyMCE initialization for #${selectorId}:`, error);
-    });
-} 

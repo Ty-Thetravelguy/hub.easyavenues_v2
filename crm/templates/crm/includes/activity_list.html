@@ -39,6 +39,8 @@
                                     {% else %}
                                         Note: (No subject)
                                     {% endif %}
+                                {% elif activity.activity_type == 'waiver_favour' and activity.waiveractivity %}
+                                    Type: {{ activity.waiveractivity.type.name|default:"Waiver/Favour" }}
                                 {% elif activity.is_system_activity %}
                                     {{ activity.description|truncatechars:120 }}
                                 {% else %}
