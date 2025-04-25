@@ -1007,6 +1007,9 @@
 
 {% endblock content %}
 
+<!-- Activity Side Panel -->
+{% include 'crm/includes/activity_side_panel.html' %}
+
 {% block extra_js %}
 {{ block.super }}
 <!-- DataTables and Responsive extension -->
@@ -1016,6 +1019,8 @@
 <script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
 <!-- Select2 plugin -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Activity details JavaScript -->
+<script src="{% static 'js/activity_details.js' %}"></script>
 <!-- Company detail JavaScript -->
 <script src="{% static 'js/company_detail.js' %}"></script>
 {% endblock extra_js %}

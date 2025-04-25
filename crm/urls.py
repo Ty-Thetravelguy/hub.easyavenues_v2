@@ -48,7 +48,9 @@ urlpatterns = [
     # Activity Management - New routes using activity_views
     path('activity/<int:activity_id>/details/', activity_views.get_activity_details, name='activity_details'),
     path('activity/<int:activity_id>/details/json/', activity_views.get_activity_details, name='activity_details_json'),
+    path('activity/<int:activity_id>/detail/sidepanel/', activity_views.get_activity_details, name='activity_details_sidepanel'),
     path('activity/<int:activity_id>/edit/', activity_views.edit_activity, name='edit_activity'),
+    path('activity/<int:activity_id>/edit/sidepanel/', activity_views.edit_activity, name='edit_activity_sidepanel'),
     path('activity/<int:activity_id>/delete/', activity_views.delete_activity, name='delete_activity'),
     path('api/search-recipients/', activity_views.search_recipients, name='search_recipients'),
     

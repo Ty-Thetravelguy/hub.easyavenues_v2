@@ -200,6 +200,18 @@ function openActivitySidePanel(activityType) {
     
     // Initialize Bootstrap offcanvas and show
     const offcanvas = new bootstrap.Offcanvas(sidePanel);
+    
+    // Make sure backdrop is cleaned up when panel closes
+    sidePanel.addEventListener('hidden.bs.offcanvas', function() {
+        const backdrop = document.querySelector('.offcanvas-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }, { once: true }); // Use once:true so we don't keep adding listeners
+    
     offcanvas.show();
     
     // Load the appropriate form

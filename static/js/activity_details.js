@@ -1,54 +1,30 @@
-// Activity Details Module
+// Activity Details Module - VERSION 8 (Side Panel Implementation)
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Activity details module loaded - VERSION 7'); // Version marker to confirm new code is loaded
+    console.log('Activity details module loaded - VERSION 8 (Side Panel)'); 
     
-    // Add special handling for modal close button clicks
-    document.addEventListener('click', function(e) {
-        // Check if the clicked element is a modal close button
-        if (e.target.closest('.modal .btn-close') || 
-            (e.target.closest('.modal .btn-secondary') && 
-             e.target.closest('.modal-footer'))) {
-            
-            console.log('Modal close button clicked - managing focus');
-            
-            // Prevent default button behavior
-            e.preventDefault();
-            
-            // First move focus outside the modal
-            document.querySelector('body').setAttribute('tabindex', '-1');
-            document.querySelector('body').focus();
-            
-            // Then close the modal after a tiny delay to ensure focus has moved
-            setTimeout(() => {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('activityDetailModal'));
-                if (modal) {
-                    modal.hide();
-                }
-            }, 10);
-        }
-    });
+    // Get side panel elements
+    const activitySidePanel = document.getElementById('activity-side-panel');
+    const activityPanelTitle = document.getElementById('activitySidePanelLabel');
+    const activityPanelLoading = document.getElementById('activity-panel-loading');
+    const activityPanelFormContainer = document.getElementById('activity-panel-form-container');
     
-    // Add focus management for modal events
-    const activityModal = document.getElementById('activityDetailModal');
-    if (activityModal) {
-        // When modal is about to be hidden
-        activityModal.addEventListener('hide.bs.modal', function(event) {
-            console.log('Modal hide event - fixing focus management');
-            
-            // Ensure no element inside the modal has focus
-            const activeElement = document.activeElement;
-            if (this.contains(activeElement)) {
-                // Move focus to body
-                document.body.setAttribute('tabindex', '-1');
-                document.body.focus();
-            }
-        });
+    // Check if Bootstrap's Offcanvas is available for the side panel
+    let sidePanelInstance = null;
+    if (activitySidePanel) {
+        sidePanelInstance = new bootstrap.Offcanvas(activitySidePanel);
         
-        // After modal is hidden
-        activityModal.addEventListener('hidden.bs.modal', function(event) {
-            console.log('Modal hidden completely');
-            // Remove the tabindex from body when done
-            document.body.removeAttribute('tabindex');
+        // Add event listener for when panel is hidden to clean up backdrop
+        activitySidePanel.addEventListener('hidden.bs.offcanvas', function() {
+            // Clean up any leftover backdrop elements
+            const backdrop = document.querySelector('.offcanvas-backdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+            
+            // Reset body classes and styles
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
         });
     }
     
@@ -61,97 +37,193 @@ document.addEventListener('DOMContentLoaded', function() {
         const activityId = activityItem.getAttribute('data-activity-id');
         console.log('Activity item clicked via delegation:', activityId);
         
-        // Show modal manually
-        const modal = document.getElementById('activityDetailModal');
-        if (!modal) {
-            console.error('Modal element not found');
-            return;
-        }
-            
         // Only prevent default if we're handling the click
         e.preventDefault();
         
-        console.log('Opening modal for activity:', activityId);
-        
-        // Let Bootstrap handle the modal
-        const bsModal = bootstrap.Modal.getInstance(modal) || new bootstrap.Modal(modal);
-        
-        // Show loading indicator
-        const loadingElement = document.getElementById('activity-detail-loading');
-        const contentElement = document.getElementById('activity-detail-content');
-        
-        if (loadingElement) loadingElement.style.display = 'block';
-        if (contentElement) {
-            contentElement.style.display = 'none';
-            // Clear previous content to avoid confusion
-            contentElement.innerHTML = '';
+        // Load activity details into side panel
+        loadActivityDetailsIntoPanel(activityId);
+    });
+    
+    // Function to load activity details into side panel
+    function loadActivityDetailsIntoPanel(activityId) {
+        if (!sidePanelInstance) {
+            console.error('Side panel instance not found');
+            return;
         }
         
-        // Fetch activity details
-        fetchActivityDetailsSimple(activityId);
+        // Change panel title
+        if (activityPanelTitle) {
+            activityPanelTitle.textContent = 'Activity Details';
+        }
         
-        // Show the modal
-        bsModal.show();
-    });
-});
-
-/**
- * Simplified version of fetch function to directly get activity details
- */
-function fetchActivityDetailsSimple(activityId) {
-    if (!activityId) {
-        console.error('No activity ID provided');
-        return;
+        // Show loading state, hide form container
+        if (activityPanelLoading) {
+            activityPanelLoading.style.display = 'block';
+        }
+        if (activityPanelFormContainer) {
+            activityPanelFormContainer.style.display = 'none';
+            activityPanelFormContainer.innerHTML = '';
+        }
+        
+        // Show the panel
+        sidePanelInstance.show();
+        
+        // Fetch activity details
+        fetch(`/crm/activity/${activityId}/detail/sidepanel/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(html => {
+                // Hide loading, show content
+                if (activityPanelLoading) {
+                    activityPanelLoading.style.display = 'none';
+                }
+                if (activityPanelFormContainer) {
+                    activityPanelFormContainer.innerHTML = html;
+                    activityPanelFormContainer.style.display = 'block';
+                }
+                
+                // Bind event handlers for edit/delete buttons
+                bindDetailPanelEventHandlers();
+            })
+            .catch(error => {
+                console.error('Error loading activity details:', error);
+                if (activityPanelLoading) {
+                    activityPanelLoading.style.display = 'none';
+                }
+                if (activityPanelFormContainer) {
+                    activityPanelFormContainer.innerHTML = '<div class="alert alert-danger">Error loading activity details. Please try again.</div>';
+                    activityPanelFormContainer.style.display = 'block';
+                }
+            });
     }
     
-    console.log('Fetching activity details for ID:', activityId);
-    
-    // Use the URL pattern from urls.py
-    const url = `/crm/activity/${activityId}/details/`;
-    
-    fetch(url)
-        .then(response => {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.text();
-        })
-        .then(html => {
-            console.log('Received HTML, length:', html.length);
-            
-            // Update modal content
-            const contentElement = document.getElementById('activity-detail-content');
-            const loadingElement = document.getElementById('activity-detail-loading');
-            
-            if (loadingElement) loadingElement.style.display = 'none';
-            if (contentElement) {
-                contentElement.style.display = 'block';
-                contentElement.innerHTML = html;
+    // Function to bind event handlers within the loaded details
+    function bindDetailPanelEventHandlers() {
+        // Edit button - opens the edit form in the same panel
+        const editButtons = document.querySelectorAll('.edit-activity-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const activityId = this.getAttribute('data-activity-id');
                 
-                // Set up any delete buttons or other interactive elements
-                setupDeleteButtonListeners();
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching activity details:', error);
-            
-            // Show error in modal
-            const contentElement = document.getElementById('activity-detail-content');
-            const loadingElement = document.getElementById('activity-detail-loading');
-            
-            if (loadingElement) loadingElement.style.display = 'none';
-            if (contentElement) {
-                contentElement.style.display = 'block';
-                contentElement.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error loading activity details: ${error.message}
-                    </div>
-                `;
-            }
+                // Update panel title
+                if (activityPanelTitle) {
+                    activityPanelTitle.textContent = 'Edit Activity';
+                }
+                
+                // Show loading, hide content
+                if (activityPanelLoading) {
+                    activityPanelLoading.style.display = 'block';
+                }
+                if (activityPanelFormContainer) {
+                    activityPanelFormContainer.style.display = 'none';
+                }
+                
+                // Load edit form
+                fetch(`/crm/activity/${activityId}/edit/sidepanel/`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        // Hide loading, show form
+                        if (activityPanelLoading) {
+                            activityPanelLoading.style.display = 'none';
+                        }
+                        if (activityPanelFormContainer) {
+                            activityPanelFormContainer.innerHTML = html;
+                            activityPanelFormContainer.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading edit form:', error);
+                        if (activityPanelLoading) {
+                            activityPanelLoading.style.display = 'none';
+                        }
+                        if (activityPanelFormContainer) {
+                            activityPanelFormContainer.innerHTML = '<div class="alert alert-danger">Error loading edit form. Please try again.</div>';
+                            activityPanelFormContainer.style.display = 'block';
+                        }
+                    });
+            });
         });
-}
+        
+        // Delete button
+        const deleteButtons = document.querySelectorAll('.delete-activity-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const activityId = this.getAttribute('data-activity-id');
+                if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
+                    fetch(`/crm/activity/${activityId}/delete/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCsrfToken(),
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Close panel and refresh activity list
+                            sidePanelInstance.hide();
+                            
+                            // Refresh the activities list if available
+                            if (typeof refreshActivitiesList === 'function') {
+                                refreshActivitiesList();
+                            } else {
+                                // Fallback to page reload
+                                window.location.reload();
+                            }
+                        } else {
+                            alert('Error deleting activity: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting activity:', error);
+                        alert('Error deleting activity. Please try again.');
+                    });
+                }
+            });
+        });
+    }
+    
+    // Helper function to get CSRF token
+    function getCsrfToken() {
+        return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || 
+               document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    }
+    
+    // Attach click event to activity links/buttons that should open the side panel
+    function attachActivityDetailClickHandlers() {
+        const activityDetailLinks = document.querySelectorAll('.activity-detail-link');
+        activityDetailLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const activityId = this.getAttribute('data-activity-id');
+                loadActivityDetailsIntoPanel(activityId);
+            });
+        });
+    }
+    
+    // Initialize event handlers
+    attachActivityDetailClickHandlers();
+    
+    // Expose functions globally for other components
+    window.loadActivityDetailsIntoPanel = loadActivityDetailsIntoPanel;
+    window.attachActivityDetailClickHandlers = attachActivityDetailClickHandlers;
+});
 
 /**
  * Get the display name for an activity type

@@ -237,13 +237,20 @@ def get_activity_details(activity, model_name):
         {% endwith %}
     """
     try:
-        # Use Django's _meta API to get the related objects
-        if not hasattr(activity, model_name.lower()):
-            return None
+        # First check if the activity type matches the requested model
+        # Convert model_name (like 'emailactivity') to activity_type (like 'email')
+        requested_type = model_name.lower().replace('activity', '')
         
-        # Get the specific activity model (e.g., emailactivity, callactivity)
-        related_activity = getattr(activity, model_name.lower())
-        return related_activity
+        # Only attempt to access if the types match or it's a special case
+        if activity.activity_type == requested_type or hasattr(activity, model_name.lower()):
+            # Use Django's _meta API to get the related objects
+            if hasattr(activity, model_name.lower()):
+                # Get the specific activity model (e.g., emailactivity, callactivity)
+                related_activity = getattr(activity, model_name.lower())
+                return related_activity
+            
+        # Return None silently if type doesn't match (avoiding warnings)
+        return None
     except Exception as e:
-        # In case of error, return None
+        # In case of error, return None without logging
         return None 

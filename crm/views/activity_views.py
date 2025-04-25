@@ -835,10 +835,13 @@ def activity_list_template(request):
 
 @login_required
 def get_activity_details(request, activity_id):
-    """API endpoint to get activity details as HTML fragment for modal"""
+    """API endpoint to get activity details as HTML fragment for modal or sidepanel"""
     try:
         # Add debug logging
         logging.info(f"get_activity_details called for activity_id: {activity_id}")
+        
+        # Determine if this is a sidepanel request
+        is_sidepanel = 'sidepanel' in request.path
         
         # Get the activity with its subclass
         activity = get_object_or_404(Activity, id=activity_id)
@@ -847,85 +850,62 @@ def get_activity_details(request, activity_id):
         # Get the specific activity type instance
         activity_details = None
         document = None
+        found_document = False
         
         # Handle special cases for activity types with naming mismatches
         if activity.activity_type == 'waiver_favour':
             # For waiver_favour activities, check for waiveractivity
             if hasattr(activity, 'waiveractivity'):
                 activity_details = activity.waiveractivity
-                logging.info(f"Found waiver activity details for ID: {activity.id}")
+                logging.debug(f"Found waiver activity details for ID: {activity.id}")
             else:
-                logging.warning(f"No waiveractivity attribute found on activity {activity.id}")
-        elif hasattr(activity, f"{activity.activity_type}activity"):
-            activity_details = getattr(activity, f"{activity.activity_type}activity")
-            logging.info(f"Activity details found for type: {activity.activity_type}")
-            
-            # Add debug for email activity recipients
-            if activity.activity_type == 'email' and activity_details:
-                try:
-                    # Prefetch related recipient data for EmailActivity
-                    from django.db.models import Prefetch
-                    from crm.models import Contact, EmailActivity
-                    
-                    # Re-query with prefetch_related for better performance
-                    activity_details = EmailActivity.objects.filter(id=activity_details.id).prefetch_related(
-                        'contact_recipients', 'user_recipients'
-                    ).first()
-                    
-                    # Debug counts
-                    contact_recipients_count = activity_details.contact_recipients.count() if activity_details else 0
-                    user_recipients_count = activity_details.user_recipients.count() if activity_details else 0
-                    
-                    logging.info(f"Email activity {activity.id} has {contact_recipients_count} contact recipients and {user_recipients_count} user recipients")
-                    
-                    # List the actual recipients for debugging
-                    contact_recipients = []
-                    if activity_details:
-                        contact_recipients = list(activity_details.contact_recipients.all().values_list('id', 'first_name', 'last_name'))
-                    
-                    logging.info(f"Contact recipients: {contact_recipients}")
-                    
-                    # Check if the exists() method works as expected
-                    exists_result = activity_details.contact_recipients.exists() if activity_details else False
-                    logging.info(f"activity_details.contact_recipients.exists() returns: {exists_result}")
-                    
-                except Exception as e:
-                    logging.error(f"Error debugging email recipients: {str(e)}")
-        else:
-            # For document activities, try to find the document from the description
-            found_document = False
-            if activity.activity_type == 'document' and activity.is_system_activity:
-                from crm.models import Document
-                
-                # Parse document title from description
-                # Formats like: "Uploaded document: Contract.pdf", "Updated document: Invoice.xlsx", etc.
+                # Only log at debug level, not warning
+                logging.debug(f"No waiveractivity attribute found on activity {activity.id}")
+        elif activity.activity_type == 'task':
+            # For task activities, check for taskactivity
+            if hasattr(activity, 'taskactivity'):
+                activity_details = activity.taskactivity
+                logging.debug(f"Found task activity details for ID: {activity.id}")
+            else:
+                # Only log at debug level, not warning
+                logging.debug(f"No taskactivity attribute found on activity {activity.id}")
+        elif activity.is_system_activity and activity.activity_type == 'document':
+            # For system document activities, we need to try and find the document from the description
+            try:
+                # Try to extract document ID from the description
                 import re
-                match = re.search(r'(?:Uploaded|Updated|Deleted|Downloaded) document: (.+)$', activity.description)
-                
-                if match:
-                    document_title = match.group(1)
-                    logging.info(f"Parsed document title from description: {document_title}")
+                document_id_match = re.search(r'document ID: (\d+)', activity.description)
+                if document_id_match:
+                    document_id = int(document_id_match.group(1))
+                    from crm.models import Document
+                    document = Document.objects.get(id=document_id)
+                    logging.debug(f"Found document from description: {document.id}")
+                    found_document = True
+                else:
+                    found_document = False
+            except Exception as doc_e:
+                logging.error(f"Error finding document from description: {str(doc_e)}")
+                found_document = False
+        else:
+            # For all other activity types, try to get the appropriate subclass
+            subclass_name = f"{activity.activity_type}activity"
+            if hasattr(activity, subclass_name):
+                activity_details = getattr(activity, subclass_name)
+                logging.debug(f"Found {subclass_name} details for ID: {activity.id}")
+            else:
+                # Fall back to direct query if attribute access fails - but don't log warnings
+                try:
+                    from django.apps import apps
+                    activity_model = apps.get_model('crm', f"{activity.activity_type.capitalize()}Activity")
+                    activity_details = activity_model.objects.get(activity_ptr_id=activity.id)
+                    logging.debug(f"Found {activity.activity_type} details via query for ID: {activity.id}")
+                except Exception as model_e:
+                    # Just log at debug level to avoid filling logs with warnings
+                    logging.debug(f"Could not get activity details via query: {str(model_e)}")
                     
-                    # Try to find the document (the most recent one with this title for this company)
-                    try:
-                        document = Document.objects.filter(
-                            company=activity.company,
-                            title=document_title
-                        ).order_by('-uploaded_at').first()
-                        
-                        if document:
-                            logging.info(f"Found document: {document.id} - {document.title}")
-                            found_document = True
-                        else:
-                            logging.warning(f"No document found with title: {document_title}")
-                    except Exception as doc_err:
-                        logging.error(f"Error finding document: {str(doc_err)}")
-            
-            # Only log a warning if we couldn't find the document by other means
+            # Skip warning about missing activity subclass - log at debug level if needed
             if activity.activity_type == 'document' and activity.is_system_activity and not found_document:
-                logging.warning(f"No {activity.activity_type}activity attribute found on activity {activity.id} and couldn't find document from description")
-            elif not (activity.activity_type == 'document' and activity.is_system_activity):
-                logging.warning(f"No {activity.activity_type}activity attribute found on activity {activity.id}")
+                logging.debug(f"No {activity.activity_type}activity attribute found on activity {activity.id}")
         
         context = {
             'activity': activity,
@@ -933,8 +913,12 @@ def get_activity_details(request, activity_id):
             'document': document,
         }
         
-        # Log the template that will be used
-        template_path = 'crm/includes/activity_detail_fragment.html'
+        # Determine which template to use based on the request
+        if is_sidepanel:
+            template_path = 'crm/includes/activity_detail_sidepanel_content.html'
+        else:
+            template_path = 'crm/includes/activity_detail_fragment.html'
+            
         logging.info(f"Rendering template: {template_path}")
         
         # Return HTML fragment instead of JSON
@@ -978,7 +962,14 @@ def get_activity_details(request, activity_id):
 def edit_activity(request, activity_id):
     activity = get_object_or_404(Activity.objects.select_subclasses(), id=activity_id)
     form_class = None
-    template_name = 'crm/edit_activity_form.html' # Or a specific one?
+    
+    # Determine if this is a sidepanel request
+    is_sidepanel = 'sidepanel' in request.path
+    
+    if is_sidepanel:
+        template_name = 'crm/edit_activity_sidepanel_form.html'
+    else:
+        template_name = 'crm/edit_activity_form.html'
 
     # Determine the appropriate form class based on activity type
     if isinstance(activity, EmailActivity):
@@ -1004,52 +995,39 @@ def edit_activity(request, activity_id):
         # Handle unknown type or generic Activity if needed
         messages.error(request, f"Editing not supported for this activity type: {type(activity).__name__}")
         return redirect('crm:company_detail', pk=activity.company.id)
-
+    
     if request.method == 'POST':
-        # TODO: Review how follow-up task (ToDoTaskForm) is handled here, may need removal/update
-        form = form_class(request.POST, request.FILES, instance=activity)
-        # todo_form = ToDoTaskForm(request.POST) # Remove if follow-up is handled differently
-        if form.is_valid(): # Add check for todo_form.is_valid() if kept
-            activity = form.save(commit=False)
-            # Ensure performed_by isn't overwritten if not editable
-            # activity.performed_by = request.user 
-            activity.save()
-            form.save_m2m()  # Save many-to-many relationships
-            
-            # Remove old follow-up logic?
-            # if todo_form.cleaned_data.get('to_do_task_date'):
-            #     activity.follow_up_date = todo_form.cleaned_data['to_do_task_date']
-            #     activity.follow_up_notes = todo_form.cleaned_data.get('to_do_task_message', '')
-            #     activity.save()
-            
+        form = form_class(request.POST, instance=activity)
+        if form.is_valid():
+            form.save()
             messages.success(request, 'Activity updated successfully.')
-            return redirect('crm:company_detail', pk=activity.company.id)
-        else:
-            messages.error(request, 'Please correct the errors below.')
+            
+            # For sidepanel requests, return a small success fragment
+            if is_sidepanel:
+                return HttpResponse('''
+                    <div class="alert alert-success">
+                        Activity updated successfully.
+                        <button type="button" class="btn btn-primary btn-sm float-end view-updated-activity" 
+                                data-activity-id="{}">View Updated Activity</button>
+                    </div>
+                '''.format(activity.id))
+            else:
+                return redirect('crm:company_detail', pk=activity.company.id)
     else:
-        # Pre-populate the form with existing data
-        initial_data = {}
-        # Remove old data field handling if fields are now direct model fields
-        # if hasattr(activity, 'data') and activity.data:
-        #     initial_data.update(activity.data)
-        #     # Handle old follow-up data?
-        #     if 'todo' in activity.data:
-        #         todo_form = ToDoTaskForm(initial={...})
-        #     else:
-        #         todo_form = ToDoTaskForm()
-        # else:
-        #     todo_form = ToDoTaskForm()
-        
-        form = form_class(instance=activity, initial=initial_data)
-        # todo_form = ToDoTaskForm() # Instantiate blank if not pre-filled
-
+        form = form_class(instance=activity)
+    
     context = {
         'form': form,
-        # 'todo_form': todo_form, # Remove if not used
         'activity': activity,
         'company': activity.company,
-        'title': f'Edit {activity.get_activity_type_display()} Activity' # This should update automatically if model verbose name changes
     }
+    
+    # If it's an AJAX request or sidepanel, return just the form
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or is_sidepanel:
+        html = render_to_string(template_name, context, request=request)
+        return HttpResponse(html)
+    
+    # Otherwise render the full page
     return render(request, template_name, context)
 
 @login_required

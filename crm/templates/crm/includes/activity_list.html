@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize static %}
 
 <div class="activity-list">
     
@@ -9,9 +9,7 @@
         
         <ul class="list-group">
             {% for activity in activities %}
-                <li class="list-group-item {% if activity.is_system_activity %}system-activity{% else %}manual-activity{% endif %}" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#activityDetailModal" 
+                <li class="list-group-item {% if activity.is_system_activity %}system-activity{% else %}manual-activity{% endif %} activity-detail-link" 
                     data-activity-id="{{ activity.id }}"
                     role="button">
                     
@@ -23,32 +21,33 @@
                                 <span class="badge bg-primary me-2">{{ activity.get_activity_type_display }}</span>
                             {% endif %}
                             
-                            <span class="activity-description">
-                                {% if activity.activity_type == 'email' and activity.emailactivity %}
-                                    Subject: {{ activity.emailactivity.subject|default:"(No subject)" }}
-                                {% elif activity.activity_type == 'call' and activity.callactivity %}
-                                    Call Purpose: {{ activity.callactivity.summary|default:"(No purpose)" }}
-                                {% elif activity.activity_type == 'meeting' and activity.meetingactivity %}
-                                    Meeting: {{ activity.meetingactivity.title|default:"(No title)" }}
-                                {% elif activity.activity_type == 'note' and activity.noteactivity %}
-                                    {% if activity.noteactivity.is_important %}
-                                        <i class="fas fa-star text-warning me-1" title="Important Note"></i>
-                                    {% endif %}
-                                    {% if activity.noteactivity.subject %}
-                                        Subject: {{ activity.noteactivity.subject.name }}
-                                    {% else %}
-                                        Note: (No subject)
-                                    {% endif %}
-                                {% elif activity.activity_type == 'waiver_favour' and activity.waiveractivity %}
-                                    Type: {{ activity.waiveractivity.type.name|default:"Waiver/Favour" }}
-                                {% elif activity.is_system_activity %}
-                                    {{ activity.description|truncatechars:120 }}
-                                {% else %}
-                                    {{ activity.description|truncatechars:120 }}
-                                {% endif %}
-                            </span>
+                            {% if activity.activity_type == 'email' %}
+                                <i class="fas fa-envelope me-2"></i>
+                            {% elif activity.activity_type == 'call' %}
+                                <i class="fas fa-phone me-2"></i>
+                            {% elif activity.activity_type == 'meeting' %}
+                                <i class="fas fa-users me-2"></i>
+                            {% elif activity.activity_type == 'note' %}
+                                <i class="fas fa-sticky-note me-2"></i>
+                            {% elif activity.activity_type == 'document' %}
+                                <i class="fas fa-file-alt me-2"></i>
+                            {% elif activity.activity_type == 'waiver_favour' %}
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                            {% elif activity.activity_type == 'task' %}
+                                <i class="fas fa-tasks me-2"></i>
+                            {% elif activity.activity_type == 'status_change' %}
+                                <i class="fas fa-exchange-alt me-2"></i>
+                            {% elif activity.activity_type == 'policy_update' %}
+                                <i class="fas fa-file-contract me-2"></i>
+                            {% else %}
+                                <i class="fas fa-clipboard-list me-2"></i>
+                            {% endif %}
+                            
+                            <span>{{ activity.description|truncatechars:100 }}</span>
                         </div>
-                        <small class="text-muted ms-2">{{ activity.performed_at|naturaltime }}</small>
+                        <div class="text-nowrap ms-3">
+                            <small class="text-muted">{{ activity.performed_at|naturaltime }}</small>
+                        </div>
                     </div>
                     
                     <div class="mt-2 text-muted">
@@ -67,31 +66,6 @@
             No activities found for type "{{ activity_type }}"
         </div>
     {% endif %}
-</div>
-
-<!-- Activity Detail Modal (Will be initialized via Bootstrap JS) -->
-<div class="modal fade" id="activityDetailModal" tabindex="-1" aria-labelledby="activityDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="activityDetailModalLabel">Activity Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="activity-detail-loading" class="text-center my-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-                <div id="activity-detail-content" style="display: none;">
-                    <!-- Content will be loaded via AJAX -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <style>
