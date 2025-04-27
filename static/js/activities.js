@@ -1,6 +1,53 @@
 // Consolidated activities functionality for Easy Avenues CRM
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 Easy Avenues CRM - Initializing activities.js');
+    console.log('🔄 Easy Avenues CRM - Initializing activities.js with DEBUG (v9.1)');
+    
+    // Debug: Log all side panel elements 
+    console.log('Side Panel Elements:');
+    console.log('- activity-side-panel:', document.getElementById('activity-side-panel'));
+    console.log('- activitySidePanelLabel:', document.getElementById('activitySidePanelLabel'));
+    console.log('- activity-panel-loading:', document.getElementById('activity-panel-loading'));
+    console.log('- activity-panel-form-container:', document.getElementById('activity-panel-form-container'));
+    
+    // Side Panel Elements (shared between create and details)
+    const activitySidePanel = document.getElementById('activity-side-panel');
+    const activityPanelTitle = document.getElementById('activitySidePanelLabel');
+    const activityPanelLoading = document.getElementById('activity-panel-loading');
+    const activityPanelFormContainer = document.getElementById('activity-panel-form-container');
+    
+    // Make side panel elements globally accessible 
+    window.activitySidePanel = activitySidePanel;
+    window.activityPanelTitle = activityPanelTitle;
+    window.activityPanelLoading = activityPanelLoading;
+    window.activityPanelFormContainer = activityPanelFormContainer;
+    
+    // Initialize Bootstrap Offcanvas instance
+    let sidePanelInstance = null;
+    if (activitySidePanel) {
+        try {
+            sidePanelInstance = new bootstrap.Offcanvas(activitySidePanel);
+            window.sidePanelInstance = sidePanelInstance; // Make it globally accessible
+            console.log('✅ Bootstrap Offcanvas instance created successfully');
+            
+            // Add event listener for when panel is hidden to clean up backdrop
+            activitySidePanel.addEventListener('hidden.bs.offcanvas', function() {
+                // Clean up any leftover backdrop elements
+                const backdrop = document.querySelector('.offcanvas-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+                
+                // Reset body classes and styles
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+            });
+        } catch (error) {
+            console.error('⚠️ Error initializing Bootstrap Offcanvas:', error);
+        }
+    } else {
+        console.error("⚠️ Activity side panel element not found!");
+    }
     
     // Initialize activity tabs
     initializeActivityTabs();
@@ -8,45 +55,226 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up activity card click handlers
     setupActivityCardHandlers();
     
-    // Initialize activity filtering
-    initializeActivityFiltering();
+    // Initialize activity filtering (if available)
+    if (typeof initializeActivityFiltering === 'function') {
+        initializeActivityFiltering();
+    } else {
+        console.log('Activity filtering not initialized (function not found)');
+    }
     
     // Initialize date/time pickers for activities
     initializeDateTimePickers();
     
-    // Initialize To-do toggles
-    initializeToDoToggles();
-    
-    // Directly load all activities when on a company page
-    const companyIdField = document.getElementById('company_id');
-    const activitiesTab = document.getElementById('activities');
-    
-    if (companyIdField && activitiesTab) {
-        console.log('Company page detected, will load initial activities...');
-        
-        // Check if we're on the activities tab or another tab
-        const activitiesTabLink = document.getElementById('activities-tab');
-        
-        // Initial load ONLY for the default active tab ('all')
-        setTimeout(function() {
-            console.log('Initial load of activities...');
-            loadActivitiesByType('all'); 
-            // REMOVED preloading loop for other specific tabs
-            // const activityTypes = ['email', 'call', 'meeting', 'note', 'waiver_favour', 'task'];
-            // for (const type of activityTypes) {
-            //     setTimeout(() => loadActivitiesByType(type), 500);
-            // }
-        }, 500);
-        
-        // Manual trigger for activities tab
-        if (activitiesTabLink) {
-            activitiesTabLink.addEventListener('click', function() {
-                console.log('Activities tab clicked, loading all activities...');
-                // Force reload activities after a small delay
-                setTimeout(() => loadActivitiesByType('all'), 300);
-            });
-        }
+    // Initialize To-do toggles (if available)
+    if (typeof initializeToDoToggles === 'function') {
+        initializeToDoToggles();
+    } else {
+        console.log('To-do toggles not initialized (function not found)');
     }
+    
+    // Attach click handlers to activity detail links
+    attachActivityDetailClickHandlers();
+    
+    // Also set up direct handlers for email activities as a failsafe
+    setupEmailActivityClickHandlers();
+    
+    // Debug: Log all activity items visible on the page
+    const activityItems = document.querySelectorAll('.activity-list .list-group-item');
+    console.log(`Found ${activityItems.length} activity items on page load`);
+    activityItems.forEach((item, index) => {
+        const id = item.getAttribute('data-activity-id');
+        const type = item.getAttribute('data-activity-type');
+        const hasDetailLinkClass = item.classList.contains('activity-detail-link');
+        console.log(`Item ${index}: ID=${id}, Type=${type}, Has activity-detail-link class=${hasDetailLinkClass}`);
+    });
+    
+    // Use event delegation to handle clicks on activity items that are loaded dynamically
+    document.addEventListener('click', function(e) {
+        console.log("⚡ Click event captured on:", e.target);
+        
+        // Find the closest activity list item ancestor of the clicked element
+        const activityItem = e.target.closest('.activity-list .list-group-item');
+        if (!activityItem) {
+            console.log("❌ No activity item found in the clicked element's ancestors");
+            return; // Not clicking on an activity item
+        }
+        
+        const activityId = activityItem.getAttribute('data-activity-id');
+        const activityType = activityItem.getAttribute('data-activity-type');
+        const isEmailActivity = activityType === 'email';
+        
+        console.log(`✅ Activity item clicked: ID=${activityId}, Type=${activityType}, Is Email=${isEmailActivity}`);
+        
+        // Only prevent default if we're handling the click
+        e.preventDefault();
+        
+        // Load activity details into side panel
+        loadActivityDetailsIntoPanel(activityId);
+    });
+    
+    // Function to load activity details into side panel
+    function loadActivityDetailsIntoPanel(activityId) {
+        console.log(`🔍 Loading activity details for ID: ${activityId}`);
+        
+        if (!activityId) {
+            console.error("❌ No activity ID provided to loadActivityDetailsIntoPanel");
+            return;
+        }
+        
+        if (!sidePanelInstance) {
+            console.error('❌ Side panel instance not found - attempting to create it');
+            const sidePanel = document.getElementById('activity-side-panel');
+            if (sidePanel) {
+                try {
+                    sidePanelInstance = new bootstrap.Offcanvas(sidePanel);
+                    console.log('✅ Created new Offcanvas instance');
+                } catch (error) {
+                    console.error('⚠️ Error creating Offcanvas instance:', error);
+                    return;
+                }
+            } else {
+                console.error('❌ Side panel element not found in the DOM');
+                return;
+            }
+        }
+        
+        // Change panel title
+        if (activityPanelTitle) {
+            activityPanelTitle.textContent = 'Activity Details';
+        } else {
+            console.warn('⚠️ Activity panel title element not found');
+        }
+        
+        // Show loading state, hide form container
+        if (activityPanelLoading) {
+            activityPanelLoading.style.display = 'block';
+        } else {
+            console.warn('⚠️ Activity panel loading element not found');
+        }
+        
+        if (activityPanelFormContainer) {
+            activityPanelFormContainer.style.display = 'none';
+            activityPanelFormContainer.innerHTML = '';
+        } else {
+            console.warn('⚠️ Activity panel form container element not found');
+        }
+        
+        // Show the panel
+        try {
+            sidePanelInstance.show();
+            console.log('✅ Side panel shown successfully');
+        } catch(err) {
+            console.error('❌ Error showing side panel:', err);
+            // Try to create a new instance and show it
+            try {
+                sidePanelInstance = new bootstrap.Offcanvas(activitySidePanel);
+                sidePanelInstance.show();
+                console.log('✅ Created new instance and showed panel successfully');
+            } catch(retryErr) {
+                console.error('❌ Failed to create and show panel even after retry:', retryErr);
+                return;
+            }
+        }
+        
+        // Fetch activity details
+        const url = `/crm/activity/${activityId}/detail/sidepanel/`;
+        console.log(`🔄 Fetching activity details from: ${url}`);
+        
+        fetch(url)
+            .then(response => {
+                console.log(`📊 Response status: ${response.status} ${response.statusText}`);
+                if (!response.ok) {
+                    throw new Error(`Network response error: ${response.status} ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                console.log(`📝 Received HTML response (${html.length} characters)`);
+                
+                if (!html || html.trim().length === 0) {
+                    throw new Error('Empty response received from server');
+                }
+                
+                // For debugging - check for specific email activity issues
+                if (html.includes('EmailActivity') || html.includes('activity_type == \'email\'')) {
+                    console.log('Email activity references found in HTML');
+                }
+                
+                // Hide loading, show content
+                if (activityPanelLoading) {
+                    activityPanelLoading.style.display = 'none';
+                }
+                if (activityPanelFormContainer) {
+                    activityPanelFormContainer.innerHTML = html;
+                    activityPanelFormContainer.style.display = 'block';
+                    console.log('✅ Content loaded into side panel successfully');
+                    
+                    // Bind event handlers for edit/delete buttons
+                    bindDetailPanelEventHandlers();
+                } else {
+                    console.error('❌ Cannot find form container to display content');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error loading activity details:', error);
+                if (activityPanelLoading) {
+                    activityPanelLoading.style.display = 'none';
+                }
+                if (activityPanelFormContainer) {
+                    activityPanelFormContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading activity details: ${error.message}. Please try again.
+                        </div>`;
+                    activityPanelFormContainer.style.display = 'block';
+                }
+            });
+    }
+    
+    // Attach click event to activity links/buttons that should open the side panel
+    function attachActivityDetailClickHandlers() {
+        const activityDetailLinks = document.querySelectorAll('.activity-detail-link');
+        console.log(`Found ${activityDetailLinks.length} activity detail links to attach handlers to`);
+        
+        activityDetailLinks.forEach((link, index) => {
+            const id = link.getAttribute('data-activity-id');
+            const type = link.getAttribute('data-activity-type');
+            console.log(`Link ${index}: ID=${id}, Type=${type}`);
+            
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const activityId = this.getAttribute('data-activity-id');
+                console.log(`Activity detail link clicked directly: ${activityId}`);
+                loadActivityDetailsIntoPanel(activityId);
+            });
+        });
+    }
+    
+    // Set up direct handlers on all email activity items as a failsafe
+    function setupEmailActivityClickHandlers() {
+        const emailItems = document.querySelectorAll('.list-group-item[data-activity-type="email"]');
+        console.log(`Setting up direct handlers for ${emailItems.length} email activity items`);
+        
+        emailItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const activityId = this.getAttribute('data-activity-id');
+                console.log(`Direct email activity click handler called: ${activityId}`);
+                loadActivityDetailsIntoPanel(activityId);
+            });
+        });
+    }
+    
+    // Call function to set up direct email handlers
+    setupEmailActivityClickHandlers();
+    
+    // Attach click event to activity links/buttons that should open the side panel
+    attachActivityDetailClickHandlers();
+    
+    // Expose functions globally for other components
+    window.loadActivityDetailsIntoPanel = loadActivityDetailsIntoPanel;
+    window.attachActivityDetailClickHandlers = attachActivityDetailClickHandlers;
+    window.setupEmailActivityClickHandlers = setupEmailActivityClickHandlers;
 });
 
 // ======================================================
@@ -1080,29 +1308,32 @@ function setupActivityDetailsModal() {
 */
 
 /**
- * Helper function to get activity type title
+ * Show a message to the user
+ * @param {string} message - The message to show
+ * @param {string} type - The type of message (success, danger, etc.)
  */
-function getActivityTypeTitle(type) {
-    const titles = {
-        'email': 'Email',
-        'call': 'Call',
-        'note': 'Note',
-        'meeting': 'Meeting',
-        'exception': 'Waiver/Favor'
-    };
-    return titles[type] || 'Activity';
-}
-
-/**
- * Get loading HTML for spinners
- */
-function getLoadingHTML() {
-    return `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Loading activity details...</p>
-        </div>
-    `;
+function showMessage(message, type = 'info') {
+    // If the project uses Bootstrap toasts, create and show one
+    const toastContainer = document.querySelector('.toast-container');
+    if (toastContainer) {
+        const toastHTML = `
+            <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+        const toastElement = toastContainer.querySelector('.toast:last-child');
+        const toast = new bootstrap.Toast(toastElement);
+        toast.show();
+    } else {
+        // Fallback to simple alert
+        alert(message);
+    }
 }
 
 /**
@@ -1136,82 +1367,314 @@ function fetchActivityDetails(activityId, modal) {
  */
 /*
 function formatActivityDetails(activityType, data) {
-    let contentHtml = '';
-    
-    // Format based on activity type
-    if (activityType === 'email') {
-        contentHtml = `
-            <div class="mb-3">
-                <strong>Subject:</strong> ${data.data.subject || 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Recipients:</strong> ${data.data.recipient_names ? data.data.recipient_names.join(', ') : 'No recipients'}
-            </div>
-            <div class="mb-3">
-                <strong>Message:</strong>
-                <div class="p-3 bg-light rounded">${data.data.content || 'No content'}</div>
-            </div>
-        `;
-    } else if (activityType === 'call') {
-        contentHtml = `
-            <div class="mb-3">
-                <strong>Contact:</strong> ${data.data.contact_name || 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Duration:</strong> ${data.data.duration ? data.data.duration + ' minutes' : 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Summary:</strong>
-                <div class="p-3 bg-light rounded">${data.data.summary || 'No summary'}</div>
-            </div>
-        `;
-    } else if (activityType === 'note') {
-        contentHtml = `
-            <div class="mb-3">
-                <strong>Note:</strong>
-                <div class="p-3 bg-light rounded">${data.data.content || 'No content'}</div>
-            </div>
-        `;
-    } else if (activityType === 'meeting') {
-        contentHtml = `
-            <div class="mb-3">
-                <strong>Meeting:</strong> ${data.data.subject || 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Attendees:</strong> ${data.data.attendee_names ? data.data.attendee_names.join(', ') : 'No attendees'}
-            </div>
-            <div class="mb-3">
-                <strong>Summary:</strong>
-                <div class="p-3 bg-light rounded">${data.data.summary || 'No summary'}</div>
-            </div>
-        `;
-    } else if (activityType === 'waiver_favour') {
-        contentHtml = `
-            <div class="mb-3">
-                <strong>Waiver/Favor:</strong> ${data.data.subject || 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Recipients:</strong> ${data.data.recipient_names ? data.data.recipient_names.join(', ') : 'No recipients'}
-            </div>
-            <div class="mb-3">
-                <strong>Summary:</strong>
-                <div class="p-3 bg-light rounded">${data.data.summary || 'No summary'}</div>
-            </div>
-        `;
-    } else if (activityType === 'task') {
-        contentHtml = `
-            <div class="mb-3">
-                <strong>Task:</strong> ${data.data.subject || 'N/A'}
-            </div>
-            <div class="mb-3">
-                <strong>Description:</strong> ${data.data.description || 'No description'}
-            </div>
-            <div class="mb-3">
-                <strong>Due Date:</strong> ${data.data.due_date ? data.data.due_date : 'No due date'}
-            </div>
-        `;
-    }
-    
-    return contentHtml;
+    // Function code removed as it's no longer used
 }
 */
+
+// ======================================================
+// Helper Functions (Added from activity_details.js)
+// ======================================================
+
+/**
+ * Helper function to get CSRF token
+ * @returns {string} The CSRF token value
+ */
+function getCsrfToken() {
+    return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || 
+           document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+}
+
+/**
+ * Get the display name for an activity type
+ * @param {string} type - The activity type code
+ * @returns {string} The display name for the activity type
+ */
+function getActivityTypeDisplay(type) {
+    const typeMap = {
+        'email': 'Email',
+        'call': 'Call',
+        'meeting': 'Meeting',
+        'note': 'Note',
+        'waiver_favour': 'Waiver & Favour',
+        'task': 'Task',
+        'document': 'Document',
+        'status_change': 'Status Change',
+        'policy_update': 'Policy Update',
+        'update': 'Update'
+    };
+    
+    return typeMap[type] || 'Activity';
+}
+
+/**
+ * Format an ISO datetime string to a friendly format
+ * @param {string} isoString - The ISO datetime string
+ * @returns {string} Formatted date and time
+ */
+function formatDateTime(isoString) {
+    if (!isoString) return 'N/A';
+    
+    const date = new Date(isoString);
+    return date.toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// ======================================================
+// Compatibility Functions (from activity_details.js)
+// ======================================================
+
+/**
+ * Compatibility wrapper for the older activity details modal
+ * @deprecated Use loadActivityDetailsIntoPanel instead
+ */
+function initActivityDetailsModal() {
+    console.log('Original initActivityDetailsModal called - this is no longer used');
+}
+
+/**
+ * Compatibility wrapper for the older fetch activity details function
+ * @param {string} activityId - The ID of the activity to load
+ * @deprecated Use loadActivityDetailsIntoPanel instead
+ */
+function fetchActivityDetails(activityId) {
+    console.log('Original fetchActivityDetails called with ID:', activityId);
+    // In the original code, this called fetchActivityDetailsSimple, but we'll use our new function
+    if (typeof loadActivityDetailsIntoPanel === 'function') {
+        loadActivityDetailsIntoPanel(activityId);
+    } else {
+        console.error('loadActivityDetailsIntoPanel function not available');
+    }
+}
+
+/**
+ * Compatibility wrapper for the older setup delete button listeners
+ * @deprecated Delete buttons are now handled by bindDetailPanelEventHandlers
+ */
+function setupDeleteButtonListeners() {
+    console.log('Setting up delete button listeners (compatibility function)');
+    const deleteButtons = document.querySelectorAll('.delete-activity-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const activityId = this.getAttribute('data-activity-id');
+            
+            if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
+                // Use the new fetch-based deletion method instead of redirect
+                if (typeof getCsrfToken === 'function') {
+                    fetch(`/crm/activity/${activityId}/delete/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCsrfToken(),
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Refresh activities
+                            if (typeof loadActivitiesByType === 'function') {
+                                loadActivitiesByType('all');
+                            } else {
+                                // Fallback to page reload
+                                window.location.reload();
+                            }
+                        } else {
+                            alert('Error deleting activity: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting activity:', error);
+                        alert('Error deleting activity. Please try again.');
+                    });
+                } else {
+                    // Fall back to the old redirect method
+                    window.location.href = `/crm/activity/${activityId}/delete/`;
+                }
+            }
+        });
+    });
+}
+
+// Function to bind event handlers within the loaded details
+function bindDetailPanelEventHandlers() {
+    // Edit button - opens the edit form in the same panel
+    const editButtons = document.querySelectorAll('.edit-activity-btn');
+    console.log(`Found ${editButtons.length} edit buttons to bind handlers to`);
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const activityId = this.getAttribute('data-activity-id');
+            console.log(`Edit button clicked for activity ID: ${activityId}`);
+            
+            // Update panel title
+            if (activityPanelTitle) {
+                activityPanelTitle.textContent = 'Edit Activity';
+            }
+            
+            // Show loading, hide content
+            if (activityPanelLoading) {
+                activityPanelLoading.style.display = 'block';
+            }
+            if (activityPanelFormContainer) {
+                activityPanelFormContainer.style.display = 'none';
+            }
+            
+            // Load edit form
+            fetch(`/crm/activity/${activityId}/edit/sidepanel/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // Hide loading, show form
+                    if (activityPanelLoading) {
+                        activityPanelLoading.style.display = 'none';
+                    }
+                    if (activityPanelFormContainer) {
+                        activityPanelFormContainer.innerHTML = html;
+                        activityPanelFormContainer.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading edit form:', error);
+                    if (activityPanelLoading) {
+                        activityPanelLoading.style.display = 'none';
+                    }
+                    if (activityPanelFormContainer) {
+                        activityPanelFormContainer.innerHTML = '<div class="alert alert-danger">Error loading edit form. Please try again.</div>';
+                        activityPanelFormContainer.style.display = 'block';
+                    }
+                });
+        });
+    });
+    
+    // Delete button
+    const deleteButtons = document.querySelectorAll('.delete-activity-btn');
+    console.log(`Found ${deleteButtons.length} delete buttons to bind handlers to`);
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const activityId = this.getAttribute('data-activity-id');
+            console.log(`Delete button clicked for activity ID: ${activityId}`);
+            
+            if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
+                fetch(`/crm/activity/${activityId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Close panel and refresh activity list
+                        sidePanelInstance.hide();
+                        
+                        // Refresh the activities list 
+                        // Call loadActivitiesByType for current tab type instead of page reload
+                        const activeTab = document.querySelector('.activity-tabs .nav-link.active');
+                        const activeType = activeTab?.dataset.activityType || 'all';
+                        loadActivitiesByType(activeType);
+                        
+                        // Also reload the 'all' tab if we're not on it
+                        if (activeType !== 'all') {
+                            loadActivitiesByType('all');
+                        }
+                    } else {
+                        alert('Error deleting activity: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting activity:', error);
+                    alert('Error deleting activity. Please try again.');
+                });
+            }
+        });
+    });
+}
+
+// Also add back the initial load of activities
+// Directly load all activities when on a company page
+const companyIdField = document.getElementById('company_id');
+const activitiesTab = document.getElementById('activities');
+
+if (companyIdField && activitiesTab) {
+    console.log('🏢 Company page detected, will load initial activities...');
+    
+    // Check if we're on the activities tab or another tab
+    const activitiesTabLink = document.getElementById('activities-tab');
+    
+    // Initial load ONLY for the default active tab ('all')
+    setTimeout(function() {
+        console.log('🔄 Initial load of activities...');
+        loadActivitiesByType('all'); 
+    }, 500);
+    
+    // Manual trigger for activities tab
+    if (activitiesTabLink) {
+        activitiesTabLink.addEventListener('click', function() {
+            console.log('📋 Activities tab clicked, loading all activities...');
+            // Force reload activities after a small delay
+            setTimeout(() => loadActivitiesByType('all'), 300);
+        });
+    }
+}
+
+// Add a basic implementation of the missing functions
+function initializeActivityFiltering() {
+    console.log('Activity filtering initialization stub (placeholder)');
+    
+    // Add actual filtering implementation if needed
+    const filterInputs = document.querySelectorAll('.activity-filter-input');
+    filterInputs.forEach(input => {
+        input.addEventListener('keyup', function() {
+            const filterValue = this.value.toLowerCase();
+            const activityItems = document.querySelectorAll('.activity-list .list-group-item');
+            
+            activityItems.forEach(item => {
+                const textContent = item.textContent.toLowerCase();
+                if (textContent.includes(filterValue)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+}
+
+function initializeToDoToggles() {
+    console.log('To-do toggles initialization stub (placeholder)');
+    
+    // Add actual to-do toggle implementation if needed
+    const todoCheckboxes = document.querySelectorAll('.todo-checkbox');
+    todoCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const todoId = this.getAttribute('data-todo-id');
+            if (todoId) {
+                console.log(`Todo ${todoId} toggled to ${this.checked ? 'completed' : 'not completed'}`);
+                // Add AJAX call here to update the todo status if needed
+            }
+        });
+    });
+}

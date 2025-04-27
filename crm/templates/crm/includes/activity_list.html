@@ -2,19 +2,16 @@
 
 <div class="activity-list">
     
-    {% if activities %}
-        <div class="alert alert-info mb-3">
-            Found {{ activities|length }} activities of type "{{ activity_type }}"
-        </div>
-        
+    {% if activities %}      
         <ul class="list-group">
             {% for activity in activities %}
                 <li class="list-group-item {% if activity.is_system_activity %}system-activity{% else %}manual-activity{% endif %} activity-detail-link" 
                     data-activity-id="{{ activity.id }}"
+                    data-activity-type="{{ activity.activity_type }}"
                     role="button">
                     
                     <div class="d-flex w-100 justify-content-between">
-                        <div>
+                        <div class="activity-content">
                             {% if activity.is_system_activity %}
                                 <span class="badge bg-secondary me-2">System</span>
                             {% else %}
@@ -43,7 +40,11 @@
                                 <i class="fas fa-clipboard-list me-2"></i>
                             {% endif %}
                             
-                            <span>{{ activity.description|truncatechars:100 }}</span>
+                            {% if activity.activity_type == 'email' %}
+                                <span>{{ activity.emailactivity.subject|default:activity.description|truncatechars:100 }}</span>
+                            {% else %}
+                                <span>{{ activity.description|truncatechars:100 }}</span>
+                            {% endif %}
                         </div>
                         <div class="text-nowrap ms-3">
                             <small class="text-muted">{{ activity.performed_at|naturaltime }}</small>
@@ -62,8 +63,12 @@
             {% endfor %}
         </ul>
     {% else %}
-        <div class="alert alert-warning">
-            No activities found for type "{{ activity_type }}"
+        <div class="text-center py-5">
+            <div class="empty-state-container">
+                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No activities found</h5>
+                <p class="text-muted">There are no activities of type "{{ activity_type }}" to display.</p>
+            </div>
         </div>
     {% endif %}
 </div>
@@ -88,7 +93,7 @@
     }
 </style>
 
-{% if activity_details.contact_attendees.exists or activity_details.user_attendees.exists %}
+{% comment %} {% if activity_details.contact_attendees.exists or activity_details.user_attendees.exists %}
     <ul class="list-unstyled mb-0">
         {% for attendee in activity_details.contact_attendees.all %}
             <li>{{ attendee.get_full_name }} (Contact)</li>
@@ -99,4 +104,4 @@
     </ul>
 {% else %}
     <em>No attendees recorded</em>
-{% endif %} 
+{% endif %}  {% endcomment %}

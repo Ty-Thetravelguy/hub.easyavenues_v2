@@ -842,6 +842,7 @@ def get_activity_details(request, activity_id):
         
         # Determine if this is a sidepanel request
         is_sidepanel = 'sidepanel' in request.path
+        logging.info(f"Is sidepanel request: {is_sidepanel}")
         
         # Get the activity with its subclass
         activity = get_object_or_404(Activity, id=activity_id)
@@ -869,23 +870,30 @@ def get_activity_details(request, activity_id):
             else:
                 # Only log at debug level, not warning
                 logging.debug(f"No taskactivity attribute found on activity {activity.id}")
-        elif activity.is_system_activity and activity.activity_type == 'document':
-            # For system document activities, we need to try and find the document from the description
-            try:
-                # Try to extract document ID from the description
-                import re
-                document_id_match = re.search(r'document ID: (\d+)', activity.description)
-                if document_id_match:
-                    document_id = int(document_id_match.group(1))
-                    from crm.models import Document
-                    document = Document.objects.get(id=document_id)
-                    logging.debug(f"Found document from description: {document.id}")
-                    found_document = True
-                else:
-                    found_document = False
-            except Exception as doc_e:
-                logging.error(f"Error finding document from description: {str(doc_e)}")
-                found_document = False
+        elif activity.activity_type == 'email':
+            # Special handling for email activities
+            logging.info(f"Processing email activity with ID: {activity.id}")
+            if hasattr(activity, 'emailactivity'):
+                activity_details = activity.emailactivity
+                logging.info(f"Found email activity details via attribute for ID: {activity.id}")
+            else:
+                # Try direct query
+                try:
+                    from django.apps import apps
+                    email_model = apps.get_model('crm', 'EmailActivity')
+                    activity_details = email_model.objects.get(activity_ptr_id=activity.id)
+                    logging.info(f"Found email activity details via query for ID: {activity.id}")
+                except Exception as e:
+                    logging.error(f"Error retrieving email activity details: {str(e)}")
+                    # Create a default empty activity details for rendering
+                    activity_details = {
+                        'subject': '(Email details unavailable)',
+                        'body': f'Error retrieving email details: {str(e)}',
+                        'email_date': activity.performed_at.date(),
+                        'email_time': activity.performed_at.time(),
+                        'contact_recipients': {'exists': False, 'all': []},
+                        'user_recipients': {'exists': False, 'all': []}
+                    }
         else:
             # For all other activity types, try to get the appropriate subclass
             subclass_name = f"{activity.activity_type}activity"
@@ -923,40 +931,18 @@ def get_activity_details(request, activity_id):
         
         # Return HTML fragment instead of JSON
         html_content = render_to_string(template_path, context, request)
-        logging.info(f"HTML rendered, length: {len(html_content)}")
+        return HttpResponse(html_content)
         
-        if request.GET.get('format') == 'json':
-            # For backward compatibility with any code that still expects JSON
-            logging.info("Returning JSON response with HTML content")
-            return JsonResponse({
-                'status': 'success',
-                'html': html_content
-            })
-        else:
-            # Return just the HTML fragment
-            logging.info("Returning direct HTML response")
-            return HttpResponse(html_content)
-            
-    except Activity.DoesNotExist:
-        logging.error(f"Activity with id {activity_id} not found")
-        error_html = f"""
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Activity not found
-            </div>
-        """
-        return HttpResponse(error_html, status=404)
     except Exception as e:
-        import traceback
-        logging.error(f"Error in get_activity_details: {str(e)}")
-        logging.error(traceback.format_exc())
+        logging.error(f"Error in get_activity_details view: {str(e)}", exc_info=True)
         error_html = f"""
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Error loading activity details: {str(e)}
-            </div>
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Error loading activity details:</strong><br>
+            {str(e)}
+        </div>
         """
-        return HttpResponse(error_html, status=500)
+        return HttpResponse(error_html)
 
 @login_required
 def edit_activity(request, activity_id):
