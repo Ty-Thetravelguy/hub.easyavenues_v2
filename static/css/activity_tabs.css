@@ -10,6 +10,21 @@
   --info-color: #0dcaf0;
 }
 
+/* Activity dropdown button and menu */
+.activity-tabs-header .dropdown {
+  position: relative;
+}
+
+.activity-tabs-header .dropdown-menu {
+  z-index: 1050;
+}
+
+/* Show all items when dropdown is open */
+.activity-tabs-header .dropdown.show .dropdown-menu {
+  max-height: none;
+  overflow: visible;
+}
+
 /* Tab styling */
 .activity-tab-pane {
   animation: fadeIn 0.3s ease-in-out;

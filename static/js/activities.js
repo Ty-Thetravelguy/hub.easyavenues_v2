@@ -100,6 +100,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const activityId = activityItem.getAttribute('data-activity-id');
+        if (!activityId) {
+            console.log("❌ No activity ID found on the clicked element");
+            return;
+        }
+        
         const activityType = activityItem.getAttribute('data-activity-type');
         const isEmailActivity = activityType === 'email';
         
@@ -107,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Only prevent default if we're handling the click
         e.preventDefault();
+        e.stopPropagation(); // Stop event from bubbling to prevent double handling
         
         // Load activity details into side panel
         loadActivityDetailsIntoPanel(activityId);
@@ -233,19 +239,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Attach click event to activity links/buttons that should open the side panel
     function attachActivityDetailClickHandlers() {
-        const activityDetailLinks = document.querySelectorAll('.activity-detail-link');
-        console.log(`Found ${activityDetailLinks.length} activity detail links to attach handlers to`);
+        console.log("🔄 Re-attaching activity detail click handlers");
+        const activityDetailLinks = document.querySelectorAll('.activity-list .list-group-item');
+        console.log(`Found ${activityDetailLinks.length} activity items to attach handlers to`);
         
         activityDetailLinks.forEach((link, index) => {
             const id = link.getAttribute('data-activity-id');
             const type = link.getAttribute('data-activity-type');
-            console.log(`Link ${index}: ID=${id}, Type=${type}`);
+            if (!id) return; // Skip items without ID
             
-            link.addEventListener('click', function(e) {
+            console.log(`Item ${index}: ID=${id}, Type=${type}`);
+            
+            // Remove existing handler to prevent duplicates
+            const newLink = link.cloneNode(true);
+            link.parentNode.replaceChild(newLink, link);
+            
+            // Add click handler
+            newLink.addEventListener('click', function(e) {
                 e.preventDefault();
-                const activityId = this.getAttribute('data-activity-id');
-                console.log(`Activity detail link clicked directly: ${activityId}`);
-                loadActivityDetailsIntoPanel(activityId);
+                e.stopPropagation();
+                console.log(`Activity item clicked directly: ${id}`);
+                loadActivityDetailsIntoPanel(id);
+                return false;
             });
         });
     }
@@ -275,6 +290,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.loadActivityDetailsIntoPanel = loadActivityDetailsIntoPanel;
     window.attachActivityDetailClickHandlers = attachActivityDetailClickHandlers;
     window.setupEmailActivityClickHandlers = setupEmailActivityClickHandlers;
+    
+    // Fix for dropdown menu display issues
+    fixActivityDropdown();
 });
 
 // ======================================================
@@ -1065,6 +1083,10 @@ function loadActivitiesByType(activityType) {
             }
             container.innerHTML = html;
             console.log(`Successfully updated ${activityType} container with activities`);
+            
+            // Re-attach click handlers to newly loaded activity items
+            attachActivityDetailClickHandlers();
+            setupEmailActivityClickHandlers();
         })
         .catch(error => {
             console.error(`Error loading ${activityType} activities:`, error);
@@ -1676,5 +1698,30 @@ function initializeToDoToggles() {
                 // Add AJAX call here to update the todo status if needed
             }
         });
+    });
+}
+
+// Fix for dropdown menu display issues
+function fixActivityDropdown() {
+    // Get the Log Activity dropdown button
+    const dropdownBtn = document.querySelector('.activity-tabs-header .dropdown-toggle');
+    if (!dropdownBtn) return;
+    
+    console.log('🔧 Fixing activity dropdown menu display');
+    
+    // Ensure proper Bootstrap initialization
+    dropdownBtn.addEventListener('click', function(e) {
+        console.log('Activity dropdown button clicked');
+        
+        // Ensure the dropdown menu is properly positioned
+        const dropdownMenu = this.nextElementSibling;
+        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+            // Force dropdown to be visible when open
+            if (this.getAttribute('aria-expanded') === 'true') {
+                dropdownMenu.style.maxHeight = 'none';
+                dropdownMenu.style.overflow = 'visible';
+                console.log('Dropdown should be open with all items visible');
+            }
+        }
     });
 }

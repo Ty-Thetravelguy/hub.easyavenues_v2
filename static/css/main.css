@@ -274,3 +274,30 @@ body {
 .form-hidden {
     display: none;
 }
+
+/* Fix for dropdown menus being cut off */
+.dropdown-menu {
+    z-index: 1030 !important; /* Higher than default Bootstrap z-index */
+}
+
+/* Fix for tab-pane container that might be cutting off dropdowns */
+.tab-pane {
+    overflow: visible !important;
+}
+
+.card, .card-body {
+    overflow: visible !important;
+}
+
+/* Specific fix for activity dropdown */
+.activity-tabs-header .dropdown-menu {
+    z-index: 1050 !important;
+    inset: auto !important; /* Override Bootstrap's auto positioning */
+    transform: none !important;
+    position: absolute !important;
+    top: calc(100% + 5px) !important;
+    left: auto !important;
+    right: 10px !important;
+    max-height: none;
+    overflow: visible;
+}
