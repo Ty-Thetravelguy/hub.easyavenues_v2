@@ -30,6 +30,7 @@ function setupActivitiesTabLoading() {
     if (activitiesTab) {
         // Use both event binding methods for better cross-browser support
         activitiesTab.addEventListener('shown.bs.tab', function() {
+            // Always load all activities by default
             loadActivitiesByType('all');
         });
         
@@ -37,14 +38,17 @@ function setupActivitiesTabLoading() {
         $(document).ready(function() {
             $('#activities-tab').on('shown.bs.tab', function() {
                 setTimeout(function() {
+                    // Always load all activities by default
                     loadActivitiesByType('all');
                 }, 200);
             });
         });
         
-        // If URL has #activities hash, load activities immediately
-        if (window.location.hash === '#activities') {
+        // If URL has tab=activities parameter, load activities immediately
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'activities' || window.location.hash === '#activities') {
             setTimeout(function() {
+                // Always load all activities by default
                 loadActivitiesByType('all');
             }, 500);
         }

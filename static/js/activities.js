@@ -916,7 +916,7 @@ function initializeTinyMCEForForm(formElement) {
 }
 
 /**
- * Submit activity form
+ * Submit an activity form via AJAX
  */
 function submitActivityForm(form, activityType) {
     // Show loading state
@@ -941,7 +941,7 @@ function submitActivityForm(form, activityType) {
         // Add other types here
         default:
             console.error(`Unknown activity type for submission: ${activityType}`);
-            showToast('Error', 'Unknown activity type.', 'error');
+            // No need for JavaScript alerts - Django messages will handle it
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Save';
             return;
@@ -962,8 +962,7 @@ function submitActivityForm(form, activityType) {
     })
     .then(data => {
         if (data.success) {
-            // Show success message
-            showMessage(data.message || 'Activity logged successfully', 'success');
+            // Django messages will handle success notifications - no need for JavaScript alerts
             
             // Close side panel
             const sidePanel = bootstrap.Offcanvas.getInstance(document.getElementById('activity-side-panel'));
@@ -979,9 +978,12 @@ function submitActivityForm(form, activityType) {
             if (overviewTab) {
                 loadActivitiesByType('all');
             }
+            
+            // Refresh the page to show Django messages
+            window.location.reload();
         } else {
-            // Show error message from server
-            showMessage(data.message || 'Error saving activity', 'danger');
+            // Error messages will be handled by Django messages - no need for JavaScript alerts
+            console.error('Error from server:', data.message);
             
             // Re-enable submit button
             if (submitBtn) {
@@ -992,7 +994,7 @@ function submitActivityForm(form, activityType) {
     })
     .catch(error => {
         console.error('Error submitting form:', error);
-        showMessage('Error saving activity: ' + error.message, 'danger');
+        // Error messages will be handled by Django messages - no need for JavaScript alerts
         
         // Re-enable submit button
         if (submitBtn) {
@@ -1331,6 +1333,8 @@ function setupActivityDetailsModal() {
 
 /**
  * Show a message to the user
+ * @deprecated This function is kept for backward compatibility, but new code should use Django messages
+ * instead of client-side alerts.
  * @param {string} message - The message to show
  * @param {string} type - The type of message (success, danger, etc.)
  */
@@ -1353,8 +1357,8 @@ function showMessage(message, type = 'info') {
         const toast = new bootstrap.Toast(toastElement);
         toast.show();
     } else {
-        // Fallback to simple alert
-        alert(message);
+        // Fallback to console log instead of alert - Django messages will handle user notifications
+        console.log(`Message (${type}): ${message}`);
     }
 }
 
@@ -1492,6 +1496,7 @@ function setupDeleteButtonListeners() {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': getCsrfToken(),
+                            'X-Requested-With': 'XMLHttpRequest',
                             'Content-Type': 'application/json'
                         }
                     })
@@ -1503,20 +1508,24 @@ function setupDeleteButtonListeners() {
                     })
                     .then(data => {
                         if (data.success) {
-                            // Refresh activities
-                            if (typeof loadActivitiesByType === 'function') {
-                                loadActivitiesByType('all');
-                            } else {
-                                // Fallback to page reload
-                                window.location.reload();
+                            // Close side panel if open
+                            const sidePanel = bootstrap.Offcanvas.getInstance(document.getElementById('activity-side-panel'));
+                            if (sidePanel) {
+                                sidePanel.hide();
                             }
+                            
+                            // Reload the page to show Django messages
+                            window.location.reload();
                         } else {
-                            alert('Error deleting activity: ' + data.message);
+                            console.error('Error deleting activity:', data.message);
+                            // Reload the page to show Django error messages
+                            window.location.reload();
                         }
                     })
                     .catch(error => {
                         console.error('Error deleting activity:', error);
-                        alert('Error deleting activity. Please try again.');
+                        // Reload the page to show Django error messages
+                        window.location.reload();
                     });
                 } else {
                     // Fall back to the old redirect method
@@ -1598,6 +1607,7 @@ function bindDetailPanelEventHandlers() {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
                         'Content-Type': 'application/json'
                     }
                 })
@@ -1609,26 +1619,21 @@ function bindDetailPanelEventHandlers() {
                 })
                 .then(data => {
                     if (data.success) {
-                        // Close panel and refresh activity list
+                        // Close panel 
                         sidePanelInstance.hide();
                         
-                        // Refresh the activities list 
-                        // Call loadActivitiesByType for current tab type instead of page reload
-                        const activeTab = document.querySelector('.activity-tabs .nav-link.active');
-                        const activeType = activeTab?.dataset.activityType || 'all';
-                        loadActivitiesByType(activeType);
-                        
-                        // Also reload the 'all' tab if we're not on it
-                        if (activeType !== 'all') {
-                            loadActivitiesByType('all');
-                        }
+                        // Reload page to show Django messages and refresh all activities
+                        window.location.reload();
                     } else {
-                        alert('Error deleting activity: ' + data.message);
+                        console.error('Error deleting activity:', data.message);
+                        // Reload page to show Django error messages
+                        window.location.reload();
                     }
                 })
                 .catch(error => {
                     console.error('Error deleting activity:', error);
-                    alert('Error deleting activity. Please try again.');
+                    // Reload page to show Django error messages
+                    window.location.reload();
                 });
             }
         });

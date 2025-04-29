@@ -167,7 +167,34 @@
       </div>
     </div>
     {% endif %}
-  </div>
+    <div class="row mb-2">
+      <div class="col-6">
+        <div class="col-md-3 fw-bold">Priority:</div>
+        <div class="col-md-9">
+            {% if activity_details.priority == 'low' %}
+                <span class="badge bg-success">Low</span>
+            {% elif activity_details.priority == 'medium' %}
+                <span class="badge bg-warning text-dark">Medium</span>
+            {% elif activity_details.priority == 'high' %}
+                <span class="badge bg-danger">High</span>
+            {% endif %}
+        </div>  
+      </div>
+      <div class="col-6">     
+      <div class="col-md-3 fw-bold">Status:</div>
+      <div class="col-md-9">
+          {% if activity_details.status == 'not_started' %}
+              <span class="badge bg-secondary">Not Started</span>
+          {% elif activity_details.status == 'in_progress' %}
+              <span class="badge bg-info">In Progress</span>
+          {% elif activity_details.status == 'completed' %}
+              <span class="badge bg-success">Completed</span>
+          {% elif activity_details.status == 'cancelled' %}
+              <span class="badge bg-danger">Cancelled</span>
+          {% endif %}
+      </div>
+      </div>
+    </div>
   
     <!-- Type-specific activity details -->
     {% if activity.activity_type == 'email' %}
@@ -395,32 +422,6 @@
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Description:</div>
                 <div class="col-md-9">{{ activity_details.description|linebreaks }}</div>
-            </div>
-            <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Status:</div>
-                <div class="col-md-9">
-                    {% if activity_details.status == 'not_started' %}
-                        <span class="badge bg-secondary">Not Started</span>
-                    {% elif activity_details.status == 'in_progress' %}
-                        <span class="badge bg-info">In Progress</span>
-                    {% elif activity_details.status == 'completed' %}
-                        <span class="badge bg-success">Completed</span>
-                    {% elif activity_details.status == 'cancelled' %}
-                        <span class="badge bg-danger">Cancelled</span>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Priority:</div>
-                <div class="col-md-9">
-                    {% if activity_details.priority == 'low' %}
-                        <span class="badge bg-success">Low</span>
-                    {% elif activity_details.priority == 'medium' %}
-                        <span class="badge bg-warning text-dark">Medium</span>
-                    {% elif activity_details.priority == 'high' %}
-                        <span class="badge bg-danger">High</span>
-                    {% endif %}
-                </div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Due Date:</div>

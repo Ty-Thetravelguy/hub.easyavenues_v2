@@ -255,14 +255,17 @@ def log_email_activity(request):
                     priority='medium', 
                     related_activity=activity 
                 )
-                # You could add a specific success message for the task here if needed
-                # messages.success(request, 'Follow-up task created.') 
+                # Add Django message for the task creation
+                messages.success(request, 'Follow-up task created successfully.')
             except Exception as task_error:
                 # Log error creating task, but don't fail the whole email logging
                 logging.error(f"Error creating follow-up task for email {activity.id}: {task_error}", exc_info=True)
-                # Optionally add a message to the user about the task creation failure
-                # messages.warning(request, f'Email logged, but failed to create follow-up task: {task_error}')
+                # Add a warning message
+                messages.warning(request, f'Email logged, but failed to create follow-up task: {task_error}')
         # --- End Follow-up Task --- 
+        
+        # Add Django success message for the email activity
+        messages.success(request, 'Email activity logged successfully.')
         
         return JsonResponse({
             'success': True,
@@ -273,6 +276,10 @@ def log_email_activity(request):
         import traceback
         logging.error(f"Error in log_email_activity: {str(e)}")
         logging.error(traceback.format_exc())
+        
+        # Add Django error message
+        messages.error(request, f'Error logging email activity: {str(e)}')
+        
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
 
 @login_required
@@ -383,9 +390,16 @@ def log_call_activity(request):
                     priority='medium',
                     related_activity=activity
                 )
+                # Add Django message for task creation
+                messages.success(request, 'Follow-up task created successfully.')
             except Exception as task_error:
                 logging.error(f"Error creating follow-up task for call {activity.id}: {task_error}", exc_info=True)
+                # Add Django warning message for task creation failure
+                messages.warning(request, f'Call logged, but failed to create follow-up task: {task_error}')
         # --- End Follow-up Task --- 
+        
+        # Add Django success message for call activity
+        messages.success(request, 'Call activity logged successfully.')
         
         return JsonResponse({
             'success': True,
@@ -396,6 +410,10 @@ def log_call_activity(request):
         import traceback
         logging.error(f"Error in log_call_activity: {str(e)}")
         logging.error(traceback.format_exc())
+        
+        # Add Django error message
+        messages.error(request, f'Error logging call activity: {str(e)}')
+        
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
 
 @login_required
@@ -514,9 +532,16 @@ def log_meeting_activity(request):
                     priority='medium',
                     related_activity=activity
                 )
+                # Add Django message for task creation
+                messages.success(request, 'Follow-up task created successfully.')
             except Exception as task_error:
                 logging.error(f"Error creating follow-up task for meeting {activity.id}: {task_error}", exc_info=True)
+                # Add Django warning message for task creation failure
+                messages.warning(request, f'Meeting logged, but failed to create follow-up task: {task_error}')
         # --- End Follow-up Task --- 
+        
+        # Add Django success message for the meeting activity
+        messages.success(request, 'Meeting activity logged successfully.')
                 
         return JsonResponse({
             'success': True,
@@ -527,6 +552,10 @@ def log_meeting_activity(request):
         import traceback
         logging.error(f"Error in log_meeting_activity: {str(e)}")
         logging.error(traceback.format_exc())
+        
+        # Add Django error message
+        messages.error(request, f'Error logging meeting activity: {str(e)}')
+        
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
 
 @login_required
@@ -619,8 +648,15 @@ def log_note_activity(request):
                     priority='medium',
                     related_activity=activity
                 )
+                # Add Django message for task creation
+                messages.success(request, 'Follow-up task created successfully.')
             except Exception as task_error:
                 logging.error(f"Error creating follow-up task for note {activity.id}: {task_error}", exc_info=True)
+                # Add Django warning message for task creation failure
+                messages.warning(request, f'Note logged, but failed to create follow-up task: {task_error}')
+        
+        # Add Django success message for the note activity
+        messages.success(request, 'Note activity logged successfully.')
         
         return JsonResponse({
             'success': True,
@@ -631,6 +667,10 @@ def log_note_activity(request):
         import traceback
         logging.error(f"Error in log_note_activity: {str(e)}")
         logging.error(traceback.format_exc())
+        
+        # Add Django error message
+        messages.error(request, f'Error logging note activity: {str(e)}')
+        
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
 
 @login_required
@@ -644,6 +684,7 @@ def log_waiver_favour_activity(request):
     try:
         company = get_object_or_404(Company, id=company_id)
     except ValueError:
+        messages.error(request, 'Invalid Company ID')
         return JsonResponse({'success': False, 'message': 'Invalid Company ID'}, status=400)
     
     try:
@@ -701,6 +742,9 @@ def log_waiver_favour_activity(request):
             
         # Save changes
         activity.save()
+        
+        # Add Django success message for the waiver/favour activity
+        messages.success(request, 'Waiver & Favour activity logged successfully.')
             
         return JsonResponse({
             'success': True,
@@ -711,6 +755,10 @@ def log_waiver_favour_activity(request):
         import traceback
         logging.error(f"Error saving waiver/favour activity: {str(e)}")
         logging.error(traceback.format_exc())
+        
+        # Add Django error message
+        messages.error(request, f'Error logging waiver/favour activity: {str(e)}')
+        
         error_message = f'Error saving activity: {str(e)}'
         return JsonResponse({'success': False, 'message': error_message}, status=500)
 
@@ -787,6 +835,9 @@ def log_task_activity(request):
             activity.contact = contact
             activity.save()
         
+        # Add Django success message for task activity
+        messages.success(request, 'Task activity logged successfully.')
+        
         return JsonResponse({
             'success': True,
             'message': 'Task activity logged successfully',
@@ -796,6 +847,10 @@ def log_task_activity(request):
         import traceback
         logging.error(f"Error in log_task_activity: {str(e)}")
         logging.error(traceback.format_exc())
+        
+        # Add Django error message
+        messages.error(request, f'Error logging task activity: {str(e)}')
+        
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
 
 @login_required
@@ -986,10 +1041,12 @@ def edit_activity(request, activity_id):
         form = form_class(request.POST, instance=activity)
         if form.is_valid():
             form.save()
+            # Add Django success message
             messages.success(request, 'Activity updated successfully.')
             
-            # For sidepanel requests, return a small success fragment
+            # For sidepanel requests, return a small success fragment with message
             if is_sidepanel:
+                activity_type = activity.activity_type
                 return HttpResponse('''
                     <div class="alert alert-success">
                         Activity updated successfully.
@@ -999,6 +1056,9 @@ def edit_activity(request, activity_id):
                 '''.format(activity.id))
             else:
                 return redirect('crm:company_detail', pk=activity.company.id)
+        else:
+            # Add error message if the form is invalid
+            messages.error(request, 'There was an error updating the activity. Please check the form.')
     else:
         form = form_class(instance=activity)
     
@@ -1020,9 +1080,39 @@ def edit_activity(request, activity_id):
 def delete_activity(request, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
     company_id = activity.company.id
-    activity.delete()
-    messages.success(request, 'Activity deleted successfully.')
-    return redirect('crm:company_detail', pk=company_id)
+    activity_type = activity.activity_type  # Save the type before deletion
+    
+    try:
+        activity_description = str(activity)[:50] + "..." if len(str(activity)) > 50 else str(activity)
+        activity.delete()
+        
+        # Add Django success message
+        messages.success(request, f'Activity "{activity_description}" deleted successfully.')
+        
+        # Check if this is an AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': 'Activity deleted successfully',
+                'company_id': company_id,
+                'activity_type': activity_type
+            })
+        else:
+            return redirect('crm:company_detail', pk=company_id)
+    except Exception as e:
+        # Add Django error message
+        error_message = f'Error deleting activity: {str(e)}'
+        messages.error(request, error_message)
+        
+        # Check if this is an AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': error_message,
+                'company_id': company_id
+            }, status=500)
+        else:
+            return redirect('crm:company_detail', pk=company_id)
 
 @login_required
 def search_recipients(request):
