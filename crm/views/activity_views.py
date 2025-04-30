@@ -212,56 +212,52 @@ def log_email_activity(request):
         # --- Create Follow-up Task if requested --- 
         if request.POST.get('create_follow_up_task'):
             try:
-                task_title = request.POST.get('follow_up_task_title', '').strip()
-                if not task_title:
-                    default_title = f"Follow up on: {activity.subject or 'Email Activity'}"
-                    task_title = default_title[:255] 
-                    
-                # Get and parse the due date, defaulting to next day
-                due_date_str = request.POST.get('follow_up_due_date', '')
-                try:
-                    due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else timezone.now().date() + timedelta(days=1)
-                    if due_date < timezone.now().date():
-                         due_date = timezone.now().date() + timedelta(days=1) 
-                except ValueError:
-                    due_date = timezone.now().date() + timedelta(days=1) # Default if format is wrong
-                    
-                # Get and parse the due time, defaulting to 09:00
-                due_time_str = request.POST.get('follow_up_due_time', '')
-                try:
-                    due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time() if due_time_str else timezone.datetime.min.time().replace(hour=9)
-                except ValueError:
-                    due_time = timezone.datetime.min.time().replace(hour=9) # Default if format is wrong
-                    
-                # Combine date and time into a datetime object
-                # Ensure it's timezone-aware using Django's current timezone
-                naive_datetime = timezone.datetime.combine(due_date, due_time)
-                due_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+                task_title = request.POST.get('follow_up_task_title', f'Follow up on email: {activity.subject}')
+                task_notes = request.POST.get('follow_up_task_notes', '')
                 
-                # Get optional notes
-                task_notes = request.POST.get('follow_up_task_notes', '').strip()
-                base_description = f"Follow-up task automatically created for Email Activity ID: {activity.id}"
-                task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
+                # Handle due date/time
+                due_date_str = request.POST.get('follow_up_due_date')
+                due_time_str = request.POST.get('follow_up_due_time')
                 
-                # Create the linked task
-                TaskActivity.objects.create(
+                due_datetime = None
+                if due_date_str:
+                    try:
+                        due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                        # Set default time to 9am if not provided
+                        due_time = timezone.datetime.strptime(due_time_str or '09:00', '%H:%M').time()
+                        due_datetime = timezone.datetime.combine(due_date, due_time)
+                    except ValueError:
+                        # Default to tomorrow at 9am if date parsing fails
+                        due_datetime = timezone.now() + timedelta(days=1)
+                        due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                else:
+                    # Default to tomorrow at 9am if no date provided
+                    due_datetime = timezone.now() + timedelta(days=1)
+                    due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                
+                # Create the task
+                task = TaskActivity.objects.create(
                     company=activity.company,
-                    performed_by=request.user, 
-                    activity_type='task',
                     title=task_title,
-                    description=task_description, # Use combined description
-                    due_datetime=due_datetime, # Use combined datetime
-                    assigned_to=request.user, 
+                    description=task_notes,
+                    performed_by=request.user,
+                    assigned_to=request.user,
                     status='not_started',
-                    priority='medium', 
-                    related_activity=activity 
+                    priority='medium',
+                    due_datetime=due_datetime
                 )
-                # Add Django message for the task creation
-                messages.success(request, 'Follow-up task created successfully.')
+                
+                # Add the same recipients to the task
+                for contact in activity.contact_recipients.all():
+                    task.contacts.add(contact)
+                for user in activity.user_recipients.all():
+                    task.users.add(user)
+                
+                # Update the message
+                messages.success(request, 'Email activity updated successfully with follow-up task')
+                return redirect('crm:company_detail', pk=activity.company.id)
             except Exception as task_error:
-                # Log error creating task, but don't fail the whole email logging
                 logging.error(f"Error creating follow-up task for email {activity.id}: {task_error}", exc_info=True)
-                # Add a warning message
                 messages.warning(request, f'Email logged, but failed to create follow-up task: {task_error}')
         # --- End Follow-up Task --- 
         
@@ -1001,280 +997,160 @@ def get_activity_details(request, activity_id):
 def edit_activity(request, activity_id):
     # Get basic activity first
     activity = get_object_or_404(Activity, id=activity_id)
-    
-    # Determine if this is a sidepanel request
-    is_sidepanel = request.GET.get('sidepanel') == '1' or request.POST.get('sidepanel') == '1' or 'sidepanel' in request.path
+    is_sidepanel = request.GET.get('sidepanel') == '1' or 'sidepanel' in request.path
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
-    # Map activity type to the appropriate model, form class, and specialized template
-    specific_activity = None
-    form_class = None
-    template_name = None
+    # Check if we're handling a specific activity type
+    activity_type = request.GET.get('activity_type') or activity.activity_type
     
-    # Process based on activity type
-    if activity.activity_type == 'email':
+    # Get the specialized activity model
+    specialized_activity = None
+    if activity_type == 'email':
         try:
-            specific_activity = EmailActivity.objects.get(id=activity_id)
-            form_class = EmailActivityForm
+            specialized_activity = EmailActivity.objects.get(id=activity_id)
             template_name = 'crm/activities/edit/email_edit_form.html'
+            form_class = EmailActivityForm
         except EmailActivity.DoesNotExist:
             pass
-    elif activity.activity_type == 'call':
-        try:
-            specific_activity = CallActivity.objects.get(id=activity_id)
-            form_class = CallActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except CallActivity.DoesNotExist:
-            pass
-    elif activity.activity_type == 'meeting':
-        try:
-            specific_activity = MeetingActivity.objects.get(id=activity_id)
-            form_class = MeetingActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except MeetingActivity.DoesNotExist:
-            pass
-    elif activity.activity_type == 'note':
-        try:
-            specific_activity = NoteActivity.objects.get(id=activity_id)
-            form_class = NoteActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except NoteActivity.DoesNotExist:
-            pass
-    elif activity.activity_type == 'document':
-        try:
-            specific_activity = DocumentActivity.objects.get(id=activity_id)
-            form_class = DocumentActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except DocumentActivity.DoesNotExist:
-            pass
-    elif activity.activity_type == 'status_change':
-        try:
-            specific_activity = StatusChangeActivity.objects.get(id=activity_id)
-            form_class = StatusChangeActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except StatusChangeActivity.DoesNotExist:
-            pass
-    elif activity.activity_type == 'policy_update':
-        try:
-            specific_activity = PolicyUpdateActivity.objects.get(id=activity_id)
-            form_class = PolicyUpdateActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except PolicyUpdateActivity.DoesNotExist:
-            pass
-    elif activity.activity_type == 'waiver_favour':
-        try:
-            specific_activity = WaiverActivity.objects.get(id=activity_id)
-            form_class = WaiverFavorActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except WaiverActivity.DoesNotExist:
-            pass
-    elif activity.activity_type == 'task':
-        try:
-            specific_activity = TaskActivity.objects.get(id=activity_id)
-            form_class = TaskActivityForm
-            # Will use the generic form for now
-            if is_sidepanel:
-                template_name = 'crm/edit_activity_sidepanel_form.html'
-            else:
-                template_name = 'crm/edit_activity_form.html'
-        except TaskActivity.DoesNotExist:
-            pass
+    # Add other activity types here...
     
-    # If no specific activity, form class, or template was found, show an error
-    if specific_activity is None or form_class is None or template_name is None:
-        messages.error(request, f"Editing not supported for this activity type: {activity.activity_type}")
-        if is_ajax:
-            return HttpResponse(f'<div class="alert alert-danger">Editing not supported for this activity type: {activity.activity_type}</div>')
-        else:
-            return redirect('crm:company_detail', pk=activity.company.id)
-    
-    # Use the specific activity instance for the form
-    activity_to_use = specific_activity
-    
-    # Handle direct template rendering for emails without using Django forms
-    # This is needed because we're using a specialized template with custom fields
-    if activity.activity_type == 'email':
-        if request.method == 'POST':
-            # Process form data manually
-            try:
-                # Get recipient IDs
-                recipient_ids = request.POST.getlist('recipients')
-                
-                # Separate contact and user recipients
-                contact_recipient_ids = []
-                user_recipient_ids = []
-                
-                for recipient_id in recipient_ids:
-                    if recipient_id.startswith('contact_'):
-                        contact_recipient_ids.append(recipient_id.replace('contact_', ''))
-                    elif recipient_id.startswith('user_'):
-                        user_recipient_ids.append(recipient_id.replace('user_', ''))
-                
-                # Get contact recipients
-                contacts = Contact.objects.filter(id__in=contact_recipient_ids)
-                
-                # Get user recipients
-                users = User.objects.filter(id__in=user_recipient_ids)
-                
-                # Get date and time
-                email_date_str = request.POST.get('date', '')
-                email_time_str = request.POST.get('time', '')
-                
+    # Handle POST submission
+    if request.method == 'POST':
+        # Process the form submission and update the activity
+        if activity_type == 'email':
+            # Get the form data
+            subject = request.POST.get('subject', '')
+            body = request.POST.get('body', '')
+            recipient_ids = request.POST.getlist('recipients', [])
+            
+            # Update basic fields
+            specialized_activity.subject = subject
+            specialized_activity.body = body
+            
+            # Update date/time if provided
+            email_date_str = request.POST.get('date')
+            email_time_str = request.POST.get('time')
+            
+            if email_date_str:
                 try:
-                    email_date = timezone.datetime.strptime(email_date_str, '%Y-%m-%d').date() if email_date_str else activity_to_use.email_date
+                    specialized_activity.email_date = timezone.datetime.strptime(email_date_str, '%Y-%m-%d').date()
                 except ValueError:
-                    email_date = activity_to_use.email_date
+                    pass
                     
+            if email_time_str:
                 try:
-                    email_time = timezone.datetime.strptime(email_time_str, '%H:%M').time() if email_time_str else activity_to_use.email_time
+                    specialized_activity.email_time = timezone.datetime.strptime(email_time_str, '%H:%M').time()
                 except ValueError:
-                    email_time = activity_to_use.email_time
+                    pass
+            
+            # Save the changes
+            specialized_activity.save()
+            
+            # Update recipients
+            # First clear existing recipients
+            specialized_activity.contact_recipients.clear()
+            specialized_activity.user_recipients.clear()
+            
+            # Add new recipients
+            for recipient_id in recipient_ids:
+                if recipient_id.startswith('contact_'):
+                    contact_id = recipient_id.replace('contact_', '')
+                    contact = get_object_or_404(Contact, id=contact_id)
+                    specialized_activity.contact_recipients.add(contact)
+                elif recipient_id.startswith('user_'):
+                    user_id = recipient_id.replace('user_', '')
+                    user = get_object_or_404(User, id=user_id)
+                    specialized_activity.user_recipients.add(user)
+            
+            # Check if we should create a follow-up task
+            if request.POST.get('create_follow_up_task'):
+                task_title = request.POST.get('follow_up_task_title', f'Follow up on email: {specialized_activity.subject}')
+                task_notes = request.POST.get('follow_up_task_notes', '')
                 
-                # Update the activity
-                activity_to_use.subject = request.POST.get('subject', '')
-                activity_to_use.body = request.POST.get('content', '')
-                activity_to_use.description = request.POST.get('content', '')  # Keep description synced with body
-                activity_to_use.email_date = email_date
-                activity_to_use.email_time = email_time
+                # Handle due date/time
+                due_date_str = request.POST.get('follow_up_due_date')
+                due_time_str = request.POST.get('follow_up_due_time')
                 
-                # Check if outbound is checked - update email_outcome accordingly
-                is_outbound = request.POST.get('outbound') == '1'
-                activity_to_use.email_outcome = 'Sent' if is_outbound else 'Received'
-                
-                # Save changes
-                activity_to_use.save()
-                
-                # Update recipients
-                activity_to_use.contact_recipients.clear()
-                activity_to_use.contact_recipients.add(*contacts)
-                
-                activity_to_use.user_recipients.clear()
-                activity_to_use.user_recipients.add(*users)
-                
-                # Add success message
-                messages.success(request, 'Email activity updated successfully.')
-                
-                # For sidepanel requests, respond appropriately
-                if is_sidepanel:
-                    if is_ajax:
-                        # Return success HTML for the sidepanel
-                        success_html = f'''
-                            <div class="alert alert-success">
-                                Email activity updated successfully.
-                                <button type="button" class="btn btn-primary btn-sm float-end" 
-                                        onclick="loadActivityDetailsIntoPanel({activity.id})">
-                                        View Activity
-                                </button>
-                            </div>
-                        '''
-                        return HttpResponse(success_html)
-                    else:
-                        # If not AJAX, redirect to the activity detail
-                        return redirect('crm:activity_details_sidepanel', activity_id=activity.id)
+                due_datetime = None
+                if due_date_str:
+                    try:
+                        due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                        # Set default time to 9am if not provided
+                        due_time = timezone.datetime.strptime(due_time_str or '09:00', '%H:%M').time()
+                        due_datetime = timezone.datetime.combine(due_date, due_time)
+                    except ValueError:
+                        # Default to tomorrow at 9am if date parsing fails
+                        due_datetime = timezone.now() + timedelta(days=1)
+                        due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
                 else:
-                    # Regular form submission - redirect to company detail
-                    return redirect('crm:company_detail', pk=activity.company.id)
+                    # Default to tomorrow at 9am if no date provided
+                    due_datetime = timezone.now() + timedelta(days=1)
+                    due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
                 
-            except Exception as e:
-                # Log error and add message
-                logging.error(f"Error updating email activity: {str(e)}", exc_info=True)
-                messages.error(request, f'Error updating email activity: {str(e)}')
+                # Create the task
+                task = TaskActivity.objects.create(
+                    company=activity.company,
+                    title=task_title,
+                    description=task_notes,
+                    performed_by=request.user,
+                    assigned_to=request.user,
+                    status='not_started',
+                    priority='medium',
+                    due_datetime=due_datetime
+                )
                 
-                # Re-render form with error
-                context = {
-                    'activity': activity_to_use,
-                    'company': activity.company,
-                }
-                return render(request, template_name, context)
-        
-        # For GET requests, just render the template
-        context = {
-            'activity': activity_to_use,
-            'company': activity.company,
-        }
-        
-        if is_ajax:
-            html = render_to_string(template_name, context, request=request)
-            return HttpResponse(html)
-        
-        return render(request, template_name, context)
-    
-    # For other activity types, use Django forms as usual
-    else:
-        if request.method == 'POST':
-            form = form_class(request.POST, request.FILES, instance=activity_to_use)
-            if form.is_valid():
-                form.save()
-                # Add Django success message
-                messages.success(request, 'Activity updated successfully.')
+                # Add the same recipients to the task
+                for contact in specialized_activity.contact_recipients.all():
+                    task.contacts.add(contact)
+                for user in specialized_activity.user_recipients.all():
+                    task.users.add(user)
                 
-                # For sidepanel requests, respond appropriately
-                if is_sidepanel:
-                    if is_ajax:
-                        # Return success HTML for the sidepanel
-                        success_html = f'''
-                            <div class="alert alert-success">
-                                Activity updated successfully.
-                                <button type="button" class="btn btn-primary btn-sm float-end" 
-                                        onclick="loadActivityDetailsIntoPanel({activity.id})">
-                                        View Activity
-                                </button>
-                            </div>
-                        '''
-                        return HttpResponse(success_html)
-                    else:
-                        # If not AJAX, redirect to the activity detail
-                        return redirect('crm:activity_details_sidepanel', activity_id=activity.id)
+                # Update the message
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': 'Email activity updated successfully with follow-up task'})
                 else:
-                    # Regular form submission - redirect to company detail
+                    messages.success(request, 'Email activity updated successfully with follow-up task')
                     return redirect('crm:company_detail', pk=activity.company.id)
+            
+            # Return success response for AJAX requests
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Email activity updated successfully'})
             else:
-                # Add error message if the form is invalid
-                messages.error(request, 'There was an error updating the activity. Please check the form.')
-        else:
-            form = form_class(instance=activity_to_use)
+                messages.success(request, 'Email activity updated successfully')
+                return redirect('crm:company_detail', pk=activity.company.id)
+    
+    # Prepare the form for GET requests
+    if specialized_activity:
+        # For email activities, prepare the recipients data
+        current_recipients = []
+        if activity_type == 'email':
+            for contact in specialized_activity.contact_recipients.all():
+                current_recipients.append({
+                    'id': f'contact_{contact.id}',
+                    'text': contact.get_full_name()
+                })
+            for user in specialized_activity.user_recipients.all():
+                current_recipients.append({
+                    'id': f'user_{user.id}',
+                    'text': user.get_full_name()
+                })
         
         context = {
-            'form': form,
-            'activity': activity_to_use,
+            'activity': activity,
+            'activity_details': specialized_activity,
             'company': activity.company,
+            'current_recipients': current_recipients
         }
         
-        # For AJAX/sidepanel requests, we may render only the form template
         if is_ajax:
             html = render_to_string(template_name, context, request=request)
             return HttpResponse(html)
-        
-        # Otherwise render a complete template
-        return render(request, template_name, context)
+        else:
+            return render(request, template_name, context)
+    
+    # Fallback if we couldn't find the specialized activity
+    messages.error(request, f"Could not find {activity_type} activity with ID {activity_id}")
+    return redirect('crm:company_detail', pk=activity.company.id)
 
 @login_required
 def delete_activity(request, activity_id):

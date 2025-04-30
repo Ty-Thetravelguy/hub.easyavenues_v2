@@ -1,81 +1,78 @@
-<!-- Email Activity Edit Form -->
-<form method="post" class="activity-form email-form">
-    {% csrf_token %}
-    <input type="hidden" name="sidepanel" value="{% if request.GET.sidepanel or request.POST.sidepanel %}1{% endif %}">
-    
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-
-    <div class="mb-3">
-        <label for="email_recipients" class="form-label">Recipients</label>
-        <select class="form-control tom-select" id="email_recipients" name="recipients" multiple required data-company-id="{{ company.id }}">
-            {% for contact in activity.contact_recipients.all %}
-                <option value="contact_{{ contact.id }}" selected>{{ contact.get_full_name }}</option>
-            {% endfor %}
-            {% for user in activity.user_recipients.all %}
-                <option value="user_{{ user.id }}" selected>{{ user.get_full_name }}</option>
-            {% endfor %}
-        </select>
-        <small class="form-text text-muted">Type to search for contacts or users by name or email</small>
-    </div>
-
-    <div class="mb-3">
-        <label for="email_subject" class="form-label">Subject</label>
-        <input type="text" class="form-control" id="email_subject" name="subject" value="{{ activity.subject|default:'' }}" required>
-    </div>
-
-    <div class="mb-3">
-        <label for="email_content" class="form-label">Email Content</label>
-        <textarea class="form-control rich-text-editor" id="email_content" name="content" rows="5" required>{{ activity.body|default:'' }}</textarea>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <label for="email_date" class="form-label">Date Sent</label>
-            <input type="text" class="form-control" id="email_date" name="date" 
-                   value="{{ activity.email_date|date:'Y-m-d' }}" required data-datepicker>
-        </div>
-        <div class="col-md-6">
-            <label for="email_time" class="form-label">Time Sent</label>
-            <input type="text" class="form-control" id="email_time" name="time" 
-                   value="{{ activity.email_time|date:'H:i' }}" required data-timepicker>
-            <small class="form-text text-muted">Use 24-hour format (e.g., 14:30)</small>
-        </div>
-    </div>
-
-    <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="email_outbound" name="outbound" value="1" {% if activity.email_outcome == 'Sent' %}checked{% endif %}>
-        <label class="form-check-label" for="email_outbound">
-            Outbound Email
-        </label>
-    </div>
-
-    <div class="d-flex justify-content-between mt-4">
-        {% if request.GET.sidepanel or request.POST.sidepanel %}
-            <button type="button" class="btn btn-secondary" onclick="closeSidepanel()">
-                <i class="fas fa-times me-1"></i>Cancel
-            </button>
-        {% else %}
-            <a href="{% url 'crm:company_detail' company.id %}" class="btn btn-secondary">
-                <i class="fas fa-times me-1"></i>Cancel
-            </a>
-        {% endif %}
-        <button type="submit" class="btn btn-activity-email">
-            <i class="fas fa-save me-1"></i>Save Changes
-        </button>
-    </div>
-</form>
-
-<script>
-function closeSidepanel() {
-    if (window.sidePanelInstance) {
-        window.sidePanelInstance.hide();
-    } else {
-        // Fallback
-        window.location.href = "{% url 'crm:company_detail' company.id %}";
-    }
-}
-</script> 
+<!-- Email Edit Form -->
+<form method="post" action="{% url 'crm:edit_activity' activity_id=activity.id %}" class="activity-form email-form">
+  {% csrf_token %}
+  <input type="hidden" name="activity_id" value="{{ activity.id }}">
+  <input type="hidden" name="activity_type" value="email">
+  
+  <!-- Recipients field with Tom Select (allows adding new recipients) -->
+  <div class="mb-3">
+      <label for="email_recipients" class="form-label">Recipients</label>
+      <select class="form-control tom-select" id="email_recipients" name="recipients" multiple data-company-id="{{ company.id }}">
+          {% for recipient in current_recipients %}
+              <option value="{{ recipient.id }}" selected>{{ recipient.text }}</option>
+          {% endfor %}
+      </select>
+      <small class="form-text text-muted">Type to search for contacts or users by name or email</small>
+  </div>
+  
+  <!-- Subject field (pre-populated) -->
+  <div class="mb-3">
+      <label for="id_subject" class="form-label">Subject</label>
+      <input type="text" class="form-control" id="id_subject" name="subject" value="{{ activity_details.subject }}" required>
+  </div>
+  
+  <!-- Date/time fields (pre-populated) -->
+  <div class="row mb-3">
+      <div class="col-md-6">
+          <label for="id_date" class="form-label">Date</label>
+          <input type="text" class="form-control" id="id_date" name="date" data-datepicker value="{{ activity_details.email_date|date:'Y-m-d' }}">
+      </div>
+      <div class="col-md-6">
+          <label for="id_time" class="form-label">Time</label>
+          <input type="text" class="form-control" id="id_time" name="time" data-timepicker value="{{ activity_details.email_time|time:'H:i' }}">
+      </div>
+  </div>
+  
+  <!-- Email body (pre-populated) with TinyMCE -->
+  <div class="mb-3">
+      <label for="id_body" class="form-label">Email Content</label>
+      <textarea class="form-control rich-text-editor" id="email_content" name="body" rows="5">{{ activity_details.body|safe }}</textarea>
+  </div>
+  
+  <!-- ADDED Follow-up Task section -->
+  <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" name="create_follow_up_task" id="create_follow_up_task">
+      <label class="form-check-label" for="create_follow_up_task">
+          Create Follow-up Task?
+      </label>
+  </div>
+  <div class="mb-3 ps-4" id="follow_up_task_details" style="display: none;">
+       <label for="follow_up_task_title" class="form-label form-label-sm">Task Title (Optional)</label>
+       <input type="text" name="follow_up_task_title" id="follow_up_task_title" class="form-control form-control-sm mb-2" placeholder="Defaults to: Follow up on email...">
+       
+       <div class="row mb-2">
+           <div class="col-sm-7">
+              <label for="follow_up_due_date" class="form-label form-label-sm">Due Date (Optional)</label>
+              <input type="text" name="follow_up_due_date" id="follow_up_due_date" class="form-control form-control-sm" 
+                     placeholder="Defaults to next day" data-datepicker>
+           </div>
+           <div class="col-sm-5">
+              <label for="follow_up_due_time" class="form-label form-label-sm">Due Time (Optional)</label>
+              <input type="text" name="follow_up_due_time" id="follow_up_due_time" class="form-control form-control-sm" 
+                     placeholder="Defaults to 09:00" data-timepicker>
+           </div>
+       </div>
+       
+       <label for="follow_up_task_notes" class="form-label form-label-sm">Notes (Optional)</label>
+       <textarea name="follow_up_task_notes" id="follow_up_task_notes" class="form-control form-control-sm" rows="2" 
+                 placeholder="Add brief notes for the task..."></textarea>
+  </div>
+  <!-- End Follow-up Task section -->
+  
+  <!-- Submit button -->
+  <div class="d-grid">
+      <button type="submit" class="btn btn-activity-email">
+          <i class="fas fa-save me-1"></i> Update Email
+      </button>
+  </div>
+</form> 
