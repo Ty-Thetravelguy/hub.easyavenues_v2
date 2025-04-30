@@ -1,0 +1,57 @@
+{% load static %}
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<form method="POST" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="sidepanel" value="1">
+    
+    {% for field in form %}
+        <div class="mb-3">
+            {% if field.field.widget.input_type == 'checkbox' %}
+                <div class="form-check">
+                    {{ field }}
+                    <label class="form-check-label" for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+                </div>
+            {% else %}
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+            {% endif %}
+            
+            {% if field.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ field.errors }}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+    
+    <div class="d-flex justify-content-between mt-4">
+        <button type="button" class="btn btn-secondary" onclick="closeSidepanel()">
+            <i class="fas fa-times me-1"></i>Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>Save Changes
+        </button>
+    </div>
+</form>
+
+<script>
+function closeSidepanel() {
+    if (window.sidePanelInstance) {
+        window.sidePanelInstance.hide();
+    } else {
+        // Fallback
+        window.location.href = "{% url 'crm:company_detail' company.id %}";
+    }
+}
+</script> 

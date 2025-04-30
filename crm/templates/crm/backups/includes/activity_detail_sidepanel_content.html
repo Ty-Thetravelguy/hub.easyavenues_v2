@@ -1,0 +1,453 @@
+<!-- Activity Detail Content for Side Panel -->
+<div class="activity-detail-content">
+    <!-- Header with activity type and date -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            {% if activity.is_system_activity %}
+                <span class="badge bg-secondary me-2">System</span>
+            {% else %}
+                <span class="badge bg-primary me-2">{{ activity.get_activity_type_display }}</span>
+            {% endif %}
+            {% if activity.performed_by %}
+                <span class="text-muted">by {{ activity.performed_by.get_full_name }}</span>
+            {% else %}
+                <span class="text-muted">by System</span>
+            {% endif %}
+        </div>
+        <small class="text-muted">{{ activity.performed_at|date:"M d, Y, H:i" }}</small>
+    </div>
+
+    <!-- Common activity details -->
+    <div class="mb-4">
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Company:</div>
+            <div class="col-md-9">
+                <a href="{% url 'crm:company_detail' pk=activity.company.id %}">
+                    {{ activity.company.company_name }}
+                </a>
+            </div>
+        </div>
+        {% if activity.activity_type == 'email' %}
+        <div class="row mb-2">
+          <div class="col-md-3 fw-bold">Recipients:</div>
+          <div class="col-md-9">
+              {% if activity_details.contact_recipients.exists or activity_details.user_recipients.exists %}
+                  <ul class="list-unstyled mb-0">
+                      {% for recipient in activity_details.contact_recipients.all %}
+                          <li>
+                              <a href="{% url 'crm:contact_detail' pk=recipient.id %}">
+                                  {{ recipient.get_full_name }}
+                              </a>
+                              (Contact)
+                          </li>
+                      {% endfor %}
+                      {% for user in activity_details.user_recipients.all %}
+                          <li>
+                              {{ user.get_full_name }}
+                              (User)
+                          </li>
+                      {% endfor %}
+                  </ul>
+              {% else %}
+                  <em>No recipients recorded</em>
+              {% endif %}
+          </div>
+      </div>
+      {% elif activity.activity_type == 'call' %}
+      <div class="row mb-2">
+        <div class="col-md-3 fw-bold">Contact:</div>
+         <div class="col-md-9">
+             {% if activity_details.contact %}
+                 <a href="{% url 'crm:contact_detail' pk=activity_details.contact.id %}">
+                     {{ activity_details.contact.get_full_name }}
+                 </a>
+             {% else %}
+                 <em>No contact recorded</em>
+             {% endif %}
+        </div>
+      </div>
+      {% elif activity.activity_type == 'meeting' %}
+      <div class="row mb-2">
+        <div class="col-md-3 fw-bold">Attendees:</div>
+        <div class="col-md-9">
+            {% if activity_details.contact_attendees.exists or activity_details.user_attendees.exists %}
+                <ul class="list-unstyled mb-0">
+                    {% for attendee in activity_details.contact_attendees.all %}
+                        <li>
+                            <a href="{% url 'crm:contact_detail' pk=attendee.id %}">
+                                {{ attendee.get_full_name }}
+                            </a>
+                            (Contact)
+                        </li>
+                    {% endfor %}
+                    {% for attendee in activity_details.user_attendees.all %}
+                        <li>
+                            {{ attendee.get_full_name }}
+                            (User)
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <em>No attendees recorded</em>
+            {% endif %}
+        </div>
+      </div>
+    {% elif activity.activity_type == 'note' %}
+    <div class="row mb-2">
+      <div class="col-md-3 fw-bold">Contacts:</div>
+      <div class="col-md-9">
+          {% if activity_details.contacts.exists %}
+              <ul class="list-unstyled mb-0">
+                  {% for contact in activity_details.contacts.all %}
+                      <li>
+                          <a href="{% url 'crm:contact_detail' pk=contact.id %}">
+                              {{ contact.get_full_name }}
+                          </a>
+                      </li>
+                  {% endfor %}
+              </ul>
+          {% else %}
+              <em>No contacts recorded</em>
+          {% endif %}
+      </div>
+    </div>
+    {% elif activity.activity_type == 'waiver_favour' %}
+    <div class="row mb-2">
+      <div class="col-md-3 fw-bold">Contacts:</div>
+      <div class="col-md-9">
+          {% if activity_details.contacts.exists %}
+              <ul class="list-unstyled mb-0">
+                  {% for contact in activity_details.contacts.all %}
+                      <li>
+                          <a href="{% url 'crm:contact_detail' pk=contact.id %}">
+                              {{ contact.get_full_name }}
+                          </a>
+                      </li>
+                  {% endfor %}
+              </ul>
+          {% else %}
+              <em>No contacts recorded</em>
+          {% endif %}
+      </div>
+    </div>
+    {% elif activity.activity_type == 'task' %}
+    <div class="row mb-2">
+      <div class="col-md-3 fw-bold">Related To:</div>
+      <div class="col-md-9">
+          {% if activity_details.contacts.exists or activity_details.users.exists %}
+              <ul class="list-unstyled mb-0">
+                  {% for contact in activity_details.contacts.all %}
+                      <li>
+                          <a href="{% url 'crm:contact_detail' pk=contact.id %}">
+                              {{ contact.get_full_name }}
+                          </a>
+                          (Contact)
+                      </li>
+                  {% endfor %}
+                  {% for user in activity_details.users.all %}
+                      <li>
+                          {{ user.get_full_name }}
+                          (User)
+                      </li>
+                  {% endfor %}
+              </ul>
+          {% else %}
+              <em>No contacts or users associated</em>
+          {% endif %}
+      </div>
+    </div>
+    <div class="row mb-2">
+      <div class="col-md-3 fw-bold">Assigned To:</div>
+      <div class="col-md-9">
+          {% if activity_details.assigned_to %}
+              {{ activity_details.assigned_to.get_full_name }} (User)
+          {% else %}
+              <em>Not assigned</em>
+          {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    <div class="row mb-2">
+      <div class="col-6">
+        <div class="col-md-3 fw-bold">Priority:</div>
+        <div class="col-md-9">
+            {% if activity_details.priority == 'low' %}
+                <span class="badge bg-success">Low</span>
+            {% elif activity_details.priority == 'medium' %}
+                <span class="badge bg-warning text-dark">Medium</span>
+            {% elif activity_details.priority == 'high' %}
+                <span class="badge bg-danger">High</span>
+            {% endif %}
+        </div>  
+      </div>
+      <div class="col-6">     
+      <div class="col-md-3 fw-bold">Status:</div>
+      <div class="col-md-9">
+          {% if activity_details.status == 'not_started' %}
+              <span class="badge bg-secondary">Not Started</span>
+          {% elif activity_details.status == 'in_progress' %}
+              <span class="badge bg-info">In Progress</span>
+          {% elif activity_details.status == 'completed' %}
+              <span class="badge bg-success">Completed</span>
+          {% elif activity_details.status == 'cancelled' %}
+              <span class="badge bg-danger">Cancelled</span>
+          {% endif %}
+      </div>
+      </div>
+    </div>
+  
+    <!-- Type-specific activity details -->
+    {% if activity.activity_type == 'email' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Email Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Subject:</div>
+                <div class="col-md-9">{{ activity_details.subject|default:"(No subject)" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Date:</div>
+                <div class="col-md-9">{{ activity_details.email_date|date:"M d, Y" }} at {{ activity_details.email_time|time:"H:i" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Content:</div>
+                <div class="col-md-9">
+                    <div class="border p-3 bg-light">
+                        {{ activity_details.body|safe|default:"(No content)" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'document' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Document Details</h6>
+            
+            {% if activity_details %}
+                <!-- For non-system document activities with linked DocumentActivity -->
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Document:</div>
+                    <div class="col-md-9">
+                        {% if activity_details.document %}
+                            <a href="{% url 'crm:document_detail' document_id=activity_details.document.id %}">
+                                {{ activity_details.document.title }}
+                            </a>
+                        {% else %}
+                            <em>Document not found</em>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Action:</div>
+                    <div class="col-md-9">{{ activity_details.action }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Outcome:</div>
+                    <div class="col-md-9">{{ activity_details.document_outcome|default:"No outcome recorded"|linebreaks }}</div>
+                </div>
+            {% elif document %}
+                <!-- For system document activities with looked-up document -->
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Document:</div>
+                    <div class="col-md-9">
+                        <a href="{% url 'crm:document_detail' document_id=document.id %}">
+                            {{ document.title }}
+                        </a>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Type:</div>
+                    <div class="col-md-9">{{ document.get_document_type_display }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Version:</div>
+                    <div class="col-md-9">{{ document.version|default:"Not specified" }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Description:</div>
+                    <div class="col-md-9">{{ document.description|default:"No description"|linebreaks }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">Action:</div>
+                    <div class="col-md-9">
+                        {% if "Uploaded" in activity.description %}
+                            Uploaded
+                        {% elif "Updated" in activity.description %}
+                            Updated
+                        {% elif "Deleted" in activity.description %}
+                            Deleted
+                        {% elif "Downloaded" in activity.description %}
+                            Downloaded
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            {{ activity.description|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% elif activity.activity_type == 'call' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Call Details</h6>
+
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Call Purpose:</div>
+                <div class="col-md-9">{{ activity_details.summary|default:"(No purpose specified)"|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Duration:</div>
+                <div class="col-md-9">{{ activity_details.duration }} minutes</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Call Outcome:</div>
+                <div class="col-md-9">{{ activity_details.call_outcome|default:"(No outcome recorded)"|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Call Summary:</div>
+                <div class="col-md-9">{{ activity.description|linebreaks }}</div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'meeting' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Meeting Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Title:</div>
+                <div class="col-md-9">{{ activity_details.title|default:"No title specified" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Date & Time:</div>
+                <div class="col-md-9">{{ activity.performed_at|date:"M d, Y, H:i" }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Duration:</div>
+                <div class="col-md-9">{{ activity_details.duration }} minutes</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Location:</div>
+                <div class="col-md-9">{{ activity_details.location|default:"No location specified" }}</div>
+            </div>
+
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Agenda:</div>
+                <div class="col-md-9">{{ activity_details.agenda|default:"No agenda specified"|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Meeting Minutes:</div>
+                <div class="col-md-9">{{ activity_details.minutes|linebreaks }}</div>
+            </div>
+            {% if activity_details.meeting_outcome %}
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Outcome:</div>
+                <div class="col-md-9">{{ activity_details.meeting_outcome }}</div>
+            </div>
+            {% endif %}
+        </div>
+    {% elif activity.activity_type == 'note' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Note Details</h6>
+            {% if activity_details.is_important %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-star me-2"></i> This note is marked as Important
+                </div>
+            {% endif %}
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Subject:</div>
+                <div class="col-md-9">
+                    {% if activity_details.subject %}
+                        {{ activity_details.subject.name }}
+                    {% else %}
+                        <em>No subject</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Content:</div>
+                <div class="col-md-9">
+                    <div class="border p-3 bg-light">
+                        {{ activity_details.content|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'waiver_favour' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Waiver/Favor Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Type:</div>
+                <div class="col-md-9">
+                    {% if activity_details.type %}
+                        {{ activity_details.type.name }}
+                    {% else %}
+                        <em>No type specified</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Amount:</div>
+                <div class="col-md-9">
+                    {% if activity_details.amount %}
+                        £{{ activity_details.amount }}
+                    {% else %}
+                        <em>No amount specified</em>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Reason:</div>
+                <div class="col-md-9">{{ activity_details.reason|default:"No reason provided"|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Approved By:</div>
+                <div class="col-md-9">
+                    {% if activity_details.approved_by %}
+                        {{ activity_details.approved_by.get_full_name }}
+                    {% else %}
+                        <span class="text-success">No approval needed</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% elif activity.activity_type == 'task' %}
+        <div class="mt-4">
+            <h6 class="border-bottom pb-2">Task Details</h6>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Title:</div>
+                <div class="col-md-9">{{ activity_details.title }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Description:</div>
+                <div class="col-md-9">{{ activity_details.description|linebreaks }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Due Date:</div>
+                <div class="col-md-9">
+                    {% if activity_details.due_datetime %}
+                        {{ activity_details.due_datetime|date:"M d, Y, H:i" }}
+                    {% else %}
+                        <em>No due date specified</em>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Action buttons -->
+    <div class="mt-4 text-end">
+        {% if not activity.is_system_activity %}
+            <a href="javascript:void(0);" class="btn btn-sm btn-primary edit-activity-btn" data-activity-id="{{ activity.id }}">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <form method="POST" action="{% url 'crm:delete_activity' activity.id %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this activity?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </form>
+        {% endif %}
+    </div>
+</div> 

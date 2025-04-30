@@ -215,6 +215,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     activityPanelFormContainer.style.display = 'block';
                     console.log('✅ Content loaded into side panel successfully');
                     
+                    // Initialize form elements for editing activities
+                    const editEmailForm = activityPanelFormContainer.querySelector('.activity-form.email-form');
+                    if (editEmailForm) {
+                        console.log('Initializing edit email form elements');
+                        initializeFormElements('email');
+                    }
+                    
                     // Bind event handlers for edit/delete buttons
                     bindDetailPanelEventHandlers();
                 } else {

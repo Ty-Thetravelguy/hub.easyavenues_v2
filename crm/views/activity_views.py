@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.db.models import Q
 import logging
 from datetime import timedelta
+from django.urls import reverse
 
 from crm.models import (
     Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, 
@@ -112,7 +113,7 @@ def company_activities(request, company_id):
             'activity_type': activity_type
         }
         
-        html = render_to_string('crm/includes/activity_list.html', context, request)
+        html = render_to_string('crm/activities/activity_list.html', context, request)
         return HttpResponse(html)
             
     except Exception as e:
@@ -885,7 +886,7 @@ def activity_list_template(request):
         'activity_type': activity_type,
     }
     
-    html = render_to_string('crm/includes/activity_list.html', context, request)
+    html = render_to_string('crm/activities/activity_list.html', context, request)
     return HttpResponse(html)
 
 @login_required
@@ -976,11 +977,8 @@ def get_activity_details(request, activity_id):
             'document': document,
         }
         
-        # Determine which template to use based on the request
-        if is_sidepanel:
-            template_path = 'crm/includes/activity_detail_sidepanel_content.html'
-        else:
-            template_path = 'crm/includes/activity_detail_fragment.html'
+        # Always use the sidepanel template
+        template_path = 'crm/activities/activity_detail_sidepanel_content.html'
             
         logging.info(f"Rendering template: {template_path}")
         
@@ -1001,118 +999,310 @@ def get_activity_details(request, activity_id):
 
 @login_required
 def edit_activity(request, activity_id):
-    activity = get_object_or_404(Activity.objects.select_subclasses(), id=activity_id)
-    form_class = None
+    # Get basic activity first
+    activity = get_object_or_404(Activity, id=activity_id)
     
     # Determine if this is a sidepanel request
-    is_sidepanel = 'sidepanel' in request.path
+    is_sidepanel = request.GET.get('sidepanel') == '1' or request.POST.get('sidepanel') == '1' or 'sidepanel' in request.path
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
-    if is_sidepanel:
-        template_name = 'crm/edit_activity_sidepanel_form.html'
-    else:
-        template_name = 'crm/edit_activity_form.html'
-
-    # Determine the appropriate form class based on activity type
-    if isinstance(activity, EmailActivity):
-        form_class = EmailActivityForm
-    elif isinstance(activity, CallActivity):
-        form_class = CallActivityForm
-    elif isinstance(activity, MeetingActivity):
-        form_class = MeetingActivityForm
-    elif isinstance(activity, NoteActivity):
-        form_class = NoteActivityForm
-    elif isinstance(activity, DocumentActivity):
-        form_class = DocumentActivityForm
-    elif isinstance(activity, StatusChangeActivity):
-        form_class = StatusChangeActivityForm
-    elif isinstance(activity, PolicyUpdateActivity):
-        form_class = PolicyUpdateActivityForm
-    elif isinstance(activity, WaiverActivity): # Check specific model type
-        form_class = WaiverFavorActivityForm
-        activity.activity_type_check = 'waiver_favour' # Pass identifier for consistency if needed
-    elif isinstance(activity, TaskActivity):
-         form_class = TaskActivityForm
-    else:
-        # Handle unknown type or generic Activity if needed
-        messages.error(request, f"Editing not supported for this activity type: {type(activity).__name__}")
-        return redirect('crm:company_detail', pk=activity.company.id)
+    # Map activity type to the appropriate model, form class, and specialized template
+    specific_activity = None
+    form_class = None
+    template_name = None
     
-    if request.method == 'POST':
-        form = form_class(request.POST, instance=activity)
-        if form.is_valid():
-            form.save()
-            # Add Django success message
-            messages.success(request, 'Activity updated successfully.')
-            
-            # For sidepanel requests, return a small success fragment with message
+    # Process based on activity type
+    if activity.activity_type == 'email':
+        try:
+            specific_activity = EmailActivity.objects.get(id=activity_id)
+            form_class = EmailActivityForm
+            template_name = 'crm/activities/edit/email_edit_form.html'
+        except EmailActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'call':
+        try:
+            specific_activity = CallActivity.objects.get(id=activity_id)
+            form_class = CallActivityForm
+            # Will use the generic form for now
             if is_sidepanel:
-                activity_type = activity.activity_type
-                return HttpResponse('''
-                    <div class="alert alert-success">
-                        Activity updated successfully.
-                        <button type="button" class="btn btn-primary btn-sm float-end view-updated-activity" 
-                                data-activity-id="{}">View Updated Activity</button>
-                    </div>
-                '''.format(activity.id))
+                template_name = 'crm/edit_activity_sidepanel_form.html'
             else:
-                return redirect('crm:company_detail', pk=activity.company.id)
+                template_name = 'crm/edit_activity_form.html'
+        except CallActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'meeting':
+        try:
+            specific_activity = MeetingActivity.objects.get(id=activity_id)
+            form_class = MeetingActivityForm
+            # Will use the generic form for now
+            if is_sidepanel:
+                template_name = 'crm/edit_activity_sidepanel_form.html'
+            else:
+                template_name = 'crm/edit_activity_form.html'
+        except MeetingActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'note':
+        try:
+            specific_activity = NoteActivity.objects.get(id=activity_id)
+            form_class = NoteActivityForm
+            # Will use the generic form for now
+            if is_sidepanel:
+                template_name = 'crm/edit_activity_sidepanel_form.html'
+            else:
+                template_name = 'crm/edit_activity_form.html'
+        except NoteActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'document':
+        try:
+            specific_activity = DocumentActivity.objects.get(id=activity_id)
+            form_class = DocumentActivityForm
+            # Will use the generic form for now
+            if is_sidepanel:
+                template_name = 'crm/edit_activity_sidepanel_form.html'
+            else:
+                template_name = 'crm/edit_activity_form.html'
+        except DocumentActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'status_change':
+        try:
+            specific_activity = StatusChangeActivity.objects.get(id=activity_id)
+            form_class = StatusChangeActivityForm
+            # Will use the generic form for now
+            if is_sidepanel:
+                template_name = 'crm/edit_activity_sidepanel_form.html'
+            else:
+                template_name = 'crm/edit_activity_form.html'
+        except StatusChangeActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'policy_update':
+        try:
+            specific_activity = PolicyUpdateActivity.objects.get(id=activity_id)
+            form_class = PolicyUpdateActivityForm
+            # Will use the generic form for now
+            if is_sidepanel:
+                template_name = 'crm/edit_activity_sidepanel_form.html'
+            else:
+                template_name = 'crm/edit_activity_form.html'
+        except PolicyUpdateActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'waiver_favour':
+        try:
+            specific_activity = WaiverActivity.objects.get(id=activity_id)
+            form_class = WaiverFavorActivityForm
+            # Will use the generic form for now
+            if is_sidepanel:
+                template_name = 'crm/edit_activity_sidepanel_form.html'
+            else:
+                template_name = 'crm/edit_activity_form.html'
+        except WaiverActivity.DoesNotExist:
+            pass
+    elif activity.activity_type == 'task':
+        try:
+            specific_activity = TaskActivity.objects.get(id=activity_id)
+            form_class = TaskActivityForm
+            # Will use the generic form for now
+            if is_sidepanel:
+                template_name = 'crm/edit_activity_sidepanel_form.html'
+            else:
+                template_name = 'crm/edit_activity_form.html'
+        except TaskActivity.DoesNotExist:
+            pass
+    
+    # If no specific activity, form class, or template was found, show an error
+    if specific_activity is None or form_class is None or template_name is None:
+        messages.error(request, f"Editing not supported for this activity type: {activity.activity_type}")
+        if is_ajax:
+            return HttpResponse(f'<div class="alert alert-danger">Editing not supported for this activity type: {activity.activity_type}</div>')
         else:
-            # Add error message if the form is invalid
-            messages.error(request, 'There was an error updating the activity. Please check the form.')
+            return redirect('crm:company_detail', pk=activity.company.id)
+    
+    # Use the specific activity instance for the form
+    activity_to_use = specific_activity
+    
+    # Handle direct template rendering for emails without using Django forms
+    # This is needed because we're using a specialized template with custom fields
+    if activity.activity_type == 'email':
+        if request.method == 'POST':
+            # Process form data manually
+            try:
+                # Get recipient IDs
+                recipient_ids = request.POST.getlist('recipients')
+                
+                # Separate contact and user recipients
+                contact_recipient_ids = []
+                user_recipient_ids = []
+                
+                for recipient_id in recipient_ids:
+                    if recipient_id.startswith('contact_'):
+                        contact_recipient_ids.append(recipient_id.replace('contact_', ''))
+                    elif recipient_id.startswith('user_'):
+                        user_recipient_ids.append(recipient_id.replace('user_', ''))
+                
+                # Get contact recipients
+                contacts = Contact.objects.filter(id__in=contact_recipient_ids)
+                
+                # Get user recipients
+                users = User.objects.filter(id__in=user_recipient_ids)
+                
+                # Get date and time
+                email_date_str = request.POST.get('date', '')
+                email_time_str = request.POST.get('time', '')
+                
+                try:
+                    email_date = timezone.datetime.strptime(email_date_str, '%Y-%m-%d').date() if email_date_str else activity_to_use.email_date
+                except ValueError:
+                    email_date = activity_to_use.email_date
+                    
+                try:
+                    email_time = timezone.datetime.strptime(email_time_str, '%H:%M').time() if email_time_str else activity_to_use.email_time
+                except ValueError:
+                    email_time = activity_to_use.email_time
+                
+                # Update the activity
+                activity_to_use.subject = request.POST.get('subject', '')
+                activity_to_use.body = request.POST.get('content', '')
+                activity_to_use.description = request.POST.get('content', '')  # Keep description synced with body
+                activity_to_use.email_date = email_date
+                activity_to_use.email_time = email_time
+                
+                # Check if outbound is checked - update email_outcome accordingly
+                is_outbound = request.POST.get('outbound') == '1'
+                activity_to_use.email_outcome = 'Sent' if is_outbound else 'Received'
+                
+                # Save changes
+                activity_to_use.save()
+                
+                # Update recipients
+                activity_to_use.contact_recipients.clear()
+                activity_to_use.contact_recipients.add(*contacts)
+                
+                activity_to_use.user_recipients.clear()
+                activity_to_use.user_recipients.add(*users)
+                
+                # Add success message
+                messages.success(request, 'Email activity updated successfully.')
+                
+                # For sidepanel requests, respond appropriately
+                if is_sidepanel:
+                    if is_ajax:
+                        # Return success HTML for the sidepanel
+                        success_html = f'''
+                            <div class="alert alert-success">
+                                Email activity updated successfully.
+                                <button type="button" class="btn btn-primary btn-sm float-end" 
+                                        onclick="loadActivityDetailsIntoPanel({activity.id})">
+                                        View Activity
+                                </button>
+                            </div>
+                        '''
+                        return HttpResponse(success_html)
+                    else:
+                        # If not AJAX, redirect to the activity detail
+                        return redirect('crm:activity_details_sidepanel', activity_id=activity.id)
+                else:
+                    # Regular form submission - redirect to company detail
+                    return redirect('crm:company_detail', pk=activity.company.id)
+                
+            except Exception as e:
+                # Log error and add message
+                logging.error(f"Error updating email activity: {str(e)}", exc_info=True)
+                messages.error(request, f'Error updating email activity: {str(e)}')
+                
+                # Re-render form with error
+                context = {
+                    'activity': activity_to_use,
+                    'company': activity.company,
+                }
+                return render(request, template_name, context)
+        
+        # For GET requests, just render the template
+        context = {
+            'activity': activity_to_use,
+            'company': activity.company,
+        }
+        
+        if is_ajax:
+            html = render_to_string(template_name, context, request=request)
+            return HttpResponse(html)
+        
+        return render(request, template_name, context)
+    
+    # For other activity types, use Django forms as usual
     else:
-        form = form_class(instance=activity)
-    
-    context = {
-        'form': form,
-        'activity': activity,
-        'company': activity.company,
-    }
-    
-    # If it's an AJAX request or sidepanel, return just the form
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or is_sidepanel:
-        html = render_to_string(template_name, context, request=request)
-        return HttpResponse(html)
-    
-    # Otherwise render the full page
-    return render(request, template_name, context)
+        if request.method == 'POST':
+            form = form_class(request.POST, request.FILES, instance=activity_to_use)
+            if form.is_valid():
+                form.save()
+                # Add Django success message
+                messages.success(request, 'Activity updated successfully.')
+                
+                # For sidepanel requests, respond appropriately
+                if is_sidepanel:
+                    if is_ajax:
+                        # Return success HTML for the sidepanel
+                        success_html = f'''
+                            <div class="alert alert-success">
+                                Activity updated successfully.
+                                <button type="button" class="btn btn-primary btn-sm float-end" 
+                                        onclick="loadActivityDetailsIntoPanel({activity.id})">
+                                        View Activity
+                                </button>
+                            </div>
+                        '''
+                        return HttpResponse(success_html)
+                    else:
+                        # If not AJAX, redirect to the activity detail
+                        return redirect('crm:activity_details_sidepanel', activity_id=activity.id)
+                else:
+                    # Regular form submission - redirect to company detail
+                    return redirect('crm:company_detail', pk=activity.company.id)
+            else:
+                # Add error message if the form is invalid
+                messages.error(request, 'There was an error updating the activity. Please check the form.')
+        else:
+            form = form_class(instance=activity_to_use)
+        
+        context = {
+            'form': form,
+            'activity': activity_to_use,
+            'company': activity.company,
+        }
+        
+        # For AJAX/sidepanel requests, we may render only the form template
+        if is_ajax:
+            html = render_to_string(template_name, context, request=request)
+            return HttpResponse(html)
+        
+        # Otherwise render a complete template
+        return render(request, template_name, context)
 
 @login_required
 def delete_activity(request, activity_id):
     activity = get_object_or_404(Activity, id=activity_id)
     company_id = activity.company.id
-    activity_type = activity.activity_type  # Save the type before deletion
     
-    try:
-        activity_description = str(activity)[:50] + "..." if len(str(activity)) > 50 else str(activity)
-        activity.delete()
-        
-        # Add Django success message
-        messages.success(request, f'Activity "{activity_description}" deleted successfully.')
-        
-        # Check if this is an AJAX request
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': True,
-                'message': 'Activity deleted successfully',
-                'company_id': company_id,
-                'activity_type': activity_type
-            })
-        else:
+    # Only handle POST requests for actual deletion (GET requests just show confirmation)
+    if request.method == 'POST':
+        try:
+            activity_description = str(activity)[:50] + "..." if len(str(activity)) > 50 else str(activity)
+            activity.delete()
+            
+            # Add Django success message
+            messages.success(request, f'Activity "{activity_description}" deleted successfully.')
+            
+            # Redirect back to the company detail page
             return redirect('crm:company_detail', pk=company_id)
-    except Exception as e:
-        # Add Django error message
-        error_message = f'Error deleting activity: {str(e)}'
-        messages.error(request, error_message)
-        
-        # Check if this is an AJAX request
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': False,
-                'message': error_message,
-                'company_id': company_id
-            }, status=500)
-        else:
+        except Exception as e:
+            # Add Django error message
+            error_message = f'Error deleting activity: {str(e)}'
+            messages.error(request, error_message)
+            
+            # Redirect back to the company detail page
             return redirect('crm:company_detail', pk=company_id)
+    else:
+        # If accessed via GET, show a confirmation page or redirect (for simplicity, we'll redirect)
+        messages.info(request, 'Please use the confirmation dialog to delete activities.')
+        return redirect('crm:company_detail', pk=company_id)
 
 @login_required
 def search_recipients(request):

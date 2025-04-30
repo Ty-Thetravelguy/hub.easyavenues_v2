@@ -835,7 +835,7 @@
         <div class="card">
             <div class="card-body p-0">
                 <input type="hidden" id="company_id" value="{{ company.id }}">
-                {% include 'crm/includes/activity_tabs.html' %}
+                {% include 'crm/activities/activity_tabs.html' %}
             </div>
         </div>
     </div>
@@ -1008,7 +1008,7 @@
 {% endblock content %}
 
 <!-- Activity Side Panel -->
-{% include 'crm/includes/activity_side_panel.html' %}
+{% include 'crm/activities/activity_side_panel.html' %}
 
 {% block extra_js %}
 {{ block.super }}

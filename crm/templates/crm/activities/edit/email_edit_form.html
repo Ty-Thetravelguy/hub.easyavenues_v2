@@ -1,0 +1,81 @@
+<!-- Email Activity Edit Form -->
+<form method="post" class="activity-form email-form">
+    {% csrf_token %}
+    <input type="hidden" name="sidepanel" value="{% if request.GET.sidepanel or request.POST.sidepanel %}1{% endif %}">
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="mb-3">
+        <label for="email_recipients" class="form-label">Recipients</label>
+        <select class="form-control tom-select" id="email_recipients" name="recipients" multiple required data-company-id="{{ company.id }}">
+            {% for contact in activity.contact_recipients.all %}
+                <option value="contact_{{ contact.id }}" selected>{{ contact.get_full_name }}</option>
+            {% endfor %}
+            {% for user in activity.user_recipients.all %}
+                <option value="user_{{ user.id }}" selected>{{ user.get_full_name }}</option>
+            {% endfor %}
+        </select>
+        <small class="form-text text-muted">Type to search for contacts or users by name or email</small>
+    </div>
+
+    <div class="mb-3">
+        <label for="email_subject" class="form-label">Subject</label>
+        <input type="text" class="form-control" id="email_subject" name="subject" value="{{ activity.subject|default:'' }}" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="email_content" class="form-label">Email Content</label>
+        <textarea class="form-control rich-text-editor" id="email_content" name="content" rows="5" required>{{ activity.body|default:'' }}</textarea>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="email_date" class="form-label">Date Sent</label>
+            <input type="text" class="form-control" id="email_date" name="date" 
+                   value="{{ activity.email_date|date:'Y-m-d' }}" required data-datepicker>
+        </div>
+        <div class="col-md-6">
+            <label for="email_time" class="form-label">Time Sent</label>
+            <input type="text" class="form-control" id="email_time" name="time" 
+                   value="{{ activity.email_time|date:'H:i' }}" required data-timepicker>
+            <small class="form-text text-muted">Use 24-hour format (e.g., 14:30)</small>
+        </div>
+    </div>
+
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="email_outbound" name="outbound" value="1" {% if activity.email_outcome == 'Sent' %}checked{% endif %}>
+        <label class="form-check-label" for="email_outbound">
+            Outbound Email
+        </label>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+        {% if request.GET.sidepanel or request.POST.sidepanel %}
+            <button type="button" class="btn btn-secondary" onclick="closeSidepanel()">
+                <i class="fas fa-times me-1"></i>Cancel
+            </button>
+        {% else %}
+            <a href="{% url 'crm:company_detail' company.id %}" class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i>Cancel
+            </a>
+        {% endif %}
+        <button type="submit" class="btn btn-activity-email">
+            <i class="fas fa-save me-1"></i>Save Changes
+        </button>
+    </div>
+</form>
+
+<script>
+function closeSidepanel() {
+    if (window.sidePanelInstance) {
+        window.sidePanelInstance.hide();
+    } else {
+        // Fallback
+        window.location.href = "{% url 'crm:company_detail' company.id %}";
+    }
+}
+</script> 

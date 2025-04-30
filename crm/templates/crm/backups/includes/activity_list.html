@@ -1,0 +1,107 @@
+{% load humanize static %}
+
+<div class="activity-list">
+    
+    {% if activities %}      
+        <ul class="list-group">
+            {% for activity in activities %}
+                <li class="list-group-item {% if activity.is_system_activity %}system-activity{% else %}manual-activity{% endif %} activity-detail-link" 
+                    data-activity-id="{{ activity.id }}"
+                    data-activity-type="{{ activity.activity_type }}"
+                    role="button">
+                    
+                    <div class="d-flex w-100 justify-content-between">
+                        <div class="activity-content">
+                            {% if activity.is_system_activity %}
+                                <span class="badge bg-secondary me-2">System</span>
+                            {% else %}
+                                <span class="badge bg-primary me-2">{{ activity.get_activity_type_display }}</span>
+                            {% endif %}
+                            
+                            {% if activity.activity_type == 'email' %}
+                                <i class="fas fa-envelope me-2"></i>
+                            {% elif activity.activity_type == 'call' %}
+                                <i class="fas fa-phone me-2"></i>
+                            {% elif activity.activity_type == 'meeting' %}
+                                <i class="fas fa-users me-2"></i>
+                            {% elif activity.activity_type == 'note' %}
+                                <i class="fas fa-sticky-note me-2"></i>
+                            {% elif activity.activity_type == 'document' %}
+                                <i class="fas fa-file-alt me-2"></i>
+                            {% elif activity.activity_type == 'waiver_favour' %}
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                            {% elif activity.activity_type == 'task' %}
+                                <i class="fas fa-tasks me-2"></i>
+                            {% elif activity.activity_type == 'status_change' %}
+                                <i class="fas fa-exchange-alt me-2"></i>
+                            {% elif activity.activity_type == 'policy_update' %}
+                                <i class="fas fa-file-contract me-2"></i>
+                            {% else %}
+                                <i class="fas fa-clipboard-list me-2"></i>
+                            {% endif %}
+                            
+                            {% if activity.activity_type == 'email' %}
+                                <span>{{ activity.emailactivity.subject|default:activity.description|truncatechars:100 }}</span>
+                            {% else %}
+                                <span>{{ activity.description|truncatechars:100 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-nowrap ms-3">
+                            <small class="text-muted">{{ activity.performed_at|naturaltime }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2 text-muted">
+                        <small>
+                            <i class="far fa-clock me-1"></i> {{ activity.performed_at|date:"M d, Y, H:i" }}
+                            {% if activity.performed_by %}
+                                <i class="far fa-user ms-3 me-1"></i> {{ activity.performed_by.get_full_name }}
+                            {% endif %}
+                        </small>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="empty-state-container">
+                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No activities found</h5>
+                <p class="text-muted">There are no activities of type "{{ activity_type }}" to display.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .system-activity {
+        background-color: #f8f9fa;
+        border-left: 3px solid #6c757d;
+    }
+    
+    .manual-activity {
+        border-left: 3px solid #0d6efd;
+    }
+    
+    .list-group-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .list-group-item:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+</style>
+
+{% comment %} {% if activity_details.contact_attendees.exists or activity_details.user_attendees.exists %}
+    <ul class="list-unstyled mb-0">
+        {% for attendee in activity_details.contact_attendees.all %}
+            <li>{{ attendee.get_full_name }} (Contact)</li>
+        {% endfor %}
+        {% for attendee in activity_details.user_attendees.all %}
+            <li>{{ attendee.get_full_name }} (User)</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <em>No attendees recorded</em>
+{% endif %}  {% endcomment %}

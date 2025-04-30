@@ -1,0 +1,37 @@
+{% comment %} <!-- Activity Panel Form -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="activitySidePanel" aria-labelledby="activitySidePanelLabel" style="width: 550px;"> <!-- Consider adjusting width if needed -->
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="activitySidePanelLabel">
+            <!-- Title set by JS: updateSidePanelHeader -->
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <!-- Loading indicator -->
+        <div id="activity-panel-loading" class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <!-- Form container -->
+        <div id="activity-panel-form-container" style="display: none;">
+            <!-- Form loaded here by JS: loadActivityForm -->
+        </div>
+    </div>
+</div> {% endcomment %}
+{% comment %} 
+<!-- Dropdown for activity buttons -->
+<div class="dropdown mb-3">
+    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-plus-circle me-1"></i> Log Activity
+    </button>
+    <ul class="dropdown-menu">
+        <li><button class="dropdown-item btn-activity-note" id="log-note-btn" data-activity-type="note"><i class="fas fa-sticky-note me-1"></i> Log Note</button></li>
+        <li><button class="dropdown-item btn-activity-email" id="log-email-btn" data-activity-type="email"><i class="fas fa-envelope me-1"></i> Log Email</button></li>
+        <li><button class="dropdown-item btn-activity-call" id="log-call-btn" data-activity-type="call"><i class="fas fa-phone me-1"></i> Log Call</button></li>
+        <li><button class="dropdown-item btn-activity-meeting" id="log-meeting-btn" data-activity-type="meeting"><i class="fas fa-users me-1"></i> Log Meeting</button></li>
+        <li><button class="dropdown-item btn-activity-task" id="log-task-btn" data-activity-type="task"><i class="fas fa-tasks me-1"></i> Log Task</button></li>
+        <li><button class="dropdown-item btn-activity-waiver" id="log-waiver-btn" data-activity-type="waiver_favour"><i class="fas fa-handshake me-1"></i> Log Waiver & Favour</button></li>
+        <!-- Add other buttons here -->
+    </ul>
+</div>  {% endcomment %}

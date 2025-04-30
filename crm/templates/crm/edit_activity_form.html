@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/company_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/activity_tabs.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_list' %}">Companies</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'crm:company_detail' company.id %}">{{ company.company_name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Edit {{ activity.get_activity_type_display }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-blue-purple-left text-white py-3">
+                    <h5 class="mb-0">Edit {{ activity.get_activity_type_display }}</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data" class="activity-form {{ activity.activity_type }}-form">
+                        {% csrf_token %}
+                        
+                        {% if activity.activity_type == "email" %}
+                            <div class="mb-3">
+                                <label for="id_recipients" class="form-label">Recipients</label>
+                                <select class="form-control tom-select" id="id_recipients" name="{{ form.recipients.name }}" multiple data-company-id="{{ company.id }}">
+                                    {% for option in form.recipients.field.choices %}
+                                        <option value="{{ option.0 }}" {% if option.0 in form.recipients.value %}selected{% endif %}>{{ option.1 }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Type to search for contacts or users by name or email</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_subject" class="form-label">Subject</label>
+                                <input type="text" class="form-control" id="id_subject" name="{{ form.subject.name }}" value="{{ form.subject.value|default:'' }}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_content" class="form-label">Email Content</label>
+                                <textarea class="form-control rich-text-editor" id="id_content" name="{{ form.content.name }}" rows="5" required>{{ form.content.value|default:'' }}</textarea>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="id_date" class="form-label">Date Sent</label>
+                                    <input type="text" class="form-control" id="id_date" name="{{ form.date.name }}" 
+                                        value="{{ form.date.value|date:'Y-m-d' }}" required data-datepicker>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="id_time" class="form-label">Time Sent</label>
+                                    <input type="text" class="form-control" id="id_time" name="{{ form.time.name }}" 
+                                        value="{{ form.time.value|date:'H:i' }}" required data-timepicker>
+                                    <small class="form-text text-muted">Use 24-hour format (e.g., 14:30)</small>
+                                </div>
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="id_outbound" name="{{ form.outbound.name }}" value="1" {% if form.outbound.value %}checked{% endif %}>
+                                <label class="form-check-label" for="id_outbound">
+                                    Outbound Email
+                                </label>
+                            </div>
+
+                            {% if form.create_follow_up_task %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="{{ form.create_follow_up_task.name }}" id="id_create_follow_up_task" {% if form.create_follow_up_task.value %}checked{% endif %}>
+                                <label class="form-check-label" for="id_create_follow_up_task">
+                                    Create Follow-up Task?
+                                </label>
+                            </div>
+                            <div class="mb-3 ps-4" id="follow_up_task_details" style="{% if not form.create_follow_up_task.value %}display: none;{% endif %}">
+                                <label for="id_follow_up_task_title" class="form-label form-label-sm">Task Title (Optional)</label>
+                                <input type="text" name="{{ form.follow_up_task_title.name }}" id="id_follow_up_task_title" class="form-control form-control-sm mb-2" 
+                                    value="{{ form.follow_up_task_title.value|default:'' }}" placeholder="Defaults to: Follow up on [Email Subject]">
+                                
+                                <div class="row mb-2">
+                                    <div class="col-sm-7">
+                                        <label for="id_follow_up_due_date" class="form-label form-label-sm">Due Date (Optional)</label>
+                                        <input type="text" name="{{ form.follow_up_due_date.name }}" id="id_follow_up_due_date" class="form-control form-control-sm" 
+                                            value="{{ form.follow_up_due_date.value|default:'' }}" placeholder="Defaults to next day" data-datepicker>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <label for="id_follow_up_due_time" class="form-label form-label-sm">Due Time (Optional)</label>
+                                        <input type="text" name="{{ form.follow_up_due_time.name }}" id="id_follow_up_due_time" class="form-control form-control-sm" 
+                                            value="{{ form.follow_up_due_time.value|default:'' }}" placeholder="Defaults to 09:00" data-timepicker>
+                                    </div>
+                                </div>
+                                
+                                <label for="id_follow_up_task_notes" class="form-label form-label-sm">Notes (Optional)</label>
+                                <textarea name="{{ form.follow_up_task_notes.name }}" id="id_follow_up_task_notes" class="form-control form-control-sm" rows="2" 
+                                    placeholder="Add brief notes for the task...">{{ form.follow_up_task_notes.value|default:'' }}</textarea>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            {% for field in form %}
+                                {% if field.name != "create_follow_up_task" and field.name != "follow_up_task_title" and field.name != "follow_up_due_date" and field.name != "follow_up_due_time" and field.name != "follow_up_task_notes" %}
+                                <div class="mb-3">
+                                    {% if field.field.widget.input_type == 'checkbox' %}
+                                        <div class="form-check">
+                                            {{ field }}
+                                            <label class="form-check-label" for="{{ field.id_for_label }}">
+                                                {{ field.label }}
+                                            </label>
+                                        </div>
+                                    {% else %}
+                                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                        {% if field.name == "content" %}
+                                            <textarea class="form-control rich-text-editor" id="{{ field.id_for_label }}" name="{{ field.name }}" rows="5">{{ field.value|default:'' }}</textarea>
+                                        {% elif "date" in field.name %}
+                                            <input type="text" class="form-control" id="{{ field.id_for_label }}" name="{{ field.name }}" value="{{ field.value|date:'Y-m-d' }}" data-datepicker>
+                                        {% elif "time" in field.name %}
+                                            <input type="text" class="form-control" id="{{ field.id_for_label }}" name="{{ field.name }}" value="{{ field.value|date:'H:i' }}" data-timepicker>
+                                        {% else %}
+                                            {{ field }}
+                                        {% endif %}
+                                        {% if field.help_text %}
+                                            <div class="form-text">{{ field.help_text }}</div>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {% if field.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ field.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-activity-{{ activity.activity_type }}">
+                                <i class="fas {% if activity.activity_type == 'email' %}fa-envelope{% elif activity.activity_type == 'call' %}fa-phone{% elif activity.activity_type == 'meeting' %}fa-handshake{% elif activity.activity_type == 'note' %}fa-sticky-note{% else %}fa-save{% endif %} me-1"></i> 
+                                Save {{ activity.get_activity_type_display }} Activity
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="{% url 'crm:company_detail' company.id %}" class="btn btn-link text-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel and return to company
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show/hide follow up task details based on checkbox
+        const followUpCheckbox = document.getElementById('id_create_follow_up_task');
+        const followUpDetails = document.getElementById('follow_up_task_details');
+        
+        if (followUpCheckbox && followUpDetails) {
+            followUpCheckbox.addEventListener('change', function() {
+                followUpDetails.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+    });
+</script>
+{% endblock %} 
