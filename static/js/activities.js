@@ -42,6 +42,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.body.style.overflow = '';
                 document.body.style.paddingRight = '';
             });
+            
+            // Add event listener for when panel is shown to initialize editors
+            activitySidePanel.addEventListener('shown.bs.offcanvas', function() {
+                console.log('Side panel shown - checking for active editors');
+                
+                // Look for the current activity type
+                const activityTypeInput = activityPanelFormContainer.querySelector('input[name="activity_type"]');
+                if (activityTypeInput && activityTypeInput.value === 'email') {
+                    console.log('Email form detected - ensuring TinyMCE is initialized');
+                    
+                    setTimeout(() => {
+                        const editor = activityPanelFormContainer.querySelector('.rich-text-editor');
+                        if (editor && !tinymce.get(editor.id)) {
+                            console.log(`Initializing TinyMCE for ${editor.id} after panel shown`);
+                            initializeTinyMCEForForm(activityPanelFormContainer);
+                        }
+                    }, 150);
+                }
+            });
         } catch (error) {
             console.error('⚠️ Error initializing Bootstrap Offcanvas:', error);
         }
@@ -578,6 +597,8 @@ function initializeFormElements(activityType) {
         
         // Initialize type-specific elements
         if (activityType === 'email') {
+            console.log('Initializing email form elements');
+            
             // Use the correct selector for both create and edit forms
             const recipientSelector = form.querySelector('#email_recipients');
             if (recipientSelector) {
@@ -589,16 +610,17 @@ function initializeFormElements(activityType) {
                 }
             }
             
-            // Initialize TinyMCE
-            const bodyField = form.querySelector('.rich-text-editor');
-            if (bodyField && typeof tinymce !== 'undefined') {
-                // Check if TinyMCE is already initialized for this textarea
-                if (!tinymce.get(bodyField.id)) {
+            // Initialize TinyMCE with a small delay to ensure DOM is ready
+            setTimeout(() => {
+                const bodyField = form.querySelector('.rich-text-editor');
+                if (bodyField && typeof tinymce !== 'undefined') {
+                    console.log(`Initializing TinyMCE for ${bodyField.id || 'unnamed editor'}`);
+                    // Force reinitialize TinyMCE for the form
                     initializeTinyMCEForForm(form);
                 } else {
-                    console.log('TinyMCE already initialized for email body');
+                    console.warn('Rich text editor element or TinyMCE not found');
                 }
-            }
+            }, 150);
             
             // Set up follow-up task toggle
             setupFollowUpTaskToggle(form);
@@ -922,10 +944,13 @@ function initializeTinyMCEForForm(formElement) {
         // Check if this textarea is already initialized
         if (tinymce.get(textarea.id)) {
             console.log(`TinyMCE already initialized for textarea with ID: ${textarea.id}`);
-            return;
+            // Remove and reinitialize to ensure it works properly
+            tinymce.remove(`#${textarea.id}`);
+            console.log(`Removed existing TinyMCE instance for ${textarea.id} to reinitialize`);
         }
         
         // Initialize TinyMCE with appropriate configuration
+        console.log(`Now initializing TinyMCE for ${textarea.id}`);
         tinymce.init({
             selector: `#${textarea.id}`,
             height: 250,
@@ -938,10 +963,15 @@ function initializeTinyMCEForForm(formElement) {
                 editor.on('change', function() {
                     editor.save(); // Save content back to textarea on change
                 });
+                
+                // Log when editor is initialized
+                editor.on('init', function() {
+                    console.log(`TinyMCE editor ${textarea.id} fully initialized`);
+                });
             }
         });
         
-        console.log(`✅ TinyMCE initialized for textarea with ID: ${textarea.id}`);
+        console.log(`✅ TinyMCE initialization started for textarea with ID: ${textarea.id}`);
     });
 }
 
@@ -1600,32 +1630,52 @@ function bindDetailPanelEventHandlers() {
                     return response.text();
                 })
                 .then(html => {
-                  // Hide loading, show form
-                  if (activityPanelLoading) {
-                      activityPanelLoading.style.display = 'none';
-                  }
-                  if (activityPanelFormContainer) {
-                      activityPanelFormContainer.innerHTML = html;
-                      activityPanelFormContainer.style.display = 'block';
-                      
-                      // Force initialize the form elements for the edit form
-                      console.log("Explicitly initializing form elements for email edit");
-                      
-                      // Initialize TomSelect for recipients
-                      const recipientSelector = activityPanelFormContainer.querySelector('#email_recipients');
-                      if (recipientSelector && !recipientSelector.tomselect) {
-                          initializeRecipientSelectForForm(activityPanelFormContainer, '#email_recipients');
-                      }
-                      
-                      // Initialize TinyMCE
-                      const bodyField = activityPanelFormContainer.querySelector('.rich-text-editor');
-                      if (bodyField && typeof tinymce !== 'undefined') {
-                          initializeTinyMCEForForm(activityPanelFormContainer);
-                      }
-                      
-                      // Set up follow-up task toggle
-                      setupFollowUpTaskToggle(activityPanelFormContainer);
-                  }
+                    // Hide loading, show form
+                    if (activityPanelLoading) {
+                        activityPanelLoading.style.display = 'none';
+                    }
+                    if (activityPanelFormContainer) {
+                        activityPanelFormContainer.innerHTML = html;
+                        activityPanelFormContainer.style.display = 'block';
+                        
+                        // Get the activity type from the form
+                        const activityTypeInput = activityPanelFormContainer.querySelector('input[name="activity_type"]');
+                        const activityType = activityTypeInput ? activityTypeInput.value : 'unknown';
+                        
+                        console.log(`Form loaded for activity type: ${activityType}`);
+                        
+                        // Initialize form elements based on activity type
+                        setTimeout(() => {
+                            initializeFormElements(activityType);
+                            
+                            // Special handling for email forms - ensure TinyMCE is initialized
+                            if (activityType === 'email') {
+                                console.log('Ensuring TinyMCE is initialized for email edit form');
+                                const emailContent = activityPanelFormContainer.querySelector('#email_content');
+                                if (emailContent && typeof tinymce !== 'undefined') {
+                                    // Check if already initialized
+                                    if (!tinymce.get('email_content')) {
+                                        console.log('Initializing TinyMCE for #email_content');
+                                        tinymce.init({
+                                            selector: '#email_content',
+                                            height: 300,
+                                            menubar: false,
+                                            plugins: 'lists link autolink',
+                                            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link',
+                                            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; }',
+                                            setup: function(editor) {
+                                                editor.on('change', function() {
+                                                    editor.save(); // Save content back to textarea on change
+                                                });
+                                            }
+                                        });
+                                    } else {
+                                        console.log('TinyMCE already initialized for #email_content');
+                                    }
+                                }
+                            }
+                        }, 100); // Short delay to ensure DOM is fully processed
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading edit form:', error);
@@ -1639,17 +1689,7 @@ function bindDetailPanelEventHandlers() {
                 });
         });
     });
-        
-    // Add this right after the edit form is loaded in bindDetailPanelEventHandlers()
-    console.log("Edit form loaded, checking for TinyMCE and recipient selectors");
-    const bodyField = activityPanelFormContainer.querySelector('.rich-text-editor');
-    console.log("Rich text editor element:", bodyField);
-    const recipientSelector = activityPanelFormContainer.querySelector('#email_recipients');
-    console.log("Recipient selector element:", recipientSelector);
-
-    // Then call initialization function manually
-    initializeFormElements('email');
-
+    
     // Delete button
     const deleteButtons = document.querySelectorAll('.delete-activity-btn');
     console.log(`Found ${deleteButtons.length} delete buttons to bind handlers to`);
