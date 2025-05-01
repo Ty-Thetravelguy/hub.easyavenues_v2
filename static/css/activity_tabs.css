@@ -370,4 +370,17 @@
   padding: 0.5rem 0.75rem;
   color: #6c757d;
   font-style: italic;
+}
+
+/* Ensure Delete Modal appears above Offcanvas */
+#deleteConfirmModal {
+  /* Increase z-index significantly and force it */
+  z-index: 1100 !important; 
+}
+
+/* Target the backdrop specifically associated with this modal if possible,
+   or just ensure *any* modal backdrop is below this specific modal */
+.modal-backdrop {
+    /* Increase backdrop z-index too, just below the modal, and force it */
+    z-index: 1099 !important; 
 } 

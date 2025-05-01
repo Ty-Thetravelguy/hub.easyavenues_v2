@@ -1737,31 +1737,61 @@ def edit_activity(request, activity_id):
 
 @login_required
 def delete_activity(request, activity_id):
-    activity = get_object_or_404(Activity, id=activity_id)
-    company_id = activity.company.id
-    
-    # Only handle POST requests for actual deletion (GET requests just show confirmation)
-    if request.method == 'POST':
+    # Only handle POST requests from the confirmation modal form
+    if request.method != 'POST':
+        # If accessed via GET or other methods, redirect with info message
+        # Avoid showing a confirmation page here, rely on the modal
+        activity = get_object_or_404(Activity, id=activity_id)
+        messages.info(request, 'Please use the confirmation dialog in the side panel to delete activities.')
+        return redirect('crm:company_detail', pk=activity.company.id)
+
+    # Permission Check: Allow only superuser and admin
+    if not request.user.is_superuser and request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to delete activities.')
+        # Need company_id for redirect, try getting it from the activity first
         try:
-            activity_description = str(activity)[:50] + "..." if len(str(activity)) > 50 else str(activity)
-            activity.delete()
-            
-            # Add Django success message
-            messages.success(request, f'Activity "{activity_description}" deleted successfully.')
-            
-            # Redirect back to the company detail page
-            return redirect('crm:company_detail', pk=company_id)
-        except Exception as e:
-            # Add Django error message
-            error_message = f'Error deleting activity: {str(e)}'
-            messages.error(request, error_message)
-            
-            # Redirect back to the company detail page
-            return redirect('crm:company_detail', pk=company_id)
-    else:
-        # If accessed via GET, show a confirmation page or redirect (for simplicity, we'll redirect)
-        messages.info(request, 'Please use the confirmation dialog to delete activities.')
+            activity = Activity.objects.get(id=activity_id)
+            company_id = activity.company.id
+        except Activity.DoesNotExist:
+             # Fallback: If activity doesn't exist, maybe redirect to a general dashboard or list view
+             # Or try getting company ID differently if possible. For now, let's redirect to company list.
+             # This case is unlikely if the delete button was shown.
+             return redirect('crm:company_list') # Adjust target as needed
         return redirect('crm:company_detail', pk=company_id)
+
+    # Get IDs from POST data
+    activity_id_to_delete = request.POST.get('activity_id_to_delete')
+    confirm_id_typed = request.POST.get('confirm_activity_id')
+
+    # Verify the hidden ID matches the URL ID (as a safeguard)
+    if str(activity_id_to_delete) != str(activity_id):
+        messages.error(request, 'An error occurred (ID mismatch). Please try again.')
+        # Try to get company ID for redirect
+        try:
+            activity = Activity.objects.get(id=activity_id)
+            company_id = activity.company.id
+        except Activity.DoesNotExist:
+            return redirect('crm:company_list') # Adjust target
+        return redirect('crm:company_detail', pk=company_id)
+
+    # Get the activity instance
+    activity = get_object_or_404(Activity, id=activity_id)
+    company_id = activity.company.id # Store company ID before deleting activity
+
+    # Check if the typed confirmation ID matches the actual activity ID
+    if str(confirm_id_typed) == str(activity.id):
+        try:
+            activity_description = f"{activity.get_activity_type_display()} on {activity.performed_at.strftime('%b %d')}"
+            activity.delete()
+            messages.success(request, f'Activity (ID: {activity_id}) "{activity_description}" deleted successfully.')
+        except Exception as e:
+            logging.error(f"Error deleting activity ID {activity_id}: {str(e)}", exc_info=True)
+            messages.error(request, f'An error occurred while deleting the activity: {str(e)}')
+    else:
+        messages.error(request, f'Confirmation failed. The entered ID "{confirm_id_typed}" did not match the activity ID "{activity.id}".')
+
+    # Redirect back to the company detail page
+    return redirect('crm:company_detail', pk=company_id)
 
 @login_required
 def search_recipients(request):

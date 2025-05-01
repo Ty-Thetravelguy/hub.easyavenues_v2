@@ -1691,50 +1691,42 @@ function bindDetailPanelEventHandlers() {
         });
     });
     
-    // Delete button
+    // Delete button - NOW triggers modal
     const deleteButtons = document.querySelectorAll('.delete-activity-btn');
     console.log(`Found ${deleteButtons.length} delete buttons to bind handlers to`);
     
     deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
-            e.preventDefault();
+            e.preventDefault(); // Prevent any default button action
             const activityId = this.getAttribute('data-activity-id');
-            console.log(`Delete button clicked for activity ID: ${activityId}`);
+            console.log(`Delete button clicked for activity ID: ${activityId} - Preparing modal.`);
             
-            if (confirm('Are you sure you want to delete this activity? This action cannot be undone.')) {
-                fetch(`/crm/activity/${activityId}/delete/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCsrfToken(),
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Close panel 
-                        sidePanelInstance.hide();
-                        
-                        // Reload page to show Django messages and refresh all activities
-                        window.location.reload();
-                    } else {
-                        console.error('Error deleting activity:', data.message);
-                        // Reload page to show Django error messages
-                        window.location.reload();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting activity:', error);
-                    // Reload page to show Django error messages
-                    window.location.reload();
-                });
+            // Get modal elements
+            const modal = document.getElementById('deleteConfirmModal');
+            if (!modal) {
+                console.error("Delete confirmation modal not found!");
+                return;
             }
+            const idDisplay = modal.querySelector('#delete-activity-id-display');
+            const idDisplayConfirm = modal.querySelector('#delete-activity-id-display-confirm');
+            const hiddenIdInput = modal.querySelector('#delete-activity-id-hidden');
+            const confirmInput = modal.querySelector('#delete-activity-id-confirm');
+            const deleteForm = modal.querySelector('#delete-activity-form');
+            
+            // Populate modal
+            if (idDisplay) idDisplay.textContent = activityId;
+            if (idDisplayConfirm) idDisplayConfirm.textContent = activityId;
+            if (hiddenIdInput) hiddenIdInput.value = activityId;
+            if (confirmInput) confirmInput.value = ''; // Clear previous input
+            if (deleteForm) {
+                 // Construct the URL for the form action
+                const deleteUrl = `/crm/activity/${activityId}/delete/`;
+                deleteForm.action = deleteUrl;
+                console.log(`Set delete form action to: ${deleteUrl}`);
+            }
+            
+            // Bootstrap attributes on the button handle showing the modal
+            // We don't need to call modal.show() here
         });
     });
 }
