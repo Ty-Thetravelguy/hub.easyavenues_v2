@@ -75,11 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupActivityCardHandlers();
     
     // Initialize activity filtering (if available)
-    if (typeof initializeActivityFiltering === 'function') {
-        initializeActivityFiltering();
-    } else {
-        console.log('Activity filtering not initialized (function not found)');
-    }
+    initializeActivityFilteringUI();
     
     // Initialize date/time pickers for activities
     initializeDateTimePickers();
@@ -1139,8 +1135,25 @@ function loadActivitiesByType(activityType) {
     `;
     container.appendChild(loadingDiv);
     
-    // Build URL for fetching activities - include timestamp to prevent caching
-    const url = `/crm/company/${companyId}/activities/?type=${activityType}&_=${new Date().getTime()}`;
+    // +++ Collect Filter Values +++
+    const startDate = document.getElementById('filter_start_date')?.value || '';
+    const endDate = document.getElementById('filter_end_date')?.value || '';
+    const userId = document.getElementById('filter_user')?.value || '';
+    const searchTerm = document.getElementById('filter_search')?.value || '';
+    // --- END Filter Values ---
+    
+    // Build URL for fetching activities - include timestamp and filters
+    const urlParams = new URLSearchParams({
+        type: activityType,
+        _t: new Date().getTime() // Cache buster
+    });
+    if (startDate) urlParams.append('start_date', startDate);
+    if (endDate) urlParams.append('end_date', endDate);
+    if (userId) urlParams.append('user_id', userId);
+    if (searchTerm) urlParams.append('search_term', searchTerm);
+    
+    const url = `/crm/company/${companyId}/activities/?${urlParams.toString()}`;
+    console.log(`Fetching activities with URL: ${url}`);
     
     // Fetch activities
     fetch(url)
@@ -1941,3 +1954,84 @@ function initializeTaskContactSelect(formElement) {
     console.log(`✅ Tom Select (Single) initialized for #task_related_contact in the loaded form.`);
 }
 */
+
+function initializeActivityFilteringUI() {
+    const applyBtn = document.getElementById('apply_filters_btn');
+    const resetBtn = document.getElementById('reset_filters_btn');
+    const startDateInput = document.getElementById('filter_start_date');
+    const endDateInput = document.getElementById('filter_end_date');
+    const userInput = document.getElementById('filter_user');
+    const searchInput = document.getElementById('filter_search');
+
+    if (!applyBtn || !resetBtn || !startDateInput || !endDateInput || !userInput || !searchInput) {
+        console.warn("Filter UI elements not fully found. Filtering might not work correctly.");
+        return;
+    }
+
+    console.log("Initializing Filter UI event listeners...");
+
+    applyBtn.addEventListener('click', function() {
+        console.log("Apply Filters button clicked");
+        // Get current active tab
+        const activeTabButton = document.querySelector('.activity-tabs .nav-link.active');
+        const activityType = activeTabButton ? activeTabButton.dataset.activityType : 'all';
+        console.log(`Triggering loadActivitiesByType for active tab: ${activityType}`);
+        loadActivitiesByType(activityType); // Reload current tab with filters
+    });
+
+    resetBtn.addEventListener('click', function() {
+        console.log("Reset Filters button clicked");
+        // Clear filter inputs
+        if (startDateInput._flatpickr) startDateInput._flatpickr.clear();
+        else startDateInput.value = '';
+        if (endDateInput._flatpickr) endDateInput._flatpickr.clear();
+        else endDateInput.value = '';
+        userInput.value = '';
+        searchInput.value = '';
+
+        // Get current active tab and reload
+        const activeTabButton = document.querySelector('.activity-tabs .nav-link.active');
+        const activityType = activeTabButton ? activeTabButton.dataset.activityType : 'all';
+        console.log(`Triggering loadActivitiesByType for active tab after reset: ${activityType}`);
+        loadActivitiesByType(activityType); 
+    });
+    
+    // Optional: Apply filters when Enter key is pressed in search field
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent default form submission if any
+            applyBtn.click(); // Trigger apply button click
+        }
+    });
+}
+
+/**
+ * Initialize date pickers specifically for the filter controls
+ */
+function initializeFilterDatePickers() {
+    if (typeof flatpickr === 'undefined') {
+        console.warn("Flatpickr not loaded, cannot init filter date pickers.");
+        return;
+    }
+    const startDateInput = document.getElementById('filter_start_date');
+    const endDateInput = document.getElementById('filter_end_date');
+
+    if (startDateInput && !startDateInput._flatpickr) {
+        flatpickr(startDateInput, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "M d, Y",
+            allowInput: true
+        });
+        console.log("Initialized Flatpickr for filter_start_date");
+    }
+    if (endDateInput && !endDateInput._flatpickr) {
+        flatpickr(endDateInput, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "M d, Y",
+            allowInput: true
+        });
+        console.log("Initialized Flatpickr for filter_end_date");
+    }
+}

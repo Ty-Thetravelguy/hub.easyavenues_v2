@@ -94,29 +94,74 @@ def company_activities(request, company_id):
         company = get_object_or_404(Company, id=company_id)
         activity_type = request.GET.get('type', 'all')
         
+        # +++ Get Filter Parameters +++
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        user_id = request.GET.get('user_id')
+        search_term = request.GET.get('search_term')
+        # --- END --- 
+        
+        # Start with base queryset
+        activities_query = Activity.objects.filter(company=company)
+        
+        # Apply activity type filter
         if activity_type == 'all':
-            activities = Activity.objects.filter(company=company).select_related(
-                'emailactivity', 'callactivity', 'meetingactivity', 'noteactivity', 
-                'waiveractivity', 'taskactivity', 'documentactivity', 'statuschangeactivity',
-                'policyupdateactivity'
-            ).order_by('-performed_at')
-        elif activity_type == 'system': # Added condition for system activities
-            activities = Activity.objects.filter(
-                company=company, 
-                is_system_activity=True
-            ).select_related(
-                'emailactivity', 'callactivity', 'meetingactivity', 'noteactivity', 
-                'waiveractivity', 'taskactivity', 'documentactivity', 'statuschangeactivity',
-                'policyupdateactivity' # Keep related fields for potential display
-            ).order_by('-performed_at')
+            pass # No type filter needed
+        elif activity_type == 'system':
+            activities_query = activities_query.filter(is_system_activity=True)
         else:
-            activities = Activity.objects.filter(
-                company=company, activity_type=activity_type
-            ).select_related(
-                'emailactivity', 'callactivity', 'meetingactivity', 'noteactivity', 
-                'waiveractivity', 'taskactivity', 'documentactivity', 'statuschangeactivity',
-                'policyupdateactivity'
-            ).order_by('-performed_at')
+            activities_query = activities_query.filter(activity_type=activity_type)
+            
+        # +++ Apply Additional Filters +++
+        # Date Range Filter
+        if start_date_str:
+            try:
+                start_date = timezone.datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                activities_query = activities_query.filter(performed_at__date__gte=start_date)
+            except ValueError:
+                pass # Ignore invalid date format
+        if end_date_str:
+            try:
+                end_date = timezone.datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                activities_query = activities_query.filter(performed_at__date__lte=end_date)
+            except ValueError:
+                pass # Ignore invalid date format
+                
+        # User Filter
+        if user_id and user_id.isdigit():
+            activities_query = activities_query.filter(performed_by_id=user_id)
+            
+        # Search Term Filter
+        if search_term:
+            activities_query = activities_query.filter(
+                Q(description__icontains=search_term) | # Base description
+                # Add Q objects for type-specific fields 
+                # (Requires select_related/prefetch_related and careful checking)
+                Q(emailactivity__subject__icontains=search_term) | 
+                Q(emailactivity__body__icontains=search_term) | 
+                Q(callactivity__summary__icontains=search_term) | 
+                Q(callactivity__call_outcome__icontains=search_term) | 
+                Q(meetingactivity__title__icontains=search_term) | 
+                Q(meetingactivity__agenda__icontains=search_term) | 
+                Q(meetingactivity__minutes__icontains=search_term) | 
+                Q(noteactivity__subject__name__icontains=search_term) | 
+                Q(noteactivity__content__icontains=search_term) | 
+                Q(waiveractivity__reason__icontains=search_term) | 
+                Q(taskactivity__title__icontains=search_term) | 
+                Q(taskactivity__description__icontains=search_term)
+                # Add other relevant fields here...
+            ).distinct() # Use distinct() because Q objects spanning relations can cause duplicates
+        # --- END Filters --- 
+        
+        # Fetch the filtered activities
+        activities = activities_query.select_related(
+            'performed_by', # Ensure performed_by is selected for display
+            # Include relations needed for filtering/display
+            'emailactivity', 'callactivity', 'meetingactivity', 
+            'noteactivity', 'noteactivity__subject', # Include subject for note search
+            'waiveractivity', 'taskactivity', 'documentactivity', 
+            'statuschangeactivity', 'policyupdateactivity'
+        ).order_by('-performed_at')
         
         context = {
             'company': company,

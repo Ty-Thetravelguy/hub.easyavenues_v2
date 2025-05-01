@@ -34,6 +34,39 @@
             </div>
         </div>
 
+        {# +++ ADDED Filter Section +++ #}
+        <div class="activity-filters bg-light p-3 rounded mb-3 mt-2 border">
+            <h6 class="mb-3"><i class="fas fa-filter me-1"></i> Filter Activities</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label for="filter_start_date" class="form-label form-label-sm">Start Date</label>
+                    <input type="text" id="filter_start_date" class="form-control form-control-sm" placeholder="Any" data-datepicker>
+                </div>
+                <div class="col-md-3">
+                    <label for="filter_end_date" class="form-label form-label-sm">End Date</label>
+                    <input type="text" id="filter_end_date" class="form-control form-control-sm" placeholder="Any" data-datepicker>
+                </div>
+                <div class="col-md-3">
+                    <label for="filter_user" class="form-label form-label-sm">Performed By</label>
+                    <select id="filter_user" class="form-select form-select-sm">
+                        <option value="">All Users</option>
+                        {% for user in filter_users %} {# Assumes filter_users is passed in context #}
+                            <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filter_search" class="form-label form-label-sm">Search</label>
+                    <input type="text" id="filter_search" class="form-control form-control-sm" placeholder="Search details...">
+                </div>
+                <div class="col-md-12 text-end mt-2">
+                    <button id="apply_filters_btn" class="btn btn-sm btn-secondary me-1"><i class="fas fa-check me-1"></i> Apply</button>
+                    <button id="reset_filters_btn" class="btn btn-sm btn-outline-secondary"><i class="fas fa-times me-1"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+        {# --- END Filter Section --- #}
+
         <!-- Tab Navigation -->
         <ul class="nav nav-tabs activity-tabs" id="activityTabs" role="tablist">
             <li class="nav-item" role="presentation">

@@ -70,12 +70,17 @@ def company_detail(request, pk):
     # Get activities
     activities = Activity.objects.filter(company=company).order_by('-performed_at')
     
+    # Get users for filter dropdown
+    User = get_user_model()
+    filter_users = User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+    
     context = {
         'company': company,
         'contacts': contacts,
         'documents': documents,
         'travel_policies': travel_policies,
         'activities': activities,
+        'filter_users': filter_users,
     }
     
     return render(request, 'crm/company_detail.html', context)
