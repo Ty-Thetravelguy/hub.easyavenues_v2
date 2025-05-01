@@ -528,7 +528,7 @@ def log_meeting_activity(request):
                     assigned_to=request.user,
                     status='not_started',
                     priority='medium',
-                    related_activity=activity
+                    related_activity=activity # Link task to the original meeting activity
                 )
                 # Add Django message for task creation
                 messages.success(request, 'Follow-up task created successfully.')
@@ -1033,6 +1033,13 @@ def edit_activity(request, activity_id):
             form_class = None # No Django form used here
         except NoteActivity.DoesNotExist:
             pass
+    elif activity_type == 'task':
+        try:
+            specialized_activity = TaskActivity.objects.get(id=activity_id)
+            template_name = 'crm/activities/edit/task_edit_form.html'
+            form_class = None # No Django form used here
+        except TaskActivity.DoesNotExist:
+            pass
     # Add other activity types here...
     
     # Handle POST submission
@@ -1410,7 +1417,7 @@ def edit_activity(request, activity_id):
             # Update edit tracking fields on base activity
             activity.last_edited_at = timezone.now()
             activity.last_edited_by = request.user
-            activity.save(update_fields=['last_edited_at', 'last_edited_by', 'description']) # description might change
+            activity.save(update_fields=['last_edited_at', 'last_edited_by'])
             
             # Handle follow-up task creation for note
             if request.POST.get('create_follow_up_task'):
@@ -1472,6 +1479,92 @@ def edit_activity(request, activity_id):
             else:
                 messages.success(request, 'Note activity updated successfully')
                 return redirect('crm:company_detail', pk=activity.company.id)
+        
+        elif activity_type == 'task':
+            # Get form data for task
+            title = request.POST.get('title', '')
+            description = request.POST.get('description', '')
+            priority = request.POST.get('priority', 'medium')
+            status = request.POST.get('status', 'not_started')
+            assignee_id = request.POST.get('assignee')
+            related_item_ids = request.POST.getlist('related_contacts', [])
+            
+            # Update basic fields
+            specialized_activity.title = title
+            specialized_activity.description = description
+            specialized_activity.priority = priority
+            specialized_activity.status = status
+            
+            # Update assignee
+            if assignee_id:
+                try:
+                    assignee = User.objects.get(id=assignee_id)
+                    specialized_activity.assigned_to = assignee
+                except User.DoesNotExist:
+                    specialized_activity.assigned_to = None
+            else:
+                specialized_activity.assigned_to = None # Allow unassigning
+            
+            # Update due date/time
+            due_date_str = request.POST.get('due_date')
+            due_time_str = request.POST.get('due_time')
+            # Reset due_datetime to None if date/time strings are empty
+            if not due_date_str and not due_time_str:
+                specialized_activity.due_datetime = None
+            elif due_date_str and due_time_str:
+                try:
+                    due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                    due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time()
+                    naive_datetime = timezone.datetime.combine(due_date, due_time)
+                    specialized_activity.due_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+                except ValueError:
+                    # Keep existing datetime if parsing fails
+                    pass 
+            
+            # Update related contact (TaskActivity has a single FK 'contact')
+            selected_contact_id = None
+            for item_id in related_item_ids:
+                if item_id.startswith('contact_'):
+                    # Take the first contact found
+                    selected_contact_id = item_id.replace('contact_', '')
+                    break 
+            
+            if selected_contact_id:
+                try:
+                    contact_obj = Contact.objects.get(id=selected_contact_id)
+                    specialized_activity.contact = contact_obj
+                except Contact.DoesNotExist:
+                    specialized_activity.contact = None # Set to None if contact not found
+            else:
+                specialized_activity.contact = None # Clear contact if none selected/found
+            
+            # Remove old logic for M2M contacts/users
+            # specialized_activity.contacts.clear() 
+            # specialized_activity.users.clear() 
+            # for item_id in related_item_ids:
+            #     if item_id.startswith('contact_'):
+            #         contact_id = item_id.replace('contact_', '')
+            #         contact = get_object_or_404(Contact, id=contact_id)
+            #         specialized_activity.contacts.add(contact)
+            #     elif item_id.startswith('user_'):
+            #         user_id = item_id.replace('user_', '')
+            #         user = get_object_or_404(User, id=user_id)
+            #         specialized_activity.users.add(user)
+            
+            # Save the specialized activity changes first
+            specialized_activity.save()
+            
+            # Update edit tracking fields on base activity
+            activity.last_edited_at = timezone.now()
+            activity.last_edited_by = request.user
+            activity.save(update_fields=['last_edited_at', 'last_edited_by'])
+            
+            # Return success response
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Task activity updated successfully', 'reload_page': True})
+            else:
+                messages.success(request, 'Task activity updated successfully')
+                return redirect('crm:company_detail', pk=activity.company.id)
     
     # Prepare the form for GET requests
     if specialized_activity:
@@ -1511,6 +1604,28 @@ def edit_activity(request, activity_id):
         elif activity_type == 'note':
             # Fetch NoteSubject choices for the dropdown
             context_data['subjects'] = NoteSubject.objects.all()
+        elif activity_type == 'task':
+            # Fetch users for assignee dropdown
+            context_data['users'] = User.objects.filter(is_active=True)
+            # Prepare related items for TomSelect
+            # TaskActivity only has a single contact FK, not M2M fields.
+            # Pass the single contact if it exists for the single-select dropdown.
+            context_data['current_related_contact'] = specialized_activity.contact # Pass the single Contact object
+            # current_related_items = []
+            # # TaskActivity model might have separate m2m fields: contacts and users
+            # if hasattr(specialized_activity, 'contacts'):
+            #      for contact in specialized_activity.contacts.all():
+            #         current_related_items.append({
+            #             'id': f'contact_{contact.id}',
+            #             'text': contact.get_full_name()
+            #         })
+            # if hasattr(specialized_activity, 'users'):
+            #     for user in specialized_activity.users.all():
+            #         current_related_items.append({
+            #             'id': f'user_{user.id}',
+            #             'text': user.get_full_name()
+            #         })
+            # context_data['current_related_items'] = current_related_items
         
         context = {
             'activity': activity,

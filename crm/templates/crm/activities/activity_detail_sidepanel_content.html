@@ -161,6 +161,8 @@
               <span class="badge bg-secondary">Not Started</span>
           {% elif activity_details.status == 'in_progress' %}
               <span class="badge bg-info">In Progress</span>
+          {% elif activity_details.status == 'waiting' %}
+              <span class="badge bg-secondary">Waiting</span>
           {% elif activity_details.status == 'completed' %}
               <span class="badge bg-success">Completed</span>
           {% elif activity_details.status == 'cancelled' %}

@@ -648,8 +648,9 @@ function initializeFormElements(activityType) {
         } else if (activityType === 'task') {
             console.log("Initializing task form elements");
             
-            // Initialize the contacts/users TomSelect
-            initializeRecipientSelectForForm(form, '#task_related_contacts', false);
+            // Initialize the contacts/users TomSelect - NOW A SINGLE CONTACT FIELD
+            // initializeRecipientSelectForForm(form, '#task_related_contacts', false);
+            initializeTaskContactSelect(form); // Call the new single-select function
         }
         // Add other else if blocks for other activity types if needed
         
@@ -1827,4 +1828,104 @@ function fixActivityDropdown() {
             }
         }
     });
+}
+
+/**
+ * Initialize contact selection with Tom Select for the task form (Single Select)
+ */
+function initializeTaskContactSelect(formElement) {
+    if (typeof TomSelect === 'undefined') {
+        console.error('❌ Tom Select not available for task form contact select');
+        return;
+    }
+
+    // Use the updated ID from the template
+    const selector = formElement.querySelector('.tom-select-single#task_related_contact'); 
+    if (!selector) {
+        console.warn('⚠️ Task Contact selector (.tom-select-single#task_related_contact) not found in the form.');
+        return;
+    }
+    
+    const companyId = formElement.querySelector('input[name="company_id"]')?.value || 
+                      selector.dataset.companyId;
+                      
+    if (!companyId) {
+        console.warn('⚠️ No company ID found for task contact selector in the form');
+        return;
+    }
+    
+    if (selector.tomselect) {
+        console.log('Tom Select already initialized for #task_related_contact.');
+        return;
+    }
+    
+    // Initialize Tom Select for Single Selection, only searching contacts
+    const tomSelectInstance = new TomSelect(selector, {
+        maxItems: 1,
+        valueField: 'id',
+        labelField: 'text',
+        searchField: ['text', 'email'],
+        create: false,
+        placeholder: 'Type to search for a contact...',
+        load: function(query, callback) {
+            if (!query.length || query.length < 2) return callback();
+            
+            this.loading = true;
+            const url = '/crm/api/search-recipients/'; 
+            // Ensure contacts_only=1 is sent to the backend
+            const params = new URLSearchParams({ q: query, company_id: companyId, contacts_only: '1' }); 
+            
+            fetch(`${url}?${params.toString()}`)
+                .then(response => response.json())
+                .then(json => {
+                    this.loading = false;
+                    // Backend should already filter, but ensure only contacts are shown
+                    const contactsOnly = json.results ? json.results.filter(item => item.type === 'contact') : [];
+                    callback(contactsOnly);
+                })
+                .catch(error => {
+                    console.error('Error fetching task contacts:', error);
+                    this.loading = false;
+                    callback();
+                });
+        },
+        render: { // Re-use rendering from call contact select
+            option: function(data, escape) {
+                const email = data.email ? `<small class="text-muted ms-2">(${escape(data.email)})</small>` : '';
+                return `<div class="tom-select-result d-flex align-items-center">
+                         <i class="fas fa-user-tie me-2"></i> 
+                         <div>
+                           <span>${escape(data.text)}</span>
+                           ${email}
+                         </div>
+                       </div>`;
+            },
+            item: function(data, escape) {
+                 return `<div class="d-flex align-items-center">
+                         <i class="fas fa-user-tie me-2"></i>
+                         <span>${escape(data.text)}</span>
+                       </div>`;
+            },
+            no_results: function(data, escape) {
+                return '<div class="no-results p-2">No contacts found for "' + escape(data.input) + '"</div>';
+            }
+        },
+        onItemAdd: (value, $item) => {
+            console.log('✅ onItemAdd (Task Contact) triggered! Value:', value);
+             try {
+                 const wrapper = selector.tomselect?.wrapper;
+                 const controlInput = wrapper?.querySelector('.ts-control input');
+                 if (controlInput) {
+                     controlInput.value = ''; 
+                     console.log('   Task Control input value cleared directly via DOM traversal.');
+                 } else {
+                     console.warn('   Could not find task control input via DOM traversal.');
+                 }
+             } catch (e) {
+                 console.error('   Error clearing task input via DOM traversal:', e);
+             }
+        }
+    });
+    
+    console.log(`✅ Tom Select (Single) initialized for #task_related_contact in the loaded form.`);
 }
