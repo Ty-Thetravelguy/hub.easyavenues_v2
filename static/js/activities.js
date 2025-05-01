@@ -411,6 +411,12 @@ function setupTabActivationHandlers() {
 
         console.log(`Tab button clicked: ${activityType}`);
 
+        // +++ Update URL parameter for activity type +++
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('activity_type', activityType);
+        window.history.replaceState({}, '', currentUrl.toString());
+        // --- END --- 
+
         // Load activities for the clicked tab's type
         // We add a small delay to ensure the tab pane is visible before loading
         setTimeout(() => {
@@ -420,6 +426,64 @@ function setupTabActivationHandlers() {
     });
 
     // Find active tab on page load and load activities for it
+    const mainTabParam = new URLSearchParams(window.location.search).get('tab');
+    const activityTypeParam = new URLSearchParams(window.location.search).get('activity_type');
+
+    console.log(`Initial Page Load: mainTabParam=${mainTabParam}, activityTypeParam=${activityTypeParam}`);
+
+    if (mainTabParam === 'activities') {
+        let typeToLoad = 'all'; // Default to 'all' if no specific type
+        let triggerClick = true; // Assume we need to click a tab
+
+        if (activityTypeParam) {
+            const targetTabButton = activityTabsContainer.querySelector(`button[data-activity-type="${activityTypeParam}"]`);
+            if (targetTabButton) {
+                console.log(`Found matching activity tab for URL param: ${activityTypeParam}`);
+                // Activate the target tab programmatically (no need to click)
+                try {
+                    const bsTab = new bootstrap.Tab(targetTabButton);
+                    bsTab.show();
+                    typeToLoad = activityTypeParam; // Load data for this type
+                    triggerClick = false; // No need to click the default 'all' tab
+                    console.log(`Activated activity tab: ${activityTypeParam}`);
+                } catch (e) {
+                    console.error(`Error activating tab for ${activityTypeParam}:`, e);
+                    // Fallback to loading 'all'
+                    typeToLoad = 'all';
+                    triggerClick = true; 
+                }
+            } else {
+                console.warn(`Activity type "${activityTypeParam}" from URL not found in tabs, defaulting to 'all'.`);
+                // Keep typeToLoad as 'all', triggerClick remains true
+            }
+        }
+
+        // If we didn't activate a specific tab from the URL, click the default 'all' tab
+        if (triggerClick) {
+            const allTabButton = activityTabsContainer.querySelector('button[data-activity-type="all"]');
+            if (allTabButton) {
+                console.log("Activating default 'all' activity tab.");
+                allTabButton.click(); // This will trigger the listener above, which loads data
+            } else {
+                 console.error("Could not find the 'all' activity tab button.");
+                 // Fallback: directly load 'all' data if button not found
+                 loadActivitiesByType('all');
+            }
+        } else {
+             // If we activated a specific tab, load its data directly
+             console.log(`Loading activities directly for activated tab: ${typeToLoad}`);
+             setTimeout(() => loadActivitiesByType(typeToLoad), 150); // Delay ensures tab pane is ready
+        }
+        
+    } else {
+        // If not on activities tab initially, still load 'all' data in background?
+        // Or maybe only load when the 'Activities' main tab is first clicked.
+        // For now, let's stick to loading only when the Activities tab is active.
+        console.log("Not on Activities main tab, initial activity load skipped.");
+    }
+
+    // Removed old logic
+    /*
     const activeTab = activityTabsContainer.querySelector('.nav-link.active');
     if (activeTab && activeTab.dataset.activityType) {
         console.log(`Found active tab on page load: ${activeTab.dataset.activityType}`);
@@ -441,6 +505,7 @@ function setupTabActivationHandlers() {
             targetTabButton.click();
         }
     }
+    */
 }
 
 /**

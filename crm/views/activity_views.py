@@ -1241,14 +1241,20 @@ def edit_activity(request, activity_id):
                     return JsonResponse({'success': True, 'message': 'Email activity updated successfully with follow-up task'})
                 else:
                     messages.success(request, 'Email activity updated successfully with follow-up task')
-                    return redirect('crm:company_detail', pk=activity.company.id)
+                    # +++ Modified Redirect +++
+                    redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                    return redirect(redirect_url)
+                    # --- END ---
             
             # Return success response for AJAX requests
             if is_ajax:
                 return JsonResponse({'success': True, 'message': 'Email activity updated successfully'})
             else:
                 messages.success(request, 'Email activity updated successfully')
-                return redirect('crm:company_detail', pk=activity.company.id)
+                # +++ Modified Redirect +++
+                redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                return redirect(redirect_url)
+                # --- END ---
         
         elif activity_type == 'call':
             # Get form data for call
@@ -1354,21 +1360,30 @@ def edit_activity(request, activity_id):
                         return JsonResponse({'success': True, 'message': 'Call activity updated successfully with follow-up task', 'reload_page': True})
                     else:
                         messages.success(request, 'Call activity updated successfully with follow-up task')
-                        return redirect('crm:company_detail', pk=activity.company.id)
+                        # +++ Modified Redirect +++
+                        redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                        return redirect(redirect_url)
+                        # --- END ---
                 except Exception as task_error:
                     logging.error(f"Error creating follow-up task for edited call {activity.id}: {task_error}", exc_info=True)
                     if is_ajax:
                         return JsonResponse({'success': True, 'message': f'Call updated, but failed to create follow-up task: {task_error}', 'reload_page': True})
                     else:
                         messages.warning(request, f'Call updated, but failed to create follow-up task: {task_error}')
-                        return redirect('crm:company_detail', pk=activity.company.id)
+                        # +++ Modified Redirect +++
+                        redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                        return redirect(redirect_url)
+                        # --- END ---
             
             # Return success response for call update without task
             if is_ajax:
                 return JsonResponse({'success': True, 'message': 'Call activity updated successfully', 'reload_page': True})
             else:
                 messages.success(request, 'Call activity updated successfully')
-                return redirect('crm:company_detail', pk=activity.company.id)
+                # +++ Modified Redirect +++
+                redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                return redirect(redirect_url)
+                # --- END ---
         
         elif activity_type == 'meeting':
             # Get form data for meeting
@@ -1474,21 +1489,30 @@ def edit_activity(request, activity_id):
                         return JsonResponse({'success': True, 'message': 'Meeting activity updated successfully with follow-up task', 'reload_page': True})
                     else:
                         messages.success(request, 'Meeting activity updated successfully with follow-up task')
-                        return redirect('crm:company_detail', pk=activity.company.id)
+                        # +++ Modified Redirect +++
+                        redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                        return redirect(redirect_url)
+                        # --- END ---
                 except Exception as task_error:
                     logging.error(f"Error creating follow-up task for edited meeting {activity.id}: {task_error}", exc_info=True)
                     if is_ajax:
                         return JsonResponse({'success': True, 'message': f'Meeting updated, but failed to create follow-up task: {task_error}', 'reload_page': True})
                     else:
                         messages.warning(request, f'Meeting updated, but failed to create follow-up task: {task_error}')
-                        return redirect('crm:company_detail', pk=activity.company.id)
+                        # +++ Modified Redirect +++
+                        redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                        return redirect(redirect_url)
+                        # --- END ---
             
             # Return success response for meeting update without task
             if is_ajax:
                 return JsonResponse({'success': True, 'message': 'Meeting activity updated successfully', 'reload_page': True})
             else:
                 messages.success(request, 'Meeting activity updated successfully')
-                return redirect('crm:company_detail', pk=activity.company.id)
+                # +++ Modified Redirect +++
+                redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                return redirect(redirect_url)
+                # --- END ---
         
         elif activity_type == 'note':
             # Get form data for note
@@ -1577,21 +1601,30 @@ def edit_activity(request, activity_id):
                         return JsonResponse({'success': True, 'message': 'Note activity updated successfully with follow-up task', 'reload_page': True})
                     else:
                         messages.success(request, 'Note activity updated successfully with follow-up task')
-                        return redirect('crm:company_detail', pk=activity.company.id)
+                        # +++ Modified Redirect +++
+                        redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                        return redirect(redirect_url)
+                        # --- END ---
                 except Exception as task_error:
                     logging.error(f"Error creating follow-up task for edited note {activity.id}: {task_error}", exc_info=True)
                     if is_ajax:
                         return JsonResponse({'success': True, 'message': f'Note updated, but failed to create follow-up task: {task_error}', 'reload_page': True})
                     else:
                         messages.warning(request, f'Note updated, but failed to create follow-up task: {task_error}')
-                        return redirect('crm:company_detail', pk=activity.company.id)
+                        # +++ Modified Redirect +++
+                        redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                        return redirect(redirect_url)
+                        # --- END ---
             
             # Return success response for note update without task
             if is_ajax:
                 return JsonResponse({'success': True, 'message': 'Note activity updated successfully', 'reload_page': True})
             else:
                 messages.success(request, 'Note activity updated successfully')
-                return redirect('crm:company_detail', pk=activity.company.id)
+                # +++ Modified Redirect +++
+                redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                return redirect(redirect_url)
+                # --- END ---
         
         elif activity_type == 'task':
             # Get form data for task
@@ -1683,7 +1716,10 @@ def edit_activity(request, activity_id):
                 return JsonResponse({'success': True, 'message': 'Task activity updated successfully', 'reload_page': True})
             else:
                 messages.success(request, 'Task activity updated successfully')
-                return redirect('crm:company_detail', pk=activity.company.id)
+                # +++ Modified Redirect +++
+                redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                return redirect(redirect_url)
+                # --- END ---
         
         elif activity_type == 'waiver_favour':
             # Get form data for waiver/favour
@@ -1753,7 +1789,10 @@ def edit_activity(request, activity_id):
                 return JsonResponse({'success': True, 'message': 'Waiver & Favour activity updated successfully', 'reload_page': True})
             else:
                 messages.success(request, 'Waiver & Favour activity updated successfully')
-                return redirect('crm:company_detail', pk=activity.company.id)
+                # +++ Modified Redirect +++
+                redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
+                return redirect(redirect_url)
+                # --- END ---
     
     # Prepare the form for GET requests
     if specialized_activity:
@@ -1852,7 +1891,10 @@ def edit_activity(request, activity_id):
     
     # Fallback if we couldn't find the specialized activity
     messages.error(request, f"Could not find {activity_type} activity with ID {activity_id}")
-    return redirect('crm:company_detail', pk=activity.company.id)
+    # +++ Modified Redirect (Fallback) +++
+    redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + '?tab=activities' # Default to activities tab
+    return redirect(redirect_url)
+    # --- END ---
 
 @login_required
 def delete_activity(request, activity_id):
@@ -1862,7 +1904,10 @@ def delete_activity(request, activity_id):
         # Avoid showing a confirmation page here, rely on the modal
         activity = get_object_or_404(Activity, id=activity_id)
         messages.info(request, 'Please use the confirmation dialog in the side panel to delete activities.')
-        return redirect('crm:company_detail', pk=activity.company.id)
+        # +++ Modified Redirect +++
+        redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + '?tab=activities' # Default to activities tab
+        return redirect(redirect_url)
+        # --- END ---
 
     # Permission Check: Allow only superuser and admin
     if not request.user.is_superuser and request.user.role != 'admin':
@@ -1876,7 +1921,10 @@ def delete_activity(request, activity_id):
              # Or try getting company ID differently if possible. For now, let's redirect to company list.
              # This case is unlikely if the delete button was shown.
              return redirect('crm:company_list') # Adjust target as needed
-        return redirect('crm:company_detail', pk=company_id)
+        # +++ Modified Redirect +++
+        redirect_url = reverse('crm:company_detail', kwargs={'pk': company_id}) + '?tab=activities' # Default to activities tab
+        return redirect(redirect_url)
+        # --- END ---
 
     # Get IDs from POST data
     activity_id_to_delete = request.POST.get('activity_id_to_delete')
@@ -1891,7 +1939,10 @@ def delete_activity(request, activity_id):
             company_id = activity.company.id
         except Activity.DoesNotExist:
             return redirect('crm:company_list') # Adjust target
-        return redirect('crm:company_detail', pk=company_id)
+        # +++ Modified Redirect +++
+        redirect_url = reverse('crm:company_detail', kwargs={'pk': company_id}) + '?tab=activities' # Default to activities tab
+        return redirect(redirect_url)
+        # --- END ---
 
     # Get the activity instance
     activity = get_object_or_404(Activity, id=activity_id)
@@ -1910,7 +1961,10 @@ def delete_activity(request, activity_id):
         messages.error(request, f'Confirmation failed. The entered ID "{confirm_id_typed}" did not match the activity ID "{activity.id}".')
 
     # Redirect back to the company detail page
-    return redirect('crm:company_detail', pk=company_id)
+    # +++ Modified Redirect +++
+    redirect_url = reverse('crm:company_detail', kwargs={'pk': company_id}) + f'?tab=activities&activity_type={activity.activity_type}'
+    return redirect(redirect_url)
+    # --- END ---
 
 @login_required
 def search_recipients(request):
