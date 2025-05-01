@@ -57,6 +57,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="task-tab" data-bs-toggle="tab" data-bs-target="#task-activities-tab" type="button" role="tab" aria-controls="task-activities-tab" aria-selected="false" data-activity-type="task"><i class="fas fa-tasks"></i> Tasks</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system-activities-tab" type="button" role="tab" aria-controls="system-activities-tab" aria-selected="false" data-activity-type="system"><i class="fas fa-cogs"></i> System</button>
+            </li>
         </ul>
     </div>
 
@@ -110,6 +113,13 @@
         <!-- Task Activities Tab -->
         <div class="tab-pane fade" id="task-activities-tab" role="tabpanel" aria-labelledby="task-tab">
             <div id="task-activities-list" class="activity-list">
+                <!-- Content will be loaded via JavaScript -->
+            </div>
+        </div>
+
+        <!-- System Activities Tab -->
+        <div class="tab-pane fade" id="system-activities-tab" role="tabpanel" aria-labelledby="system-tab">
+            <div id="system-activities-list" class="activity-list">
                 <!-- Content will be loaded via JavaScript -->
             </div>
         </div>

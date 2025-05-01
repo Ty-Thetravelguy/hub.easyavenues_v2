@@ -100,6 +100,15 @@ def company_activities(request, company_id):
                 'waiveractivity', 'taskactivity', 'documentactivity', 'statuschangeactivity',
                 'policyupdateactivity'
             ).order_by('-performed_at')
+        elif activity_type == 'system': # Added condition for system activities
+            activities = Activity.objects.filter(
+                company=company, 
+                is_system_activity=True
+            ).select_related(
+                'emailactivity', 'callactivity', 'meetingactivity', 'noteactivity', 
+                'waiveractivity', 'taskactivity', 'documentactivity', 'statuschangeactivity',
+                'policyupdateactivity' # Keep related fields for potential display
+            ).order_by('-performed_at')
         else:
             activities = Activity.objects.filter(
                 company=company, activity_type=activity_type

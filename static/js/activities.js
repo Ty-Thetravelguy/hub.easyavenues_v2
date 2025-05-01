@@ -1110,6 +1110,8 @@ function loadActivitiesByType(activityType) {
         container = document.getElementById('waiver-activities-list');
     } else if (activityType === 'task') {
         container = document.getElementById('task-activities-list');
+    } else if (activityType === 'system') {
+        container = document.getElementById('system-activities-list');
     } else {
         console.error(`Unknown activity type: ${activityType}`);
         return;
