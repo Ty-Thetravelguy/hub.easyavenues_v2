@@ -17,6 +17,16 @@
         <small class="text-muted">{{ activity.performed_at|date:"M d, Y, H:i" }}</small>
     </div>
 
+    <!-- Edited by information -->
+    {% if activity.last_edited_at %}
+        <div class="d-flex justify-content-end mb-3">
+            <small class="text-muted fst-italic">
+                Edited on {{ activity.last_edited_at|date:"M d, Y, H:i" }}
+                {% if activity.last_edited_by %} by {{ activity.last_edited_by.get_full_name }}{% endif %}
+            </small>
+        </div>
+    {% endif %}
+
     <!-- Common activity details -->
     <div class="mb-4">
         <div class="row mb-2">

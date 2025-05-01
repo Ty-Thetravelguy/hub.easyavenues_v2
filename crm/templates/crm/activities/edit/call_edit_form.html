@@ -1,0 +1,107 @@
+<!-- Call Edit Form -->
+<form method="post" action="{% url 'crm:edit_activity' activity_id=activity.id %}" class="activity-form call-form">
+  {% csrf_token %}
+  <input type="hidden" name="activity_id" value="{{ activity.id }}">
+  <input type="hidden" name="activity_type" value="call">
+  <input type="hidden" name="company_id" value="{{ company.id }}">
+  
+  <!-- Contact field with Tom Select (single select) -->
+  <div class="mb-3">
+      <label for="call_contact" class="form-label">Contact</label>
+      <select class="form-control tom-select-single" id="call_contact" name="contact" required data-company-id="{{ company.id }}">
+          {% if activity_details.contact %}
+              <option value="contact_{{ activity_details.contact.id }}" selected>{{ activity_details.contact.get_full_name }}</option>
+          {% else %}
+              <option value="">Type to search contact...</option>
+          {% endif %}
+      </select>
+  </div>
+  
+  <!-- Call Purpose field (pre-populated) -->
+  <div class="mb-3">
+      <label for="call_purpose" class="form-label">Call Purpose</label>
+      <input type="text" class="form-control" id="call_purpose" name="call_purpose" value="{{ activity_details.summary }}" required>
+  </div>
+  
+  <!-- Date/time/duration fields (pre-populated) -->
+  <div class="row mb-3">
+      <div class="col-sm-6">
+          <label for="call_date" class="form-label">Date</label>
+          <input type="text" class="form-control" id="call_date" name="date" 
+                 value="{{ activity.performed_at|date:'Y-m-d' }}" required data-datepicker>
+      </div>
+      <div class="col-sm-3">
+          <label for="call_time" class="form-label">Time</label>
+          <input type="text" class="form-control" id="call_time" name="time" 
+                 value="{{ activity.performed_at|date:'H:i' }}" required data-timepicker>
+      </div>
+      <div class="col-sm-3">
+          <label for="call_duration" class="form-label">Duration (min)</label>
+          <input type="number" class="form-control" id="call_duration" name="duration" min="1" value="{{ activity_details.duration|default:15 }}">
+      </div>
+  </div>
+  
+  <!-- Call Outcome field (pre-populated) -->
+  <div class="mb-3">
+      <label for="call_outcome" class="form-label">Call Outcome</label>
+      <select class="form-control" id="call_outcome" name="call_outcome" required>
+          <option value="completed" {% if activity_details.call_outcome == 'completed' %}selected{% endif %}>Completed</option>
+          <option value="left_message" {% if activity_details.call_outcome == 'left_message' %}selected{% endif %}>Left Message</option>
+          <option value="no_answer" {% if activity_details.call_outcome == 'no_answer' %}selected{% endif %}>No Answer</option>
+          <option value="busy" {% if activity_details.call_outcome == 'busy' %}selected{% endif %}>Busy</option>
+          <option value="wrong_number" {% if activity_details.call_outcome == 'wrong_number' %}selected{% endif %}>Wrong Number</option>
+          <option value="scheduled_callback" {% if activity_details.call_outcome == 'scheduled_callback' %}selected{% endif %}>Scheduled Callback</option>
+      </select>
+  </div>
+  
+  <!-- Outbound Call checkbox (pre-populated) -->
+  <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="call_outbound" name="outbound" value="1" {% if activity_details.call_type == 'Outbound' %}checked{% endif %}>
+      <label class="form-check-label" for="call_outbound">
+          Outbound Call
+      </label>
+  </div>
+  
+  <!-- Call Summary/Notes field (pre-populated) -->
+  <div class="mb-3">
+      <label for="call_summary" class="form-label">Call Summary / Notes</label>
+      <textarea class="form-control" id="call_summary" name="call_summary" rows="4">{{ activity_details.description|default:'' }}</textarea>
+  </div>
+  
+  <!-- Follow-up Task section (same as create form) -->
+  <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" name="create_follow_up_task" id="create_follow_up_task">
+      <label class="form-check-label" for="create_follow_up_task">
+          Create Follow-up Task?
+      </label>
+  </div>
+  <div class="mb-3 ps-4" id="follow_up_task_details" style="display: none;">
+       <label for="follow_up_task_title" class="form-label form-label-sm">Task Title (Optional)</label>
+       <input type="text" name="follow_up_task_title" id="follow_up_task_title" class="form-control form-control-sm mb-2" placeholder="Defaults to: Follow up on call...">
+       
+       <div class="row mb-2">
+           <div class="col-sm-7">
+              <label for="follow_up_due_date" class="form-label form-label-sm">Due Date (Optional)</label>
+              <input type="text" name="follow_up_due_date" id="follow_up_due_date" class="form-control form-control-sm" 
+                     placeholder="Defaults to next day" data-datepicker>
+           </div>
+           <div class="col-sm-5">
+              <label for="follow_up_due_time" class="form-label form-label-sm">Due Time (Optional)</label>
+              <input type="text" name="follow_up_due_time" id="follow_up_due_time" class="form-control form-control-sm" 
+                     placeholder="Defaults to 09:00" data-timepicker>
+           </div>
+       </div>
+       
+       <label for="follow_up_task_notes" class="form-label form-label-sm">Notes (Optional)</label>
+       <textarea name="follow_up_task_notes" id="follow_up_task_notes" class="form-control form-control-sm" rows="2" 
+                 placeholder="Add brief notes for the task..."></textarea>
+  </div>
+  <!-- End Follow-up Task section -->
+  
+  <!-- Submit button -->
+  <div class="d-grid">
+      <button type="submit" class="btn btn-activity-call">
+          <i class="fas fa-save me-1"></i> Update Call
+      </button>
+  </div>
+</form>

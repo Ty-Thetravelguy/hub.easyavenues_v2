@@ -479,6 +479,17 @@ class Activity(models.Model):
     follow_up_notes = models.TextField(blank=True)
     is_system_activity = models.BooleanField(default=False, help_text="Indicates if this is an automatically generated system activity")
     
+    # Fields to track edits
+    last_edited_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp of the last edit.")
+    last_edited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='edited_activities', 
+        help_text="User who last edited the activity."
+    )
+    
     # New field to link follow-up tasks
     related_activity = models.ForeignKey(
         'self',

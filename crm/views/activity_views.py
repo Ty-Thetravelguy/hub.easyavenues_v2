@@ -1013,6 +1013,14 @@ def edit_activity(request, activity_id):
             form_class = EmailActivityForm
         except EmailActivity.DoesNotExist:
             pass
+    elif activity_type == 'call':
+        try:
+            specialized_activity = CallActivity.objects.get(id=activity_id)
+            template_name = 'crm/activities/edit/call_edit_form.html'
+            # No specific Django form needed for simple updates, but can define one if complex validation is required
+            form_class = None # Or CallActivityForm if you create/use one
+        except CallActivity.DoesNotExist:
+            pass
     # Add other activity types here...
     
     # Handle POST submission
@@ -1047,6 +1055,11 @@ def edit_activity(request, activity_id):
             # Save the changes
             specialized_activity.save()
             
+            # Update edit tracking fields on base activity
+            activity.last_edited_at = timezone.now()
+            activity.last_edited_by = request.user
+            activity.save(update_fields=['last_edited_at', 'last_edited_by'])
+            
             # Update recipients
             # First clear existing recipients
             specialized_activity.contact_recipients.clear()
@@ -1078,13 +1091,11 @@ def edit_activity(request, activity_id):
                         due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
                         # Set default time to 9am if not provided
                         due_time = timezone.datetime.strptime(due_time_str or '09:00', '%H:%M').time()
-                        due_datetime = timezone.datetime.combine(due_date, due_time)
+                        due_datetime = timezone.make_aware(timezone.datetime.combine(due_date, due_time))
                     except ValueError:
-                        # Default to tomorrow at 9am if date parsing fails
                         due_datetime = timezone.now() + timedelta(days=1)
                         due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
                 else:
-                    # Default to tomorrow at 9am if no date provided
                     due_datetime = timezone.now() + timedelta(days=1)
                     due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
                 
@@ -1119,12 +1130,136 @@ def edit_activity(request, activity_id):
             else:
                 messages.success(request, 'Email activity updated successfully')
                 return redirect('crm:company_detail', pk=activity.company.id)
+        
+        elif activity_type == 'call':
+            # Get form data for call
+            contact_input_id = request.POST.get('contact')
+            call_purpose = request.POST.get('call_purpose', '')
+            call_summary = request.POST.get('call_summary', '')
+            call_outcome = request.POST.get('call_outcome', '')
+            duration = request.POST.get('duration')
+            is_outbound = request.POST.get('outbound') == '1'
+            
+            # Update basic fields
+            specialized_activity.summary = call_purpose # Map call_purpose to summary
+            specialized_activity.description = call_summary # Map call_summary to description
+            specialized_activity.call_outcome = call_outcome
+            specialized_activity.call_type = 'Outbound' if is_outbound else 'Inbound'
+            if duration and duration.isdigit():
+                specialized_activity.duration = int(duration)
+                
+            # Update contact
+            contact = None
+            if contact_input_id:
+                if contact_input_id.startswith('contact_'):
+                    contact_id = contact_input_id.replace('contact_', '')
+                elif contact_input_id.isdigit(): 
+                    contact_id = contact_input_id
+                else:
+                    contact_id = None
+                    
+                if contact_id:
+                    try:
+                        contact = Contact.objects.get(id=contact_id)
+                        specialized_activity.contact = contact
+                    except Contact.DoesNotExist:
+                        specialized_activity.contact = None # Clear if contact not found
+            else:
+                specialized_activity.contact = None # Clear if no contact provided
+                
+            # Update date/time (using the base activity's performed_at)
+            call_date_str = request.POST.get('date')
+            call_time_str = request.POST.get('time')
+            
+            try:
+                call_date = timezone.datetime.strptime(call_date_str, '%Y-%m-%d').date() if call_date_str else activity.performed_at.date()
+                call_time = timezone.datetime.strptime(call_time_str, '%H:%M').time() if call_time_str else activity.performed_at.time()
+                naive_datetime = timezone.datetime.combine(call_date, call_time)
+                activity.performed_at = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+                activity.save(update_fields=['performed_at'])
+            except ValueError:
+                # Keep existing datetime if parsing fails
+                pass
+                
+            # Save the specialized activity changes
+            specialized_activity.save()
+            
+            # Update edit tracking fields on base activity
+            activity.last_edited_at = timezone.now()
+            activity.last_edited_by = request.user
+            activity.save(update_fields=['performed_at', 'last_edited_at', 'last_edited_by'])
+            
+            # Handle follow-up task creation for call
+            if request.POST.get('create_follow_up_task'):
+                try:
+                    task_title = request.POST.get('follow_up_task_title', '').strip()
+                    if not task_title:
+                        contact_name = f" with {specialized_activity.contact.get_full_name()}" if specialized_activity.contact else ""
+                        default_title = f"Follow up on call{contact_name} ({specialized_activity.summary or 'Call Activity'})"
+                        task_title = default_title[:255]
+                    
+                    due_date_str = request.POST.get('follow_up_due_date')
+                    due_time_str = request.POST.get('follow_up_due_time')
+                    
+                    due_datetime = None
+                    if due_date_str:
+                        try:
+                            due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                            due_time = timezone.datetime.strptime(due_time_str or '09:00', '%H:%M').time()
+                            due_datetime = timezone.make_aware(timezone.datetime.combine(due_date, due_time))
+                        except ValueError:
+                            due_datetime = timezone.now() + timedelta(days=1)
+                            due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                    else:
+                        due_datetime = timezone.now() + timedelta(days=1)
+                        due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                    
+                    task_notes = request.POST.get('follow_up_task_notes', '').strip()
+                    base_description = f"Follow-up task automatically created for edited Call Activity ID: {activity.id}"
+                    task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
+                    
+                    TaskActivity.objects.create(
+                        company=activity.company,
+                        performed_by=request.user,
+                        activity_type='task',
+                        title=task_title,
+                        description=task_description,
+                        due_datetime=due_datetime,
+                        assigned_to=request.user,
+                        status='not_started',
+                        priority='medium',
+                        related_activity=activity # Link task to the original call activity
+                    )
+                    
+                    if is_ajax:
+                        return JsonResponse({'success': True, 'message': 'Call activity updated successfully with follow-up task'})
+                    else:
+                        messages.success(request, 'Call activity updated successfully with follow-up task')
+                        return redirect('crm:company_detail', pk=activity.company.id)
+                except Exception as task_error:
+                    logging.error(f"Error creating follow-up task for edited call {activity.id}: {task_error}", exc_info=True)
+                    if is_ajax:
+                        # Still return success for the main update, but maybe add a warning?
+                        return JsonResponse({'success': True, 'message': f'Call updated, but failed to create follow-up task: {task_error}'})
+                    else:
+                        messages.warning(request, f'Call updated, but failed to create follow-up task: {task_error}')
+                        return redirect('crm:company_detail', pk=activity.company.id)
+            
+            # Return success response for call update without task
+            if is_ajax:
+                # Reload the page after successful update 
+                # to ensure sidepanel shows updated details
+                return JsonResponse({'success': True, 'message': 'Call activity updated successfully', 'reload_page': True})
+            else:
+                messages.success(request, 'Call activity updated successfully')
+                return redirect('crm:company_detail', pk=activity.company.id)
     
     # Prepare the form for GET requests
     if specialized_activity:
-        # For email activities, prepare the recipients data
-        current_recipients = []
+        # Prepare context data specific to the activity type
+        context_data = {}
         if activity_type == 'email':
+            current_recipients = []
             for contact in specialized_activity.contact_recipients.all():
                 current_recipients.append({
                     'id': f'contact_{contact.id}',
@@ -1135,12 +1270,17 @@ def edit_activity(request, activity_id):
                     'id': f'user_{user.id}',
                     'text': user.get_full_name()
                 })
+            context_data['current_recipients'] = current_recipients
+        elif activity_type == 'call':
+            # For call, we don't need special data beyond activity_details
+            # TomSelect initialization will handle the single contact selection
+            pass
         
         context = {
             'activity': activity,
             'activity_details': specialized_activity,
             'company': activity.company,
-            'current_recipients': current_recipients
+            **context_data # Add type-specific context data
         }
         
         if is_ajax:
