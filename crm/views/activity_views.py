@@ -72,7 +72,8 @@ def activity_form(request, activity_type):
         
         context = {
             'company': company,
-            'today_date': timezone.now(),
+            'today_date': timezone.localtime(timezone.now()),
+            'current_time': timezone.localtime(timezone.now()),
             'users': users, # Keep users for task form assignee dropdown
             'form': form    # Add the instantiated form to the context
         }
