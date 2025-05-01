@@ -1017,9 +1017,15 @@ def edit_activity(request, activity_id):
         try:
             specialized_activity = CallActivity.objects.get(id=activity_id)
             template_name = 'crm/activities/edit/call_edit_form.html'
-            # No specific Django form needed for simple updates, but can define one if complex validation is required
-            form_class = None # Or CallActivityForm if you create/use one
+            form_class = None # Define if needed
         except CallActivity.DoesNotExist:
+            pass
+    elif activity_type == 'meeting':
+        try:
+            specialized_activity = MeetingActivity.objects.get(id=activity_id)
+            template_name = 'crm/activities/edit/meeting_edit_form.html'
+            form_class = None # Define if needed
+        except MeetingActivity.DoesNotExist:
             pass
     # Add other activity types here...
     
@@ -1218,7 +1224,7 @@ def edit_activity(request, activity_id):
                     base_description = f"Follow-up task automatically created for edited Call Activity ID: {activity.id}"
                     task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
                     
-                    TaskActivity.objects.create(
+                    task = TaskActivity.objects.create(
                         company=activity.company,
                         performed_by=request.user,
                         activity_type='task',
@@ -1232,26 +1238,143 @@ def edit_activity(request, activity_id):
                     )
                     
                     if is_ajax:
-                        return JsonResponse({'success': True, 'message': 'Call activity updated successfully with follow-up task'})
+                        return JsonResponse({'success': True, 'message': 'Call activity updated successfully with follow-up task', 'reload_page': True})
                     else:
                         messages.success(request, 'Call activity updated successfully with follow-up task')
                         return redirect('crm:company_detail', pk=activity.company.id)
                 except Exception as task_error:
                     logging.error(f"Error creating follow-up task for edited call {activity.id}: {task_error}", exc_info=True)
                     if is_ajax:
-                        # Still return success for the main update, but maybe add a warning?
-                        return JsonResponse({'success': True, 'message': f'Call updated, but failed to create follow-up task: {task_error}'})
+                        return JsonResponse({'success': True, 'message': f'Call updated, but failed to create follow-up task: {task_error}', 'reload_page': True})
                     else:
                         messages.warning(request, f'Call updated, but failed to create follow-up task: {task_error}')
                         return redirect('crm:company_detail', pk=activity.company.id)
             
             # Return success response for call update without task
             if is_ajax:
-                # Reload the page after successful update 
-                # to ensure sidepanel shows updated details
                 return JsonResponse({'success': True, 'message': 'Call activity updated successfully', 'reload_page': True})
             else:
                 messages.success(request, 'Call activity updated successfully')
+                return redirect('crm:company_detail', pk=activity.company.id)
+        
+        elif activity_type == 'meeting':
+            # Get form data for meeting
+            title = request.POST.get('title', '')
+            attendee_ids = request.POST.getlist('attendees', [])
+            location = request.POST.get('location', '')
+            agenda = request.POST.get('agenda', '')
+            notes = request.POST.get('notes', '') # This maps to minutes
+            outcome = request.POST.get('outcome', '')
+            duration = request.POST.get('duration')
+            
+            # Update basic fields
+            specialized_activity.title = title
+            specialized_activity.location = location
+            specialized_activity.agenda = agenda
+            specialized_activity.minutes = notes # Use notes field for minutes
+            specialized_activity.meeting_outcome = outcome
+            if duration and duration.isdigit():
+                specialized_activity.duration = int(duration)
+                
+            # Update date/time (using the base activity's performed_at)
+            meeting_date_str = request.POST.get('date')
+            meeting_time_str = request.POST.get('time')
+            
+            try:
+                meeting_date = timezone.datetime.strptime(meeting_date_str, '%Y-%m-%d').date() if meeting_date_str else activity.performed_at.date()
+                meeting_time = timezone.datetime.strptime(meeting_time_str, '%H:%M').time() if meeting_time_str else activity.performed_at.time()
+                naive_datetime = timezone.datetime.combine(meeting_date, meeting_time)
+                activity.performed_at = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+            except ValueError:
+                # Keep existing datetime if parsing fails
+                pass
+                
+            # Update attendees
+            specialized_activity.contact_attendees.clear()
+            specialized_activity.user_attendees.clear()
+            for attendee_id in attendee_ids:
+                if attendee_id.startswith('contact_'):
+                    contact_id = attendee_id.replace('contact_', '')
+                    contact = get_object_or_404(Contact, id=contact_id)
+                    specialized_activity.contact_attendees.add(contact)
+                elif attendee_id.startswith('user_'):
+                    user_id = attendee_id.replace('user_', '')
+                    user = get_object_or_404(User, id=user_id)
+                    specialized_activity.user_attendees.add(user)
+            
+            # Save the specialized activity changes first
+            specialized_activity.save()
+            
+            # Update edit tracking fields and potentially performed_at on base activity
+            activity.last_edited_at = timezone.now()
+            activity.last_edited_by = request.user
+            activity.save(update_fields=['performed_at', 'last_edited_at', 'last_edited_by'])
+            
+            # Handle follow-up task creation for meeting
+            if request.POST.get('create_follow_up_task'):
+                try:
+                    task_title = request.POST.get('follow_up_task_title', '').strip()
+                    if not task_title:
+                        default_title = f"Follow up on meeting: {specialized_activity.title or 'Meeting Activity'}"
+                        task_title = default_title[:255]
+                        
+                    due_date_str = request.POST.get('follow_up_due_date')
+                    due_time_str = request.POST.get('follow_up_due_time')
+                    
+                    due_datetime = None
+                    if due_date_str:
+                        try:
+                            due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                            due_time = timezone.datetime.strptime(due_time_str or '09:00', '%H:%M').time()
+                            due_datetime = timezone.make_aware(timezone.datetime.combine(due_date, due_time))
+                        except ValueError:
+                            due_datetime = timezone.now() + timedelta(days=1)
+                            due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                    else:
+                        due_datetime = timezone.now() + timedelta(days=1)
+                        due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                    
+                    task_notes = request.POST.get('follow_up_task_notes', '').strip()
+                    base_description = f"Follow-up task automatically created for edited Meeting Activity ID: {activity.id}"
+                    task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
+                    
+                    task = TaskActivity.objects.create(
+                        company=activity.company,
+                        performed_by=request.user,
+                        activity_type='task',
+                        title=task_title,
+                        description=task_description,
+                        due_datetime=due_datetime,
+                        assigned_to=request.user,
+                        status='not_started',
+                        priority='medium',
+                        related_activity=activity # Link task to the original meeting activity
+                    )
+                    
+                    # Add attendees to the follow-up task
+                    for contact in specialized_activity.contact_attendees.all():
+                        task.contacts.add(contact)
+                    for user in specialized_activity.user_attendees.all():
+                        task.users.add(user)
+                    
+                    if is_ajax:
+                        return JsonResponse({'success': True, 'message': 'Meeting activity updated successfully with follow-up task', 'reload_page': True})
+                    else:
+                        messages.success(request, 'Meeting activity updated successfully with follow-up task')
+                        return redirect('crm:company_detail', pk=activity.company.id)
+                except Exception as task_error:
+                    logging.error(f"Error creating follow-up task for edited meeting {activity.id}: {task_error}", exc_info=True)
+                    if is_ajax:
+                        return JsonResponse({'success': True, 'message': f'Meeting updated, but failed to create follow-up task: {task_error}', 'reload_page': True})
+                    else:
+                        messages.warning(request, f'Meeting updated, but failed to create follow-up task: {task_error}')
+                        return redirect('crm:company_detail', pk=activity.company.id)
+            
+            # Return success response for meeting update without task
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Meeting activity updated successfully', 'reload_page': True})
+            else:
+                messages.success(request, 'Meeting activity updated successfully')
                 return redirect('crm:company_detail', pk=activity.company.id)
     
     # Prepare the form for GET requests
@@ -1275,6 +1398,20 @@ def edit_activity(request, activity_id):
             # For call, we don't need special data beyond activity_details
             # TomSelect initialization will handle the single contact selection
             pass
+        elif activity_type == 'meeting':
+            # Prepare attendees data for meeting edit form
+            current_attendees = []
+            for contact in specialized_activity.contact_attendees.all():
+                current_attendees.append({
+                    'id': f'contact_{contact.id}',
+                    'text': contact.get_full_name()
+                })
+            for user in specialized_activity.user_attendees.all():
+                current_attendees.append({
+                    'id': f'user_{user.id}',
+                    'text': user.get_full_name()
+                })
+            context_data['current_attendees'] = current_attendees
         
         context = {
             'activity': activity,

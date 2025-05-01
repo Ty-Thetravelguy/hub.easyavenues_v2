@@ -1,0 +1,110 @@
+<!-- Meeting Edit Form -->
+<form method="post" action="{% url 'crm:edit_activity' activity_id=activity.id %}" class="activity-form meeting-form">
+  {% csrf_token %}
+  <input type="hidden" name="activity_id" value="{{ activity.id }}">
+  <input type="hidden" name="activity_type" value="meeting">
+  <input type="hidden" name="company_id" value="{{ company.id }}">
+  
+  <!-- Meeting Title field (pre-populated) -->
+  <div class="mb-3">
+      <label for="meeting_title" class="form-label">Meeting Title</label>
+      <input type="text" class="form-control" id="meeting_title" name="title" value="{{ activity_details.title }}" required>
+  </div>
+  
+  <!-- Attendees field with Tom Select (multi-select, pre-populated) -->
+  <div class="mb-3">
+      <label for="meeting_attendees" class="form-label">Attendees</label>
+      <select class="form-control tom-select" id="meeting_attendees" name="attendees" multiple required data-company-id="{{ company.id }}">
+          {% for attendee in current_attendees %}
+              <option value="{{ attendee.id }}" selected>{{ attendee.text }}</option>
+          {% endfor %}
+      </select>
+      <small class="form-text text-muted">Search for contacts or users by name or email</small>
+  </div>
+  
+  <!-- Date/time/duration fields (pre-populated) -->
+  <div class="row mb-3">
+      <div class="col-sm-6">
+          <label for="meeting_date" class="form-label">Date</label>
+          <input type="text" class="form-control" id="meeting_date" name="date" 
+                 value="{{ activity.performed_at|date:'Y-m-d' }}" required data-datepicker>
+      </div>
+      <div class="col-sm-3">
+          <label for="meeting_time" class="form-label">Time</label>
+          <input type="text" class="form-control" id="meeting_time" name="time" 
+                 value="{{ activity.performed_at|date:'H:i' }}" required data-timepicker>
+      </div>
+      <div class="col-sm-3">
+          <label for="meeting_duration" class="form-label">Duration (min)</label>
+          <input type="number" class="form-control" id="meeting_duration" name="duration" min="15" step="15" value="{{ activity_details.duration|default:60 }}">
+      </div>
+  </div>
+        
+  <!-- Location field (pre-populated) -->
+  <div class="mb-3">
+      <label for="meeting_location" class="form-label">Location</label>
+      <input type="text" class="form-control" id="meeting_location" name="location" value="{{ activity_details.location|default:'' }}" placeholder="Office, Zoom, etc.">
+  </div>
+  
+  <!-- Agenda field (pre-populated) -->
+  <div class="mb-3">
+      <label for="meeting_agenda" class="form-label">Agenda</label>
+      <textarea class="form-control" id="meeting_agenda" name="agenda" rows="3">{{ activity_details.agenda|default:'' }}</textarea>
+  </div>
+  
+  <!-- Meeting Minutes/Notes field (pre-populated) -->
+  <div class="mb-3">
+      <label for="meeting_notes" class="form-label">Meeting Minutes</label>
+      <textarea class="form-control" id="meeting_notes" name="notes" rows="4">{{ activity_details.minutes|default:'' }}</textarea>
+  </div>
+  
+  <!-- Outcome field (pre-populated) -->
+  <div class="mb-3">
+      <label for="meeting_outcome" class="form-label">Outcome</label>
+      <select class="form-control" id="meeting_outcome" name="outcome">
+           <option value="" {% if not activity_details.meeting_outcome %}selected{% endif %}>--- Select Outcome ---</option>
+          <option value="completed" {% if activity_details.meeting_outcome == 'completed' %}selected{% endif %}>Completed</option>
+          <option value="rescheduled" {% if activity_details.meeting_outcome == 'rescheduled' %}selected{% endif %}>Rescheduled</option>
+          <option value="cancelled" {% if activity_details.meeting_outcome == 'cancelled' %}selected{% endif %}>Cancelled</option>
+          <option value="no_show" {% if activity_details.meeting_outcome == 'no_show' %}selected{% endif %}>No Show</option>
+          <option value="follow_up_required" {% if activity_details.meeting_outcome == 'follow_up_required' %}selected{% endif %}>Follow-up Required</option>
+      </select>
+  </div>
+  
+  <!-- Follow-up Task section (same as create/edit forms) -->
+  <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" name="create_follow_up_task" id="create_follow_up_task">
+      <label class="form-check-label" for="create_follow_up_task">
+          Create Follow-up Task?
+      </label>
+  </div>
+  <div class="mb-3 ps-4" id="follow_up_task_details" style="display: none;">
+       <label for="follow_up_task_title" class="form-label form-label-sm">Task Title (Optional)</label>
+       <input type="text" name="follow_up_task_title" id="follow_up_task_title" class="form-control form-control-sm mb-2" placeholder="Defaults to: Follow up on meeting...">
+       
+       <div class="row mb-2">
+           <div class="col-sm-7">
+              <label for="follow_up_due_date" class="form-label form-label-sm">Due Date (Optional)</label>
+              <input type="text" name="follow_up_due_date" id="follow_up_due_date" class="form-control form-control-sm" 
+                     placeholder="Defaults to next day" data-datepicker>
+           </div>
+           <div class="col-sm-5">
+              <label for="follow_up_due_time" class="form-label form-label-sm">Due Time (Optional)</label>
+              <input type="text" name="follow_up_due_time" id="follow_up_due_time" class="form-control form-control-sm" 
+                     placeholder="Defaults to 09:00" data-timepicker>
+           </div>
+       </div>
+       
+       <label for="follow_up_task_notes" class="form-label form-label-sm">Notes (Optional)</label>
+       <textarea name="follow_up_task_notes" id="follow_up_task_notes" class="form-control form-control-sm" rows="2" 
+                 placeholder="Add brief notes for the task..."></textarea>
+  </div>
+  <!-- End Follow-up Task section -->
+  
+  <!-- Submit button -->
+  <div class="d-grid">
+      <button type="submit" class="btn btn-activity-meeting">
+          <i class="fas fa-save me-1"></i> Update Meeting
+      </button>
+  </div>
+</form>
