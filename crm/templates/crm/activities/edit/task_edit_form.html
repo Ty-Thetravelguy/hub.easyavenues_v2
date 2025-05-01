@@ -69,19 +69,24 @@
         </div>
     </div>
     
-    <!-- Related Contact (Single Select) -->
+    <!-- UPDATED Related Contacts/Users (Multi-Select, Pre-populated) -->
     <div class="mb-3">
-        <label for="task_related_contact" class="form-label">Related Contact</label>
-        <select class="form-control tom-select-single" id="task_related_contact" name="related_contacts" data-company-id="{{ company.id }}">
-            {# Note: name="related_contacts" is kept for consistency with view logic expecting this key, even though only one is processed #}
-            {% if current_related_contact %}
-                <option value="contact_{{ current_related_contact.id }}" selected>{{ current_related_contact.get_full_name }}</option>
-            {% else %}
-                <option value="">Type to search contact...</option> {# Default empty option #}
-            {% endif %}
+        <label for="task_edit_related_contacts" class="form-label">Related Contacts/Users (Optional)</label>
+        <select 
+            class="form-control tom-select" {# Use tom-select class #}
+            id="task_edit_related_contacts" {# Updated ID #}
+            name="related_contacts" 
+            multiple {# Add multiple attribute #}
+            data-company-id="{{ company.id }}"
+            placeholder="Type to search contacts or users..."> {# Update placeholder #}
+            {# Pre-populate selected contacts/users passed from the view #}
+            {% for item in current_related_items %}
+                <option value="{{ item.id }}" selected>{{ item.text }}</option>
+            {% endfor %}
         </select>
-        <small class="form-text text-muted">Type to search for a contact by name or email</small>
+        <small class="form-text text-muted">Associate contacts or users with this task.</small> {# Update help text #}
     </div>
+    <!-- END UPDATED -->
     
     <!-- Submit button -->
     <div class="d-grid">

@@ -23,6 +23,25 @@
         <textarea name="content" id="id_content" class="form-control" rows="4" required>{{ activity_details.content }}</textarea>
     </div>
     
+    <!-- ADDED New Contacts TomSelect Field (pre-populated) -->
+    <div class="mb-3">
+        <label for="note_edit_contacts" class="form-label">Related Contacts (Optional)</label>
+        <select 
+            name="contacts" 
+            id="note_edit_contacts" 
+            class="form-control tom-select" 
+            multiple 
+            placeholder="Type to search contacts..."
+            data-company-id="{{ company.id }}">
+            {# Pre-populate selected contacts passed from the view #}
+            {% for contact in current_contacts %}
+                <option value="{{ contact.id }}" selected>{{ contact.text }}</option>
+            {% endfor %}
+        </select>
+        <small class="form-text text-muted">Associate contacts with this note.</small>
+    </div>
+    <!-- END New Contacts Field -->
+    
     <!-- Is Important Checkbox (pre-populated) -->
     <div class="form-check mb-3">
         <input type="checkbox" name="is_important" id="id_is_important" class="form-check-input" {% if activity_details.is_important %}checked{% endif %}>

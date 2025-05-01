@@ -619,6 +619,14 @@ class NoteActivity(Activity):
     def is_private(self):
         return self.is_important
     
+    # +++ ADDED ManyToManyField for Contacts +++
+    contacts = models.ManyToManyField(
+        'Contact',
+        related_name='note_activities',
+        blank=True # Make this optional
+    )
+    # --- END --- 
+    
     # Removed note_outcome as it seemed unused/unnecessary
     # note_outcome = models.CharField(max_length=255, null=True, blank=True)
 
@@ -720,7 +728,21 @@ class TaskActivity(Activity):
         blank=True, 
         help_text="Date and time the task is due."
     )
-    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
+    # --- REMOVED single contact ForeignKey ---
+    # contact = models.ForeignKey(Contact, on_delete=models.SET_NULL, related_name='tasks', null=True, blank=True)
+    
+    # +++ ADDED ManyToManyFields for contacts and users +++
+    contacts = models.ManyToManyField(
+        'Contact',
+        related_name='task_activities', # Changed related_name from 'tasks' to avoid clash
+        blank=True
+    )
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='user_tasks',
+        blank=True
+    )
+    # --- END --- 
     priority = models.CharField(max_length=20, choices=[
         ('low', 'Low'),
         ('medium', 'Medium'),

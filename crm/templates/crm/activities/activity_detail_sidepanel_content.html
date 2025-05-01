@@ -141,36 +141,70 @@
       </div>
     </div>
     {% elif activity.activity_type == 'task' %}
-    <div class="row mb-2">
-      <div class="col-6">
-        <div class="col-md-3 fw-bold">Priority:</div>
-        <div class="col-md-9">
-            {% if activity_details.priority == 'low' %}
-                <span class="badge bg-success">Low</span>
-            {% elif activity_details.priority == 'medium' %}
-                <span class="badge bg-warning text-dark">Medium</span>
-            {% elif activity_details.priority == 'high' %}
-                <span class="badge bg-danger">High</span>
-            {% endif %}
-        </div>  
-      </div>
-      <div class="col-6">     
-      <div class="col-md-3 fw-bold">Status:</div>
-      <div class="col-md-9">
-          {% if activity_details.status == 'not_started' %}
-              <span class="badge bg-secondary">Not Started</span>
-          {% elif activity_details.status == 'in_progress' %}
-              <span class="badge bg-info">In Progress</span>
-          {% elif activity_details.status == 'waiting' %}
-              <span class="badge bg-secondary">Waiting</span>
-          {% elif activity_details.status == 'completed' %}
-              <span class="badge bg-success">Completed</span>
-          {% elif activity_details.status == 'cancelled' %}
-              <span class="badge bg-danger">Cancelled</span>
-          {% endif %}
-      </div>
-      </div>
-    </div>
+        <!-- +++ UPDATED Task Section: Show M2M Contacts & Users +++ -->
+        <div class="row mb-2">
+          <div class="col-md-3 fw-bold">Related Contacts:</div>
+          <div class="col-md-9">
+              {% if activity_details.contacts.exists %}
+                  <ul class="list-unstyled mb-0">
+                      {% for contact in activity_details.contacts.all %}
+                          <li>
+                              <a href="{% url 'crm:contact_detail' pk=contact.id %}">
+                                  {{ contact.get_full_name }}
+                              </a>
+                          </li>
+                      {% endfor %}
+                  </ul>
+              {% else %}
+                  <em>No contacts recorded</em>
+              {% endif %}
+          </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-md-3 fw-bold">Related Users:</div>
+            <div class="col-md-9">
+                {% if activity_details.users.exists %}
+                    <ul class="list-unstyled mb-0">
+                        {% for user in activity_details.users.all %}
+                            <li>{{ user.get_full_name }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <em>No users recorded</em>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-6">
+                <div class="col-md-3 fw-bold">Priority:</div>
+                <div class="col-md-9">
+                    {% if activity_details.priority == 'low' %}
+                        <span class="badge bg-success">Low</span>
+                    {% elif activity_details.priority == 'medium' %}
+                        <span class="badge bg-warning text-dark">Medium</span>
+                    {% elif activity_details.priority == 'high' %}
+                        <span class="badge bg-danger">High</span>
+                    {% endif %}
+                </div>  
+            </div>
+            <div class="col-6">     
+            <div class="col-md-3 fw-bold">Status:</div>
+            <div class="col-md-9">
+                {% if activity_details.status == 'not_started' %}
+                    <span class="badge bg-secondary">Not Started</span>
+                {% elif activity_details.status == 'in_progress' %}
+                    <span class="badge bg-info">In Progress</span>
+                {% elif activity_details.status == 'waiting' %}
+                    <span class="badge bg-secondary">Waiting</span>
+                {% elif activity_details.status == 'completed' %}
+                    <span class="badge bg-success">Completed</span>
+                {% elif activity_details.status == 'cancelled' %}
+                    <span class="badge bg-danger">Cancelled</span>
+                {% endif %}
+            </div>
+            </div>
+        </div>
+        <!-- --- END Updated Task Section --- -->
     {% endif %}
   
     <!-- Type-specific activity details -->
@@ -326,12 +360,14 @@
         </div>
     {% elif activity.activity_type == 'note' %}
         <div class="mt-4">
-            <h6 class="border-bottom pb-2">Note Details</h6>
-            {% if activity_details.is_important %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-star me-2"></i> This note is marked as Important
-                </div>
-            {% endif %}
+            <h6 class="border-bottom pb-2 d-flex justify-content-between align-items-center">
+                <span>Note Details</span>
+                {% if activity_details.is_important %}
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-star me-1"></i> Important
+                    </span>
+                {% endif %}
+            </h6>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Subject:</div>
                 <div class="col-md-9">

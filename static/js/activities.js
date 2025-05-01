@@ -633,6 +633,14 @@ function initializeFormElements(activityType) {
             setupFollowUpTaskToggle(form);
         } else if (activityType === 'note') {
             setupFollowUpTaskToggle(form); // Initialize follow-up toggle for notes
+            // +++ ADDED: Initialize TomSelect for Note Contacts +++
+            // Check if it's the create form (#note_contacts) or edit form (#note_edit_contacts)
+            if (form.querySelector('#note_contacts')) {
+                initializeRecipientSelectForForm(form, '#note_contacts', true); // contactsOnly = true
+            } else if (form.querySelector('#note_edit_contacts')) {
+                initializeRecipientSelectForForm(form, '#note_edit_contacts', true); // contactsOnly = true
+            }
+            // --- END --- 
         } else if (activityType === 'waiver_favour') {
             console.log("Initializing waiver/favour form elements");
             
@@ -647,10 +655,17 @@ function initializeFormElements(activityType) {
             }
         } else if (activityType === 'task') {
             console.log("Initializing task form elements");
+            // +++ UPDATED: Initialize multi-select TomSelect for tasks +++
+            // Remove the single-select initializer
+            // initializeTaskContactSelect(form); 
             
-            // Initialize the contacts/users TomSelect - NOW A SINGLE CONTACT FIELD
-            // initializeRecipientSelectForForm(form, '#task_related_contacts', false);
-            initializeTaskContactSelect(form); // Call the new single-select function
+            // Initialize for create form or edit form
+            if (form.querySelector('#task_related_contacts')) {
+                initializeRecipientSelectForForm(form, '#task_related_contacts', false); // contactsOnly = false
+            } else if (form.querySelector('#task_edit_related_contacts')) {
+                initializeRecipientSelectForForm(form, '#task_edit_related_contacts', false); // contactsOnly = false
+            }
+            // --- END --- 
         }
         // Add other else if blocks for other activity types if needed
         
@@ -1824,7 +1839,9 @@ function fixActivityDropdown() {
 
 /**
  * Initialize contact selection with Tom Select for the task form (Single Select)
+ * @deprecated This function is no longer used as tasks now use multi-select.
  */
+/*
 function initializeTaskContactSelect(formElement) {
     if (typeof TomSelect === 'undefined') {
         console.error('❌ Tom Select not available for task form contact select');
@@ -1921,3 +1938,4 @@ function initializeTaskContactSelect(formElement) {
     
     console.log(`✅ Tom Select (Single) initialized for #task_related_contact in the loaded form.`);
 }
+*/

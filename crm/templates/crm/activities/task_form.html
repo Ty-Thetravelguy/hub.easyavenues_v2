@@ -59,11 +59,17 @@
     </div>
     
     <div class="mb-3">
-        <label for="task_related_contacts" class="form-label">Related Contacts/Users</label>
-        <select class="form-control tom-select" id="task_related_contacts" name="related_contacts" multiple data-company-id="{{ company.id }}">
+        <label for="task_related_contacts" class="form-label">Related Contacts/Users (Optional)</label>
+        <select 
+            class="form-control tom-select"
+            id="task_related_contacts" 
+            name="related_contacts" 
+            multiple
+            data-company-id="{{ company.id }}"
+            placeholder="Type to search contacts or users...">
             <!-- Options will be loaded via Tom Select -->
         </select>
-        <small class="form-text text-muted">Type to search for contacts or users by name or email</small>
+        <small class="form-text text-muted">Associate contacts or users with this task.</small>
     </div>
     
     <div class="d-grid">

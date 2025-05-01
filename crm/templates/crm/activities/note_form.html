@@ -27,6 +27,22 @@
         {% endif %}
     </div>
     
+    <!-- ADDED New Contacts TomSelect Field -->
+    <div class="mb-3">
+        <label for="note_contacts" class="form-label">Related Contacts (Optional)</label>
+        <select 
+            name="contacts" 
+            id="note_contacts" 
+            class="form-control tom-select" 
+            multiple 
+            placeholder="Type to search contacts..."
+            data-company-id="{{ company.id }}">
+        </select>
+        {# No error display needed here unless form validation is added #}
+        <small class="form-text text-muted">Associate contacts with this note.</small>
+    </div>
+    <!-- END New Contacts Field -->
+    
     <div class="form-check mb-3">
         {{ form.is_important }} <!-- Render is_important checkbox from form -->
         <label class="form-check-label" for="{{ form.is_important.id_for_label }}">

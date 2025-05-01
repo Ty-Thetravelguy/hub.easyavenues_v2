@@ -425,6 +425,10 @@ def log_meeting_activity(request):
     
     company = get_object_or_404(Company, id=company_id)
     
+    # +++ Define is_ajax +++
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    # --- End --- 
+    
     try:
         # Get attendees (handle multiple, prefixed IDs)
         attendee_input_ids = request.POST.getlist('attendees')
@@ -499,27 +503,26 @@ def log_meeting_activity(request):
                     task_title = default_title[:255]
                     
                 due_date_str = request.POST.get('follow_up_due_date', '')
-                try:
-                    due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date() if due_date_str else timezone.now().date() + timedelta(days=1)
-                    if due_date < timezone.now().date():
-                         due_date = timezone.now().date() + timedelta(days=1) 
-                except ValueError:
-                    due_date = timezone.now().date() + timedelta(days=1)
-                    
-                due_time_str = request.POST.get('follow_up_due_time', '')
-                try:
-                    due_time = timezone.datetime.strptime(due_time_str, '%H:%M').time() if due_time_str else timezone.datetime.min.time().replace(hour=9)
-                except ValueError:
-                    due_time = timezone.datetime.min.time().replace(hour=9)
-                    
-                naive_followup_datetime = timezone.datetime.combine(due_date, due_time)
-                due_datetime = timezone.make_aware(naive_followup_datetime, timezone.get_current_timezone())
+                due_time_str = request.POST.get('follow_up_due_time')
                 
+                due_datetime = None
+                if due_date_str:
+                    try:
+                        due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                        due_time = timezone.datetime.strptime(due_time_str or '09:00', '%H:%M').time()
+                        due_datetime = timezone.make_aware(timezone.datetime.combine(due_date, due_time))
+                    except ValueError:
+                        due_datetime = timezone.now() + timedelta(days=1)
+                        due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                else:
+                    due_datetime = timezone.now() + timedelta(days=1)
+                    due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                    
                 task_notes = request.POST.get('follow_up_task_notes', '').strip()
                 base_description = f"Follow-up task automatically created for Meeting Activity ID: {activity.id}"
                 task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
                 
-                TaskActivity.objects.create(
+                task = TaskActivity.objects.create(
                     company=activity.company,
                     performed_by=request.user,
                     activity_type='task',
@@ -531,22 +534,39 @@ def log_meeting_activity(request):
                     priority='medium',
                     related_activity=activity # Link task to the original meeting activity
                 )
-                # Add Django message for task creation
-                messages.success(request, 'Follow-up task created successfully.')
-            except Exception as task_error:
-                logging.error(f"Error creating follow-up task for meeting {activity.id}: {task_error}", exc_info=True)
-                # Add Django warning message for task creation failure
-                messages.warning(request, f'Meeting logged, but failed to create follow-up task: {task_error}')
-        # --- End Follow-up Task --- 
-        
-        # Add Django success message for the meeting activity
-        messages.success(request, 'Meeting activity logged successfully.')
                 
-        return JsonResponse({
-            'success': True,
-            'message': 'Meeting activity logged successfully',
-            'activity_id': activity.id
-        })
+                # Add attendees to the follow-up task
+                for contact in activity.contact_attendees.all():
+                    task.contacts.add(contact)
+                for user in activity.user_attendees.all():
+                    task.users.add(user)
+                
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': 'Meeting activity updated successfully with follow-up task', 'reload_page': True})
+                else:
+                    messages.success(request, 'Meeting activity updated successfully with follow-up task')
+                    return redirect('crm:company_detail', pk=activity.company.id)
+            except Exception as task_error:
+                logging.error(f"Error creating follow-up task for edited meeting {activity.id}: {task_error}", exc_info=True)
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': f'Meeting updated, but failed to create follow-up task: {task_error}', 'reload_page': True})
+                else:
+                    messages.warning(request, f'Meeting updated, but failed to create follow-up task: {task_error}')
+                    return redirect('crm:company_detail', pk=activity.company.id)
+            
+            # Return success response for meeting update without task
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Meeting activity updated successfully', 'reload_page': True})
+            else:
+                messages.success(request, 'Meeting activity updated successfully')
+                return redirect('crm:company_detail', pk=activity.company.id)
+        
+        # Return success response for meeting update without task
+        if is_ajax:
+            return JsonResponse({'success': True, 'message': 'Meeting activity updated successfully', 'reload_page': True})
+        else:
+            messages.success(request, 'Meeting activity updated successfully')
+            return redirect('crm:company_detail', pk=activity.company.id)
     except Exception as e:
         import traceback
         logging.error(f"Error in log_meeting_activity: {str(e)}")
@@ -568,12 +588,18 @@ def log_note_activity(request):
     company = get_object_or_404(Company, id=company_id)
     
     try:
-        # Get related contacts
-        contact_ids = request.POST.getlist('related_contacts')
-        contact = None
-        if contact_ids:
-            contact = get_object_or_404(Contact, id=contact_ids[0])
-        
+        # Get related contacts (handle multiple, prefixed IDs)
+        contact_input_ids = request.POST.getlist('contacts') # Use 'contacts' as the field name
+        contact_ids = []
+        for contact_id_str in contact_input_ids:
+            if contact_id_str.startswith('contact_'):
+                contact_ids.append(contact_id_str.replace('contact_', ''))
+            elif contact_id_str.isdigit(): # Allow plain IDs for robustness
+                contact_ids.append(contact_id_str)
+                
+        # Get contacts queryset
+        selected_contacts = Contact.objects.filter(id__in=contact_ids, company=company)
+
         # Get subject if provided
         subject_id = request.POST.get('subject')
         subject = None
@@ -598,11 +624,10 @@ def log_note_activity(request):
             subject=subject
         )
         
-        # Set contact if provided
-        if contact:
-            activity.contact = contact
-            activity.save()
-            
+        # Add selected contacts to the ManyToManyField
+        if selected_contacts.exists():
+            activity.contacts.set(selected_contacts)
+        
         # Create follow-up task if requested
         if request.POST.get('create_follow_up_task'):
             try:
@@ -777,16 +802,23 @@ def log_task_activity(request):
         
         # Separate contact and user recipients (similar to email activity)
         contact_recipient_ids = []
+        user_recipient_ids = [] # Added list for user IDs
         
         for recipient_id in related_contacts_ids:
             if recipient_id.startswith('contact_'):
                 contact_recipient_ids.append(recipient_id.replace('contact_', ''))
+            elif recipient_id.startswith('user_'): # Added handling for user IDs
+                user_recipient_ids.append(recipient_id.replace('user_', ''))
         
-        # Get first contact to set as primary contact (TaskActivity has a single contact field)
-        contact = None
-        if contact_recipient_ids:
-            contact = get_object_or_404(Contact, id=contact_recipient_ids[0])
-            logging.info(f"Task activity - using primary contact: {contact.get_full_name()}")
+        # Get contacts and users querysets
+        selected_contacts = Contact.objects.filter(id__in=contact_recipient_ids)
+        selected_users = User.objects.filter(id__in=user_recipient_ids)
+        
+        # Removed logic for single primary contact
+        # contact = None
+        # if contact_recipient_ids:
+        #     contact = get_object_or_404(Contact, id=contact_recipient_ids[0])
+        #     logging.info(f"Task activity - using primary contact: {contact.get_full_name()}")
         
         # Get assignee
         assignee_id = request.POST.get('assignee')
@@ -828,10 +860,16 @@ def log_task_activity(request):
             assigned_to=assignee
         )
         
-        # Set contact if available
-        if contact:
-            activity.contact = contact
-            activity.save()
+        # Add selected contacts and users to the M2M fields
+        if selected_contacts.exists():
+            activity.contacts.set(selected_contacts)
+        if selected_users.exists():
+            activity.users.set(selected_users)
+            
+        # Removed logic for setting single contact FK
+        # if contact:
+        #     activity.contact = contact
+        #     activity.save()
         
         # Add Django success message for task activity
         messages.success(request, 'Task activity logged successfully.')
@@ -1419,6 +1457,19 @@ def edit_activity(request, activity_id):
             else:
                 specialized_activity.subject = None # Set to null if no subject selected
                 
+            # +++ ADDED: Update associated contacts +++
+            contact_input_ids = request.POST.getlist('contacts')
+            contact_ids = []
+            for contact_id_str in contact_input_ids:
+                if contact_id_str.startswith('contact_'):
+                    contact_ids.append(contact_id_str.replace('contact_', ''))
+                elif contact_id_str.isdigit():
+                    contact_ids.append(contact_id_str)
+            
+            selected_contacts = Contact.objects.filter(id__in=contact_ids, company=activity.company)
+            specialized_activity.contacts.set(selected_contacts) # Use set() to update M2M
+            # --- END --- 
+            
             # Save the specialized activity changes first
             specialized_activity.save()
             
@@ -1682,28 +1733,36 @@ def edit_activity(request, activity_id):
         elif activity_type == 'note':
             # Fetch NoteSubject choices for the dropdown
             context_data['subjects'] = NoteSubject.objects.all()
+            # +++ ADDED: Prepare current contacts for note edit TomSelect +++
+            current_contacts = []
+            for contact in specialized_activity.contacts.all():
+                current_contacts.append({
+                    'id': f'contact_{contact.id}',
+                    'text': contact.get_full_name()
+                })
+            context_data['current_contacts'] = current_contacts
+            # --- END --- 
         elif activity_type == 'task':
             # Fetch users for assignee dropdown
             context_data['users'] = User.objects.filter(is_active=True)
-            # Prepare related items for TomSelect
-            # TaskActivity only has a single contact FK, not M2M fields.
-            # Pass the single contact if it exists for the single-select dropdown.
-            context_data['current_related_contact'] = specialized_activity.contact # Pass the single Contact object
-            # current_related_items = []
-            # # TaskActivity model might have separate m2m fields: contacts and users
-            # if hasattr(specialized_activity, 'contacts'):
-            #      for contact in specialized_activity.contacts.all():
-            #         current_related_items.append({
-            #             'id': f'contact_{contact.id}',
-            #             'text': contact.get_full_name()
-            #         })
-            # if hasattr(specialized_activity, 'users'):
-            #     for user in specialized_activity.users.all():
-            #         current_related_items.append({
-            #             'id': f'user_{user.id}',
-            #             'text': user.get_full_name()
-            #         })
-            # context_data['current_related_items'] = current_related_items
+            # +++ UPDATED: Prepare related items for task edit TomSelect (M2M) +++
+            current_related_items = []
+            for contact in specialized_activity.contacts.all():
+                current_related_items.append({
+                    'id': f'contact_{contact.id}',
+                    'text': contact.get_full_name(),
+                    'type': 'contact' # Add type for rendering
+                })
+            for user in specialized_activity.users.all():
+                 current_related_items.append({
+                    'id': f'user_{user.id}',
+                    'text': user.get_full_name(),
+                    'type': 'user' # Add type for rendering
+                })
+            context_data['current_related_items'] = current_related_items
+            # Removed old single contact context
+            # context_data['current_related_contact'] = specialized_activity.contact
+            # --- END --- 
         elif activity_type == 'waiver_favour':
             # Fetch WaiverFavourType choices
             context_data['waiver_types'] = WaiverFavourType.objects.all()
