@@ -13,7 +13,7 @@ from django.urls import reverse
 from crm.models import (
     Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, 
     CallActivity, MeetingActivity, NoteActivity, DocumentActivity, 
-    StatusChangeActivity, PolicyUpdateActivity
+    StatusChangeActivity, PolicyUpdateActivity, NoteSubject
 )
 from crm.forms import (
     EmailActivityForm, CallActivityForm, MeetingActivityForm, 
@@ -577,7 +577,6 @@ def log_note_activity(request):
         subject_id = request.POST.get('subject')
         subject = None
         if subject_id:
-            from crm.models import NoteSubject
             try:
                 subject = NoteSubject.objects.get(id=subject_id)
             except (NoteSubject.DoesNotExist, ValueError):
@@ -1027,6 +1026,13 @@ def edit_activity(request, activity_id):
             form_class = None # Define if needed
         except MeetingActivity.DoesNotExist:
             pass
+    elif activity_type == 'note':
+        try:
+            specialized_activity = NoteActivity.objects.get(id=activity_id)
+            template_name = 'crm/activities/edit/note_edit_form.html'
+            form_class = None # No Django form used here
+        except NoteActivity.DoesNotExist:
+            pass
     # Add other activity types here...
     
     # Handle POST submission
@@ -1376,6 +1382,96 @@ def edit_activity(request, activity_id):
             else:
                 messages.success(request, 'Meeting activity updated successfully')
                 return redirect('crm:company_detail', pk=activity.company.id)
+        
+        elif activity_type == 'note':
+            # Get form data for note
+            subject_id = request.POST.get('subject')
+            content = request.POST.get('content', '')
+            is_important = request.POST.get('is_important') == 'on'
+            
+            # Update basic fields
+            specialized_activity.content = content
+            specialized_activity.description = content # Keep description synced with content
+            specialized_activity.is_important = is_important
+            
+            # Update subject
+            if subject_id:
+                try:
+                    note_subject = NoteSubject.objects.get(id=subject_id)
+                    specialized_activity.subject = note_subject
+                except NoteSubject.DoesNotExist:
+                    specialized_activity.subject = None # Set to null if subject not found
+            else:
+                specialized_activity.subject = None # Set to null if no subject selected
+                
+            # Save the specialized activity changes first
+            specialized_activity.save()
+            
+            # Update edit tracking fields on base activity
+            activity.last_edited_at = timezone.now()
+            activity.last_edited_by = request.user
+            activity.save(update_fields=['last_edited_at', 'last_edited_by', 'description']) # description might change
+            
+            # Handle follow-up task creation for note
+            if request.POST.get('create_follow_up_task'):
+                try:
+                    task_title = request.POST.get('follow_up_task_title', '').strip()
+                    if not task_title:
+                        default_title = f"Follow up on note: {specialized_activity.content[:50]}..." if len(specialized_activity.content) > 50 else f"Follow up on note: {specialized_activity.content}"
+                        task_title = default_title[:255]
+                        
+                    due_date_str = request.POST.get('follow_up_due_date')
+                    due_time_str = request.POST.get('follow_up_due_time')
+                    
+                    due_datetime = None
+                    if due_date_str:
+                        try:
+                            due_date = timezone.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                            due_time = timezone.datetime.strptime(due_time_str or '09:00', '%H:%M').time()
+                            due_datetime = timezone.make_aware(timezone.datetime.combine(due_date, due_time))
+                        except ValueError:
+                            due_datetime = timezone.now() + timedelta(days=1)
+                            due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                    else:
+                        due_datetime = timezone.now() + timedelta(days=1)
+                        due_datetime = due_datetime.replace(hour=9, minute=0, second=0)
+                    
+                    task_notes = request.POST.get('follow_up_task_notes', '').strip()
+                    base_description = f"Follow-up task automatically created for edited Note Activity ID: {activity.id}"
+                    task_description = f"{task_notes}\n\n---\n{base_description}" if task_notes else base_description
+                    
+                    TaskActivity.objects.create(
+                        company=activity.company,
+                        performed_by=request.user,
+                        activity_type='task',
+                        title=task_title,
+                        description=task_description,
+                        due_datetime=due_datetime,
+                        assigned_to=request.user,
+                        status='not_started',
+                        priority='medium',
+                        related_activity=activity # Link task to the original note activity
+                    )
+                    
+                    if is_ajax:
+                        return JsonResponse({'success': True, 'message': 'Note activity updated successfully with follow-up task', 'reload_page': True})
+                    else:
+                        messages.success(request, 'Note activity updated successfully with follow-up task')
+                        return redirect('crm:company_detail', pk=activity.company.id)
+                except Exception as task_error:
+                    logging.error(f"Error creating follow-up task for edited note {activity.id}: {task_error}", exc_info=True)
+                    if is_ajax:
+                        return JsonResponse({'success': True, 'message': f'Note updated, but failed to create follow-up task: {task_error}', 'reload_page': True})
+                    else:
+                        messages.warning(request, f'Note updated, but failed to create follow-up task: {task_error}')
+                        return redirect('crm:company_detail', pk=activity.company.id)
+            
+            # Return success response for note update without task
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Note activity updated successfully', 'reload_page': True})
+            else:
+                messages.success(request, 'Note activity updated successfully')
+                return redirect('crm:company_detail', pk=activity.company.id)
     
     # Prepare the form for GET requests
     if specialized_activity:
@@ -1412,6 +1508,9 @@ def edit_activity(request, activity_id):
                     'text': user.get_full_name()
                 })
             context_data['current_attendees'] = current_attendees
+        elif activity_type == 'note':
+            # Fetch NoteSubject choices for the dropdown
+            context_data['subjects'] = NoteSubject.objects.all()
         
         context = {
             'activity': activity,
