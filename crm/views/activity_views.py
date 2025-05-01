@@ -9,11 +9,12 @@ from django.db.models import Q
 import logging
 from datetime import timedelta
 from django.urls import reverse
+from decimal import Decimal, InvalidOperation
 
 from crm.models import (
     Company, Activity, Contact, WaiverActivity, TaskActivity, EmailActivity, 
     CallActivity, MeetingActivity, NoteActivity, DocumentActivity, 
-    StatusChangeActivity, PolicyUpdateActivity, NoteSubject
+    StatusChangeActivity, PolicyUpdateActivity, NoteSubject, WaiverFavourType
 )
 from crm.forms import (
     EmailActivityForm, CallActivityForm, MeetingActivityForm, 
@@ -1040,6 +1041,13 @@ def edit_activity(request, activity_id):
             form_class = None # No Django form used here
         except TaskActivity.DoesNotExist:
             pass
+    elif activity_type == 'waiver_favour':
+        try:
+            specialized_activity = WaiverActivity.objects.get(id=activity_id)
+            template_name = 'crm/activities/edit/waiver_edit_form.html'
+            form_class = None # No Django form used here
+        except WaiverActivity.DoesNotExist:
+            pass
     # Add other activity types here...
     
     # Handle POST submission
@@ -1565,6 +1573,76 @@ def edit_activity(request, activity_id):
             else:
                 messages.success(request, 'Task activity updated successfully')
                 return redirect('crm:company_detail', pk=activity.company.id)
+        
+        elif activity_type == 'waiver_favour':
+            # Get form data for waiver/favour
+            type_id = request.POST.get('type')
+            contact_ids = request.POST.getlist('contacts', []) # Expecting contact_XXX format
+            amount_str = request.POST.get('amount')
+            reason = request.POST.get('reason', '')
+            approved_by_id = request.POST.get('approved_by')
+            
+            # Update basic fields
+            specialized_activity.reason = reason
+            specialized_activity.description = reason # Keep description synced
+            
+            # Update type
+            if type_id:
+                try:
+                    waiver_type = WaiverFavourType.objects.get(id=type_id)
+                    specialized_activity.type = waiver_type
+                except WaiverFavourType.DoesNotExist:
+                    # Maybe raise an error or set to None if type is mandatory?
+                    # For now, let's assume it can be cleared if type not found
+                    specialized_activity.type = None 
+            else:
+                 # If type is mandatory, we might need validation here
+                 specialized_activity.type = None
+                 
+            # Update amount
+            if amount_str:
+                try:
+                    specialized_activity.amount = Decimal(amount_str)
+                except (ValueError, InvalidOperation):
+                    specialized_activity.amount = None # Clear if invalid
+            else:
+                specialized_activity.amount = None # Clear if empty
+            
+            # Update approved_by
+            if approved_by_id:
+                try:
+                    approver = User.objects.get(id=approved_by_id)
+                    specialized_activity.approved_by = approver
+                except User.DoesNotExist:
+                    specialized_activity.approved_by = None
+            else:
+                specialized_activity.approved_by = None # Clear approval
+                
+            # Update contacts (replace existing)
+            specialized_activity.contacts.clear()
+            for contact_id_str in contact_ids:
+                if contact_id_str.startswith('contact_'):
+                    contact_id = contact_id_str.replace('contact_', '')
+                    try:
+                        contact = Contact.objects.get(id=contact_id)
+                        specialized_activity.contacts.add(contact)
+                    except Contact.DoesNotExist:
+                        pass # Ignore if a contact ID is invalid
+            
+            # Save the specialized activity changes first
+            specialized_activity.save()
+            
+            # Update edit tracking fields on base activity
+            activity.last_edited_at = timezone.now()
+            activity.last_edited_by = request.user
+            activity.save(update_fields=['last_edited_at', 'last_edited_by', 'description'])
+            
+            # Return success response
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Waiver & Favour activity updated successfully', 'reload_page': True})
+            else:
+                messages.success(request, 'Waiver & Favour activity updated successfully')
+                return redirect('crm:company_detail', pk=activity.company.id)
     
     # Prepare the form for GET requests
     if specialized_activity:
@@ -1626,6 +1704,19 @@ def edit_activity(request, activity_id):
             #             'text': user.get_full_name()
             #         })
             # context_data['current_related_items'] = current_related_items
+        elif activity_type == 'waiver_favour':
+            # Fetch WaiverFavourType choices
+            context_data['waiver_types'] = WaiverFavourType.objects.all()
+            # Fetch Users for approved_by dropdown
+            context_data['users'] = User.objects.filter(is_active=True)
+            # Prepare current contacts for TomSelect
+            current_contacts = []
+            for contact in specialized_activity.contacts.all():
+                current_contacts.append({
+                    'id': f'contact_{contact.id}', # Use prefixed ID for consistency
+                    'text': contact.get_full_name()
+                })
+            context_data['current_contacts'] = current_contacts
         
         context = {
             'activity': activity,

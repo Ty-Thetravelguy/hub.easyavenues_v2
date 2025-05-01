@@ -1,0 +1,70 @@
+<!-- Waiver & Favour Edit Form -->
+<form method="post" action="{% url 'crm:edit_activity' activity_id=activity.id %}" class="activity-form waiver_favour-form">
+    {% csrf_token %}
+    <input type="hidden" name="activity_id" value="{{ activity.id }}">
+    <input type="hidden" name="activity_type" value="waiver_favour">
+    <input type="hidden" name="company_id" value="{{ company.id }}">
+
+    <!-- Type Dropdown (pre-populated) -->
+    <div class="mb-3">
+        <label for="id_type" class="form-label">Type</label>
+        <select name="type" id="id_type" class="form-select" required>
+            <option value="">---------</option> {# Allow clearing? Or make required? Let's keep required as per create form logic #}
+            {% for type_obj in waiver_types %}
+                <option value="{{ type_obj.id }}" {% if activity_details.type and activity_details.type.id == type_obj.id %}selected{% endif %}>{{ type_obj.name }}</option>
+            {% endfor %}
+        </select>
+        <small class="form-text text-muted">Select the type of waiver or favour.</small> 
+    </div>
+
+    <!-- Related Contacts (TomSelect, pre-populated) -->
+    <div class="mb-3">
+      <label for="waiver_favour_contacts" class="form-label">Related Contacts</label>
+      <select 
+          name="contacts" 
+          id="waiver_favour_contacts" 
+          class="form-control tom-select" 
+          multiple 
+          placeholder="Type to search contacts..."
+          data-company-id="{{ company.id }}">
+          {% for contact_item in current_contacts %}
+              <option value="{{ contact_item.id }}" selected>{{ contact_item.text }}</option>
+          {% endfor %}
+      </select>
+      <small class="form-text text-muted">Type to search for contacts by name or email</small>
+    </div>
+
+    <!-- Amount (pre-populated) -->
+    <div class="mb-3">
+        <label for="id_amount" class="form-label">Amount</label>
+        <div class="input-group">
+            <span class="input-group-text">£</span> 
+            <input type="number" name="amount" id="id_amount" step="0.01" class="form-control" value="{{ activity_details.amount|default:'' }}">
+        </div>
+    </div>
+
+    <!-- Reason (pre-populated) -->
+    <div class="mb-3">
+        <label for="id_reason" class="form-label">Reason</label>
+        <textarea name="reason" id="id_reason" class="form-control" rows="3">{{ activity_details.reason|default:'' }}</textarea>
+    </div>
+
+    <!-- Approved By (pre-populated) -->
+    <div class="mb-3">
+        <label for="id_approved_by" class="form-label">Approved By (Optional)</label>
+        <select name="approved_by" id="id_approved_by" class="form-select">
+            <option value="">---------</option> {# Allow clearing approval #}
+            {% for user in users %}
+                <option value="{{ user.id }}" {% if activity_details.approved_by and activity_details.approved_by.id == user.id %}selected{% endif %}>{{ user.get_full_name }}</option>
+            {% endfor %}
+        </select>
+        <small class="form-text text-muted">Leave blank if no approval is needed</small>
+    </div>
+    
+    <!-- Submit button -->
+    <div class="d-grid mt-4">
+        <button type="submit" class="btn btn-activity-waiver">
+             <i class="fas fa-save me-1"></i> Update Waiver & Favour
+        </button>
+    </div>
+</form>
