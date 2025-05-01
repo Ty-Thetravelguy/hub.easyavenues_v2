@@ -1580,35 +1580,41 @@ def edit_activity(request, activity_id):
                     # Keep existing datetime if parsing fails
                     pass 
             
-            # Update related contact (TaskActivity has a single FK 'contact')
-            selected_contact_id = None
+            # +++ UPDATED: Update related contacts and users (M2M) +++
+            related_item_ids = request.POST.getlist('related_contacts') # Get combined list
+            # +++ DEBUG LOGGING +++
+            logging.debug(f"[EDIT TASK - POST] Received related_item_ids: {related_item_ids}")
+            # --- END DEBUG ---
+            contact_ids = []
+            user_ids = []
             for item_id in related_item_ids:
                 if item_id.startswith('contact_'):
-                    # Take the first contact found
-                    selected_contact_id = item_id.replace('contact_', '')
-                    break 
+                    contact_ids.append(item_id.replace('contact_', ''))
+                elif item_id.startswith('user_'):
+                    user_ids.append(item_id.replace('user_', ''))
             
-            if selected_contact_id:
-                try:
-                    contact_obj = Contact.objects.get(id=selected_contact_id)
-                    specialized_activity.contact = contact_obj
-                except Contact.DoesNotExist:
-                    specialized_activity.contact = None # Set to None if contact not found
-            else:
-                specialized_activity.contact = None # Clear contact if none selected/found
+            # Update M2M fields using set()
+            selected_contacts = Contact.objects.filter(id__in=contact_ids)
+            selected_users = User.objects.filter(id__in=user_ids)
+            specialized_activity.contacts.set(selected_contacts)
+            specialized_activity.users.set(selected_users)
+            # --- END --- 
             
-            # Remove old logic for M2M contacts/users
-            # specialized_activity.contacts.clear() 
-            # specialized_activity.users.clear() 
+            # Removed old logic for single contact FK
+            # selected_contact_id = None
             # for item_id in related_item_ids:
             #     if item_id.startswith('contact_'):
-            #         contact_id = item_id.replace('contact_', '')
-            #         contact = get_object_or_404(Contact, id=contact_id)
-            #         specialized_activity.contacts.add(contact)
-            #     elif item_id.startswith('user_'):
-            #         user_id = item_id.replace('user_', '')
-            #         user = get_object_or_404(User, id=user_id)
-            #         specialized_activity.users.add(user)
+            #         selected_contact_id = item_id.replace('contact_', '')
+            #         break 
+            # 
+            # if selected_contact_id:
+            #     try:
+            #         contact_obj = Contact.objects.get(id=selected_contact_id)
+            #         specialized_activity.contact = contact_obj
+            #     except Contact.DoesNotExist:
+            #         specialized_activity.contact = None
+            # else:
+            #     specialized_activity.contact = None
             
             # Save the specialized activity changes first
             specialized_activity.save()

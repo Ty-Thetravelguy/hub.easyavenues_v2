@@ -184,6 +184,10 @@
                         <span class="badge bg-warning text-dark">Medium</span>
                     {% elif activity_details.priority == 'high' %}
                         <span class="badge bg-danger">High</span>
+                    {% elif activity_details.priority == 'urgent' %}
+                        <span class="badge bg-danger text-white border border-white">
+                            <i class="fas fa-exclamation-circle me-1"></i> Urgent
+                        </span>
                     {% endif %}
                 </div>  
             </div>

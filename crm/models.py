@@ -731,6 +731,16 @@ class TaskActivity(Activity):
     # --- REMOVED single contact ForeignKey ---
     # contact = models.ForeignKey(Contact, on_delete=models.SET_NULL, related_name='tasks', null=True, blank=True)
     
+    # +++ RE-ADDED assigned_to field +++
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='assigned_tasks'
+    )
+    # --- END --- 
+    
     # +++ ADDED ManyToManyFields for contacts and users +++
     contacts = models.ManyToManyField(
         'Contact',
