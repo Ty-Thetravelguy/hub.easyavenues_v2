@@ -1116,8 +1116,25 @@ function submitActivityForm(form, activityType) {
                 loadActivitiesByType('all');
             }
             
-            // Refresh the page to show Django messages
-            window.location.reload();
+            // +++ Modified Redirect Logic +++
+            // Get company ID from the main page
+            const companyIdField = document.getElementById('company_id');
+            const companyId = companyIdField ? companyIdField.value : null;
+
+            if (companyId) {
+                // Construct the redirect URL (Ensure trailing slash and correct path)
+                const redirectUrl = `/crm/companies/${companyId}/?tab=activities&activity_type=${activityType}`;
+                console.log(`Redirecting to: ${redirectUrl}`);
+                window.location.href = redirectUrl;
+            } else {
+                // Fallback if company ID not found (shouldn't happen ideally)
+                console.error("Could not find company ID for redirect. Reloading page instead.");
+                window.location.reload(); 
+            }
+            // --- END Modified Redirect --- 
+            
+            // Removed old reload logic
+            // window.location.reload();
         } else {
             // Error messages will be handled by Django messages - no need for JavaScript alerts
             console.error('Error from server:', data.message);
