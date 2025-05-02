@@ -26,7 +26,8 @@
         <div class="col-sm-3">
             <label for="meeting_time" class="form-label">Time</label>
             <input type="text" class="form-control" id="meeting_time" name="time" 
-                   value="09:00" required data-timepicker>
+                   value="{{ current_time|date:'H:i' }}" required data-timepicker>
+            <small class="form-text text-muted">Use 24-hour format (e.g., 14:30)</small>
         </div>
         <div class="col-sm-3">
             <label for="meeting_duration" class="form-label">Duration (min)</label>
@@ -36,7 +37,7 @@
         
     <div class="mb-3">
         <label for="meeting_location" class="form-label">Location</label>
-        <input type="text" class="form-control" id="meeting_location" name="location" placeholder="Office, Zoom, etc.">
+        <input type="text" class="form-control" id="meeting_location" name="location" placeholder="Office, Teams,Zoom, etc.">
     </div>
     
     <div class="mb-3">

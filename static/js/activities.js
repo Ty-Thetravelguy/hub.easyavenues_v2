@@ -564,7 +564,7 @@ function updateSidePanelHeader(activityType) {
         'call': 'Log Call',
         'meeting': 'Log Meeting',
         'note': 'Log Note',
-        'waiver_favour': 'Log Waiver & Favour',
+        'waiver_favour': 'Savings, Allowances, Favours (SAF)',
         'task': 'Log Task'
     };
     
@@ -573,7 +573,7 @@ function updateSidePanelHeader(activityType) {
         'call': 'phone-alt',
         'meeting': 'users',
         'note': 'sticky-note',
-        'waiver_favour': 'handshake',
+        'waiver_favour': 'piggy-bank',
         'task': 'tasks'
     };
     
@@ -714,6 +714,35 @@ function initializeFormElements(activityType) {
             if (sendEmailDiv) {
                 sendEmailDiv.style.display = 'block';
             }
+            
+            // +++ Add conditional logic for Missed Saving Checkbox +++
+            const safTypeSelect = form.querySelector('select[name="saf_type"]');
+            const missedSavingSection = form.querySelector('#missed-saving-section');
+            const missedSavingCheckbox = form.querySelector('#id_is_missed_saving');
+
+            if (safTypeSelect && missedSavingSection) {
+                const toggleMissedSaving = () => {
+                    if (safTypeSelect.value === 'Savings') {
+                        missedSavingSection.style.display = 'block';
+                    } else {
+                        missedSavingSection.style.display = 'none';
+                        // Optionally uncheck the box when hidden
+                        if (missedSavingCheckbox) {
+                            missedSavingCheckbox.checked = false;
+                        }
+                    }
+                };
+
+                // Add event listener
+                safTypeSelect.addEventListener('change', toggleMissedSaving);
+
+                // Run on initial load
+                toggleMissedSaving();
+            } else {
+                console.warn('Could not find SAF Type select or Missed Saving section for dynamic display.');
+            }
+            // --- End Missed Saving Logic ---
+            
         } else if (activityType === 'task') {
             console.log("Initializing task form elements");
             // +++ UPDATED: Initialize multi-select TomSelect for tasks +++

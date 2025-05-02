@@ -1,20 +1,40 @@
-<!-- Waiver & Favour Edit Form -->
+<!-- SAF Edit Form -->
 <form method="post" action="{% url 'crm:edit_activity' activity_id=activity.id %}" class="activity-form waiver_favour-form">
     {% csrf_token %}
     <input type="hidden" name="activity_id" value="{{ activity.id }}">
     <input type="hidden" name="activity_type" value="waiver_favour">
     <input type="hidden" name="company_id" value="{{ company.id }}">
 
-    <!-- Type Dropdown (pre-populated) -->
+    <!-- Type Dropdown (Savings/Allowances/Favours) -->
     <div class="mb-3">
-        <label for="id_type" class="form-label">Type</label>
-        <select name="type" id="id_type" class="form-select" required>
+        <label for="id_saf_type" class="form-label">Type</label>
+        <select name="saf_type" id="id_saf_type" class="form-select" required>
+            <option value="">---------</option>
+            <option value="Savings" {% if activity_details.saf_type == 'Savings' %}selected{% endif %}>Savings</option>
+            <option value="Allowances" {% if activity_details.saf_type == 'Allowances' %}selected{% endif %}>Allowances</option>
+            <option value="Favours" {% if activity_details.saf_type == 'Favours' %}selected{% endif %}>Favours</option>
+        </select>
+        <small class="form-text text-muted">Select whether this is a Saving, Allowance, or Favour.</small> 
+    </div>
+
+    <!-- Missed Saving Checkbox (Conditional) -->
+    <div class="mb-3 form-check" id="missed-saving-section" {% if activity_details.saf_type != 'Savings' %}style="display: none;"{% endif %}>
+        <input type="checkbox" name="is_missed_saving" id="id_is_missed_saving" class="form-check-input" {% if activity_details.is_missed_saving %}checked{% endif %}>
+        <label class="form-check-label" for="id_is_missed_saving">
+            Is this a missed saving
+        </label>
+    </div>
+
+    <!-- Action Taken Dropdown (pre-populated) -->
+    <div class="mb-3">
+        <label for="id_action_taken" class="form-label">Action Taken</label>
+        <select name="action_taken" id="id_action_taken" class="form-select" required>
             <option value="">---------</option> {# Allow clearing? Or make required? Let's keep required as per create form logic #}
             {% for type_obj in waiver_types %}
                 <option value="{{ type_obj.id }}" {% if activity_details.type and activity_details.type.id == type_obj.id %}selected{% endif %}>{{ type_obj.name }}</option>
             {% endfor %}
         </select>
-        <small class="form-text text-muted">Select the type of waiver or favour.</small> 
+        <small class="form-text text-muted">Select the type of action taken.</small>
     </div>
 
     <!-- Related Contacts (TomSelect, pre-populated) -->
@@ -64,7 +84,7 @@
     <!-- Submit button -->
     <div class="d-grid mt-4">
         <button type="submit" class="btn btn-activity-waiver">
-             <i class="fas fa-save me-1"></i> Update Waiver & Favour
+             <i class="fas fa-save me-1"></i> Update SAF
         </button>
     </div>
 </form>

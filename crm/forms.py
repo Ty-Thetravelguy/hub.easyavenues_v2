@@ -768,23 +768,32 @@ class PolicyUpdateActivityForm(forms.ModelForm):
 
 class WaiverFavorActivityForm(forms.ModelForm):
     # Added ModelChoiceField for the new type ForeignKey
-    type = forms.ModelChoiceField(
+    action_taken = forms.ModelChoiceField(
         queryset=WaiverFavourType.objects.all(),
-        required=True, # Matches blank=False on model field
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Action Taken"
+    )
+    
+    # Added new ChoiceField for Savings/Allowances/Favours
+    saf_type = forms.ChoiceField(
+        choices=[('', '---------')] + list(WaiverActivity.SAF_TYPE_CHOICES),
+        required=True,
         widget=forms.Select(attrs={'class': 'form-control'}),
         label="Type"
     )
 
-    # Define fields for amount, approved_by, contacts, description etc.
-    # These fields are not automatically inherited because the Meta model is Activity
-    # We need to define them explicitly or change the Meta model to WaiverActivity
-    # Let's change Meta model to WaiverActivity for simplicity
+    is_missed_saving = forms.BooleanField(
+        required=False, 
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        label="Is this a missed saving"
+    )
 
-    # Keeping subject for now, might be replaced by Type name later?
+    # Define fields for amount, approved_by, contacts, description etc.
     subject = forms.CharField(
         max_length=255, 
         widget=forms.TextInput(attrs={'class': 'form-control'}),
-        required=False, # Let's make subject optional if type exists
+        required=False,
         label="Subject (Optional)"
     )
 
@@ -803,20 +812,19 @@ class WaiverFavorActivityForm(forms.ModelForm):
         widget=forms.Textarea(attrs={
             'class': 'form-control',
             'rows': 3, 
-            'placeholder': 'Reason for waiver/favour...'
+            'placeholder': 'Reason for SAF...'
         }),
         required=False
     )
 
     approved_by = forms.ModelChoiceField(
         queryset=User.objects.all(),
-        required=False, # Make optional? Depends on workflow
+        required=False,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
-    # Reverted contacts field to ModelMultipleChoiceField for proper rendering and TomSelect initialization
     contacts = forms.ModelMultipleChoiceField(
-        queryset=Contact.objects.all(), # Queryset will be filtered dynamically if needed
+        queryset=Contact.objects.all(),
         required=False,
         widget=forms.SelectMultiple(attrs={
             'class': 'tom-select form-control',
@@ -824,27 +832,12 @@ class WaiverFavorActivityForm(forms.ModelForm):
         }),
         label="Related Contacts"
     )
-    
-    # Removed users field - assuming not needed
-    # users = forms.ModelMultipleChoiceField(...)
-
-    # Removed waiver_type ChoiceField
-    # waiver_type = forms.ChoiceField(...)
-    
-    # Removed value_amount - renamed to amount
-    # value_amount = forms.DecimalField(...)
-    
-    # Removed description, outcome, follow_up fields inherited from Activity Meta model
-    # Use 'reason' field instead of description?
 
     class Meta:
-        model = WaiverActivity # Changed Meta model to WaiverActivity
+        model = WaiverActivity
         fields = [
-            'type', 'subject', 'amount', 'reason', 'approved_by', 'contacts'
-            # Fields from Activity base model (like company, performed_by) are handled in the view
+            'saf_type', 'is_missed_saving', 'action_taken', 'subject', 'amount', 'reason', 'approved_by', 'contacts'
         ]
-        # Removed widgets defined here if they are now defined explicitly above
-        # widgets = { ... } 
 
     def save(self, commit=True):
         instance = super().save(commit=False)

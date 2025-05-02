@@ -64,6 +64,7 @@
           </div>
       </div>
       {% elif activity.activity_type == 'call' %}
+      <!-- Contact Row -->
       <div class="row mb-2">
         <div class="col-md-3 fw-bold">Contact:</div>
          <div class="col-md-9">
@@ -75,6 +76,16 @@
                  <em>No contact recorded</em>
              {% endif %}
         </div>
+      </div>
+      <!-- Call Type Row -->
+      <div class="row mb-2">
+        <div class="col-md-3 fw-bold">Call Type:</div>
+        <div class="col-md-9">{{ activity_details.call_type|default:"(Not recorded)" }}</div>
+      </div>
+      <!-- Call Outcome Row -->
+      <div class="row mb-2">
+        <div class="col-md-3 fw-bold">Call Outcome:</div>
+        <div class="col-md-9">{{ activity_details.get_call_outcome_display|default:"(No outcome recorded)" }}</div>
       </div>
       {% elif activity.activity_type == 'meeting' %}
       <div class="row mb-2">
@@ -311,21 +322,28 @@
             <h6 class="border-bottom pb-2">Call Details</h6>
 
             <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Call Purpose:</div>
-                <div class="col-md-9">{{ activity_details.summary|default:"(No purpose specified)"|linebreaks }}</div>
+                <div class="col-md-3 fw-bold">Date & Time:</div>
+                <div class="col-md-9">{{ activity_details.activity_datetime|date:"M d, Y, H:i"|default:"(Not specified)" }}</div>
             </div>
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Call Purpose:</div>
+                <div class="col-md-9">{{ activity_details.summary|default:"(No purpose specified)" }}</div>
+            </div>
+
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Call Outcome:</div>
+                <div class="col-md-9">{{ activity_details.get_call_outcome_display|default:"(No outcome recorded)" }}</div>
+            </div>
+
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Duration:</div>
                 <div class="col-md-9">{{ activity_details.duration }} minutes</div>
             </div>
             <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Call Outcome:</div>
-                <div class="col-md-9">{{ activity_details.call_outcome|default:"(No outcome recorded)"|linebreaks }}</div>
-            </div>
-            <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Call Summary:</div>
                 <div class="col-md-9">{{ activity.description|linebreaks }}</div>
             </div>
+
         </div>
     {% elif activity.activity_type == 'meeting' %}
         <div class="mt-4">
@@ -336,7 +354,7 @@
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Date & Time:</div>
-                <div class="col-md-9">{{ activity.performed_at|date:"M d, Y, H:i" }}</div>
+                <div class="col-md-9">{{ activity_details.activity_datetime|date:"M d, Y, H:i"|default:"(Not specified)" }}</div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Duration:</div>
@@ -393,14 +411,26 @@
         </div>
     {% elif activity.activity_type == 'waiver_favour' %}
         <div class="mt-4">
-            <h6 class="border-bottom pb-2">Waiver/Favor Details</h6>
+            <h6 class="border-bottom pb-2">SAF Details</h6>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Type:</div>
+                <div class="col-md-9">{{ activity_details.saf_type|default:"Not specified" }}</div>
+            </div>
+            {% if activity_details.saf_type == 'Savings' %}
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Missed Saving:</div>
+                <div class="col-md-9">
+                    {% if activity_details.is_missed_saving %}Yes{% else %}No{% endif %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="row mb-2">
+                <div class="col-md-3 fw-bold">Action Taken:</div>
                 <div class="col-md-9">
                     {% if activity_details.type %}
                         {{ activity_details.type.name }}
                     {% else %}
-                        <em>No type specified</em>
+                        <em>No action taken</em>
                     {% endif %}
                 </div>
             </div>

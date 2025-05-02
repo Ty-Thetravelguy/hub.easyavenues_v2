@@ -374,7 +374,7 @@ def log_call_activity(request):
             call_time = timezone.now().time()
             
         naive_datetime = timezone.datetime.combine(call_date, call_time)
-        performed_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+        activity_datetime_value = timezone.make_aware(naive_datetime, timezone.get_current_timezone()) # Calculate activity time
         
         # Import the right models
         from crm.models import CallActivity, TaskActivity
@@ -387,7 +387,8 @@ def log_call_activity(request):
             company=company,
             performed_by=request.user,
             activity_type='call',
-            performed_at=performed_datetime,
+            # performed_at is now auto_now_add
+            activity_datetime=activity_datetime_value, # Save user-specified time here
             call_type='Outbound' if bool(request.POST.get('outbound')) else 'Inbound',
             duration=int(request.POST.get('duration', 0)),
             # Get 'call_purpose' parameter (falling back to 'purpose' for backwards compatibility)
@@ -516,7 +517,7 @@ def log_meeting_activity(request):
             meeting_time = timezone.now().time()
             
         naive_datetime = timezone.datetime.combine(meeting_date, meeting_time)
-        performed_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+        activity_datetime_value = timezone.make_aware(naive_datetime, timezone.get_current_timezone()) # Calculate activity time
         
         # Import the right models
         from crm.models import MeetingActivity, TaskActivity # Add TaskActivity
@@ -526,7 +527,8 @@ def log_meeting_activity(request):
             company=company,
             performed_by=request.user,
             activity_type='meeting',
-            performed_at=performed_datetime, # Use parsed datetime
+            # performed_at is now auto_now_add
+            activity_datetime=activity_datetime_value, # Use parsed datetime for activity_datetime
             title=request.POST.get('title', ''),
             # description set below
             location=request.POST.get('location', ''),
@@ -807,11 +809,16 @@ def log_waiver_favour_activity(request):
             performed_by=request.user,
             activity_type='waiver_favour',
             description=request.POST.get('reason', ''),
+            saf_type=request.POST.get('saf_type'), # Added saf_type
             reason=request.POST.get('reason', ''),
             amount=request.POST.get('amount') if request.POST.get('amount') else None,
             approved_by=approved_by,
-            type=waiver_type
+            type=waiver_type, # This should now be action_taken from the form
+            is_missed_saving=request.POST.get('is_missed_saving') == 'on' # Added is_missed_saving
         )
+        
+        # Rename 'type' to 'action_taken' field from form
+        activity.type_id = request.POST.get('action_taken')
         
         # Add contacts
         if contacts:
@@ -821,11 +828,11 @@ def log_waiver_favour_activity(request):
         activity.save()
         
         # Add Django success message for the waiver/favour activity
-        messages.success(request, 'Waiver & Favour activity logged successfully.')
+        messages.success(request, 'SAF activity logged successfully.')
             
         return JsonResponse({
             'success': True,
-            'message': 'Waiver & Favour activity logged successfully',
+            'message': 'SAF activity logged successfully',
             'activity_id': activity.id
         })
     except Exception as e:
@@ -834,7 +841,7 @@ def log_waiver_favour_activity(request):
         logging.error(traceback.format_exc())
         
         # Add Django error message
-        messages.error(request, f'Error logging waiver/favour activity: {str(e)}')
+        messages.error(request, f'Error logging SAF activity: {str(e)}')
         
         error_message = f'Error saving activity: {str(e)}'
         return JsonResponse({'success': False, 'message': error_message}, status=500)
@@ -1292,27 +1299,26 @@ def edit_activity(request, activity_id):
             else:
                 specialized_activity.contact = None # Clear if no contact provided
                 
-            # Update date/time (using the base activity's performed_at)
+            # Update activity_datetime (using the new field)
             call_date_str = request.POST.get('date')
             call_time_str = request.POST.get('time')
             
             try:
-                call_date = timezone.datetime.strptime(call_date_str, '%Y-%m-%d').date() if call_date_str else activity.performed_at.date()
-                call_time = timezone.datetime.strptime(call_time_str, '%H:%M').time() if call_time_str else activity.performed_at.time()
+                call_date = timezone.datetime.strptime(call_date_str, '%Y-%m-%d').date() if call_date_str else specialized_activity.activity_datetime.date() if specialized_activity.activity_datetime else timezone.now().date()
+                call_time = timezone.datetime.strptime(call_time_str, '%H:%M').time() if call_time_str else specialized_activity.activity_datetime.time() if specialized_activity.activity_datetime else timezone.now().time()
                 naive_datetime = timezone.datetime.combine(call_date, call_time)
-                activity.performed_at = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
-                activity.save(update_fields=['performed_at'])
+                specialized_activity.activity_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone()) # Update the new field
             except ValueError:
                 # Keep existing datetime if parsing fails
                 pass
                 
-            # Save the specialized activity changes
+            # Save the specialized activity changes (including activity_datetime)
             specialized_activity.save()
             
             # Update edit tracking fields on base activity
             activity.last_edited_at = timezone.now()
             activity.last_edited_by = request.user
-            activity.save(update_fields=['performed_at', 'last_edited_at', 'last_edited_by'])
+            activity.save(update_fields=['last_edited_at', 'last_edited_by']) # Don't update performed_at
             
             # Handle follow-up task creation for call
             if request.POST.get('create_follow_up_task'):
@@ -1409,10 +1415,10 @@ def edit_activity(request, activity_id):
             meeting_time_str = request.POST.get('time')
             
             try:
-                meeting_date = timezone.datetime.strptime(meeting_date_str, '%Y-%m-%d').date() if meeting_date_str else activity.performed_at.date()
-                meeting_time = timezone.datetime.strptime(meeting_time_str, '%H:%M').time() if meeting_time_str else activity.performed_at.time()
+                meeting_date = timezone.datetime.strptime(meeting_date_str, '%Y-%m-%d').date() if meeting_date_str else specialized_activity.activity_datetime.date() if specialized_activity.activity_datetime else timezone.now().date()
+                meeting_time = timezone.datetime.strptime(meeting_time_str, '%H:%M').time() if meeting_time_str else specialized_activity.activity_datetime.time() if specialized_activity.activity_datetime else timezone.now().time()
                 naive_datetime = timezone.datetime.combine(meeting_date, meeting_time)
-                activity.performed_at = timezone.make_aware(naive_datetime, timezone.get_current_timezone())
+                specialized_activity.activity_datetime = timezone.make_aware(naive_datetime, timezone.get_current_timezone()) # Update the new field
             except ValueError:
                 # Keep existing datetime if parsing fails
                 pass
@@ -1436,7 +1442,7 @@ def edit_activity(request, activity_id):
             # Update edit tracking fields and potentially performed_at on base activity
             activity.last_edited_at = timezone.now()
             activity.last_edited_by = request.user
-            activity.save(update_fields=['performed_at', 'last_edited_at', 'last_edited_by'])
+            activity.save(update_fields=['last_edited_at', 'last_edited_by']) # Don't update performed_at
             
             # Handle follow-up task creation for meeting
             if request.POST.get('create_follow_up_task'):
@@ -1723,27 +1729,28 @@ def edit_activity(request, activity_id):
         
         elif activity_type == 'waiver_favour':
             # Get form data for waiver/favour
-            type_id = request.POST.get('type')
+            saf_type_value = request.POST.get('saf_type') # Added saf_type
+            action_taken_id = request.POST.get('action_taken') # Changed from 'type'
             contact_ids = request.POST.getlist('contacts', []) # Expecting contact_XXX format
             amount_str = request.POST.get('amount')
             reason = request.POST.get('reason', '')
             approved_by_id = request.POST.get('approved_by')
+            is_missed_saving_value = request.POST.get('is_missed_saving') == 'on' # Added
             
             # Update basic fields
             specialized_activity.reason = reason
             specialized_activity.description = reason # Keep description synced
+            specialized_activity.saf_type = saf_type_value # Added saf_type update
+            specialized_activity.is_missed_saving = is_missed_saving_value # Added update
             
-            # Update type
-            if type_id:
+            # Update type (now action_taken)
+            if action_taken_id:
                 try:
-                    waiver_type = WaiverFavourType.objects.get(id=type_id)
-                    specialized_activity.type = waiver_type
+                    action_taken_type = WaiverFavourType.objects.get(id=action_taken_id)
+                    specialized_activity.type = action_taken_type # Field name on model is still 'type'
                 except WaiverFavourType.DoesNotExist:
-                    # Maybe raise an error or set to None if type is mandatory?
-                    # For now, let's assume it can be cleared if type not found
                     specialized_activity.type = None 
             else:
-                 # If type is mandatory, we might need validation here
                  specialized_activity.type = None
                  
             # Update amount
@@ -1786,9 +1793,9 @@ def edit_activity(request, activity_id):
             
             # Return success response
             if is_ajax:
-                return JsonResponse({'success': True, 'message': 'Waiver & Favour activity updated successfully', 'reload_page': True})
+                return JsonResponse({'success': True, 'message': 'SAF activity updated successfully', 'reload_page': True})
             else:
-                messages.success(request, 'Waiver & Favour activity updated successfully')
+                messages.success(request, 'SAF activity updated successfully')
                 # +++ Modified Redirect +++
                 redirect_url = reverse('crm:company_detail', kwargs={'pk': activity.company.id}) + f'?tab=activities&activity_type={activity_type}'
                 return redirect(redirect_url)
@@ -2155,7 +2162,7 @@ def company_activities_json(request, company_id):
 
 @login_required
 def approve_waiver_favor(request, activity_id):
-    """Approve a waiver/favor activity."""
+    """Approve a SAF activity."""
     activity = get_object_or_404(Activity, id=activity_id)
     
     if request.method == 'POST':
@@ -2173,10 +2180,10 @@ def approve_waiver_favor(request, activity_id):
             activity.outcome = request.POST.get('outcome', '')
             activity.save()
             
-            messages.success(request, 'Waiver/Favor activity approved successfully.')
+            messages.success(request, 'SAF activity approved successfully.')
             return redirect('crm:company_detail', pk=activity.company.id)
         except Exception as e:
-            messages.error(request, f'Error approving waiver/favor: {str(e)}')
+            messages.error(request, f'Error approving SAF: {str(e)}')
             return redirect('crm:company_detail', pk=activity.company.id)
     else:
         return redirect('crm:company_detail', pk=activity.company.id) 

@@ -45,12 +45,9 @@
   <div class="mb-3">
       <label for="call_outcome" class="form-label">Call Outcome</label>
       <select class="form-control" id="call_outcome" name="call_outcome" required>
-          <option value="completed" {% if activity_details.call_outcome == 'completed' %}selected{% endif %}>Completed</option>
-          <option value="left_message" {% if activity_details.call_outcome == 'left_message' %}selected{% endif %}>Left Message</option>
-          <option value="no_answer" {% if activity_details.call_outcome == 'no_answer' %}selected{% endif %}>No Answer</option>
-          <option value="busy" {% if activity_details.call_outcome == 'busy' %}selected{% endif %}>Busy</option>
-          <option value="wrong_number" {% if activity_details.call_outcome == 'wrong_number' %}selected{% endif %}>Wrong Number</option>
-          <option value="scheduled_callback" {% if activity_details.call_outcome == 'scheduled_callback' %}selected{% endif %}>Scheduled Callback</option>
+          {% for value, text in activity_details.CALL_OUTCOME_CHOICES %}
+            <option value="{{ value }}" {% if activity_details.call_outcome == value %}selected{% endif %}>{{ text }}</option>
+          {% endfor %}
       </select>
   </div>
   

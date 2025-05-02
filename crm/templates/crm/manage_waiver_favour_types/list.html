@@ -1,15 +1,15 @@
 {% extends 'accounts/admin/base_admin.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Manage Waiver & Favour Types{% endblock %}
+{% block title %}Manage SAF Types{% endblock %}
 
 {% block admin_content %}
 <div class="card">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="card-title mb-0">Manage Waiver & Favour Types</h5>
+            <h5 class="card-title mb-0">Manage SAF Types</h5>
             <a href="{% url 'crm:manage_waiver_favour_type_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Add New Type
+                <i class="fas fa-plus me-1"></i> Add New SAF Type
             </a>
         </div>
 
@@ -93,7 +93,7 @@
             {% endif %}
 
         {% else %}
-            <div class="alert alert-info">No waiver & favour types found. <a href="{% url 'crm:manage_waiver_favour_type_create' %}">Add the first one!</a></div>
+            <div class="alert alert-info">No SAF types found. <a href="{% url 'crm:manage_waiver_favour_type_create' %}">Add the first one!</a></div>
         {% endif %}
     </div> {# End card-body #}
 </div> {# End card #}

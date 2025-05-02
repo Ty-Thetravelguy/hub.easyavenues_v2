@@ -35,14 +35,7 @@
     
     <div class="mb-3">
         <label for="call_outcome" class="form-label">Call Outcome</label>
-        <select class="form-control" id="call_outcome" name="call_outcome" required>
-            <option value="completed">Completed</option>
-            <option value="left_message">Left Message</option>
-            <option value="no_answer">No Answer</option>
-            <option value="busy">Busy</option>
-            <option value="wrong_number">Wrong Number</option>
-            <option value="scheduled_callback">Scheduled Callback</option>
-        </select>
+        {{ form.call_outcome }}
     </div>
     
     <div class="form-check mb-3">

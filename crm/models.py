@@ -460,7 +460,7 @@ class Activity(models.Model):
         ('call', 'Call'),
         ('meeting', 'Meeting'),
         ('note', 'Note'),
-        ('waiver_favour', 'Waiver & Favour'),
+        ('waiver_favour', 'Savings, Allowances, Favours (SAF)'),
         ('task', 'Task'),
         ('document', 'Document Upload'),
         ('status_change', 'Status Change'),
@@ -473,6 +473,7 @@ class Activity(models.Model):
     description = models.TextField()
     performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     performed_at = models.DateTimeField(auto_now_add=True)
+    activity_datetime = models.DateTimeField(null=True, blank=True, help_text="Timestamp when the activity actually occurred")
     scheduled_for = models.DateTimeField(null=True, blank=True)
     outcome = models.TextField(blank=True)
     follow_up_date = models.DateField(null=True, blank=True)
@@ -564,15 +565,27 @@ class CallActivity(Activity):
     """
     Model for phone call activities.
     """
-    call_type = models.CharField(max_length=50, choices=[
+    CALL_TYPE_CHOICES=[
         ('Inbound', 'Inbound'),
         ('Outbound', 'Outbound'),
         ('Missed', 'Missed'),
         ('Voicemail', 'Voicemail')
-    ])
+    ]
+    call_type = models.CharField(max_length=50, choices=CALL_TYPE_CHOICES)
+    
+    CALL_OUTCOME_CHOICES = [
+        ('completed', 'Completed'),
+        ('left_message', 'Left Message'),
+        ('no_answer', 'No Answer'),
+        ('busy', 'Busy'),
+        ('wrong_number', 'Wrong Number'),
+        ('scheduled_callback', 'Scheduled Callback'),
+        ('', '---------')
+    ]
+    
     duration = models.IntegerField(help_text='Duration in minutes')
     summary = models.TextField()
-    call_outcome = models.CharField(max_length=255, null=True, blank=True)
+    call_outcome = models.CharField(max_length=255, choices=CALL_OUTCOME_CHOICES, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Call Activity'
@@ -689,9 +702,18 @@ class WaiverActivity(Activity):
     """
     Model for waiver/favour activities.
     """
+    SAF_TYPE_CHOICES = (
+        ('Savings', 'Savings'),
+        ('Allowances', 'Allowances'),
+        ('Favours', 'Favours'),
+    )
+    saf_type = models.CharField(max_length=20, choices=SAF_TYPE_CHOICES, blank=False, null=False, default='Savings')
+
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     reason = models.TextField(blank=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_waivers')
+    
+    is_missed_saving = models.BooleanField(default=False, null=True, blank=True)
     
     # Added M2M for contacts
     contacts = models.ManyToManyField(
@@ -715,8 +737,8 @@ class WaiverActivity(Activity):
         super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name = "Waiver & Favour Activity"
-        verbose_name_plural = "Waiver & Favour Activities"
+        verbose_name = "SAF Activity"
+        verbose_name_plural = "SAF Activities"
 
 class TaskActivity(Activity):
     """
@@ -914,8 +936,8 @@ class WaiverFavourType(models.Model):
 
     class Meta:
         ordering = ['name']
-        verbose_name = "Waiver & Favour Type"
-        verbose_name_plural = "Waiver & Favour Types"
+        verbose_name = "SAF Type"
+        verbose_name_plural = "SAF Types"
 
     def __str__(self):
         return self.name
