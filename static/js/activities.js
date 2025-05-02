@@ -1448,7 +1448,8 @@ function initializeDateTimePickers(form) {
                         dateFormat: "Y-m-d",
                         altInput: true,
                         altFormat: "F j, Y", // More user-friendly display format
-                        allowInput: true // Allows manual typing if needed
+                        allowInput: true, // Allows manual typing if needed
+                        defaultDate: input.value // Explicitly set default date from input's value
                     });
                     console.log(`     ✅ Flatpickr DATE initialized for: #${input.id || input.name || 'no-id'}`);
                 } else {

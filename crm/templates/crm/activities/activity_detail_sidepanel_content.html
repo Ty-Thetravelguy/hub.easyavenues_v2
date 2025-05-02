@@ -326,18 +326,12 @@
                 <div class="col-md-9">{{ activity_details.activity_datetime|date:"M d, Y, H:i"|default:"(Not specified)" }}</div>
             </div>
             <div class="row mb-2">
+              <div class="col-md-3 fw-bold">Duration:</div>
+              <div class="col-md-9">{{ activity_details.duration }} minutes</div>
+            </div>
+            <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Call Purpose:</div>
                 <div class="col-md-9">{{ activity_details.summary|default:"(No purpose specified)" }}</div>
-            </div>
-
-            <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Call Outcome:</div>
-                <div class="col-md-9">{{ activity_details.get_call_outcome_display|default:"(No outcome recorded)" }}</div>
-            </div>
-
-            <div class="row mb-2">
-                <div class="col-md-3 fw-bold">Duration:</div>
-                <div class="col-md-9">{{ activity_details.duration }} minutes</div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-3 fw-bold">Call Summary:</div>

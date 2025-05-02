@@ -28,12 +28,12 @@
       <div class="col-sm-6">
           <label for="call_date" class="form-label">Date</label>
           <input type="text" class="form-control" id="call_date" name="date" 
-                 value="{{ activity.performed_at|date:'Y-m-d' }}" required data-datepicker>
+                 value="{{ activity_details.activity_datetime|date:'Y-m-d' }}" required data-datepicker>
       </div>
       <div class="col-sm-3">
           <label for="call_time" class="form-label">Time</label>
           <input type="text" class="form-control" id="call_time" name="time" 
-                 value="{{ activity.performed_at|date:'H:i' }}" required data-timepicker>
+                 value="{{ activity_details.activity_datetime|date:'H:i' }}" required data-timepicker>
       </div>
       <div class="col-sm-3">
           <label for="call_duration" class="form-label">Duration (min)</label>
